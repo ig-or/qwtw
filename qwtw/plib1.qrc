@@ -1,0 +1,49 @@
+<!DOCTYPE RCC><RCC version="1.0">
+  <qresource prefix="/icons" >
+    <file>../img/arrow.png</file>
+    <file>../img/binokl.png</file>
+    <file>../img/box.png</file>
+    <file>../img/cansel1.png</file>
+    <file>../img/check1.png</file>
+    <file>../img/filecell.png</file>
+    <file>../img/fileopen.png</file>
+    <file>../img/filledmesh.png</file>
+    <file>../img/floordata.png</file>
+    <file>../img/floorempty.png</file>
+    <file>../img/floppy.png</file>
+    <file>../img/flooriso.png</file>
+    <file>../img/floormesh.png</file>
+    <file>../img/frame.png</file>
+    <file>../img/g4_2.png</file>
+    <file>../img/grid.png</file>
+    <file>../img/gridb.png</file>
+    <file>../img/gridc.png</file>
+    <file>../img/gridf.png</file>
+    <file>../img/gridfr.png</file>
+    <file>../img/gridl.png</file>
+    <file>../img/gridr.png</file>
+    <file>../img/hiddenline.png</file>
+    <file>../img/icon.png</file>
+    <file>../img/movie.png</file>
+    <file>../img/nodata.png</file>
+    <file>../img/none.png</file>
+    <file>../img/normals.png</file>
+    <file>../img/pan.png</file>
+    <file>../img/polygon.png</file>
+    <file>../img/qwtplot.png</file>
+    <file>../img/save1.png</file>
+    <file>../img/savecontent.png</file>
+    <file>../img/scattered.png</file>
+    <file>../img/wireframe.png</file>
+    <file>../img/work1.png</file>
+    <file>../img/work.png</file>
+    <file>../img/zoom.png</file>
+    <file>../img/thunderstorm-icon.png</file>
+  </qresource>
+  <qresource prefix="cursors" >
+    <file>hmove.cur</file>
+  </qresource>
+  <qresource prefix="/qt/etc" >
+    <file>qt.conf</file>
+  </qresource>
+</RCC>
