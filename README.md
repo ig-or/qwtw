@@ -22,8 +22,23 @@ how to install it:
 ==========================
 Currently, works only for Windows x64. 
 
-## Windows installation instructions:
+### Windows installation instructions:
 
+#### short instructions
+
+`vcpkg install  --triplet x64-windows qwtw`
+
+#### long instructions
+ * install `vcpkg` if you have not done it already:
+ ```
+ git clone https://github.com/microsoft/vcpkg.git
+ cd vcpkg
+ bootstrap-vcpkg.bat
+ ```
+ * `vcpkg install --triplet x64-windows qwtw`
+ * wait for some time. in case "install from zero" it will download and build a few libraries and thier dependencies. Main libraries: QT, BOOST, QWT, Marble. This can take some time. 
+ * `add <VCPKG_ROOT>/installed/x64-windows/bin` to `PATH`, if you need all those QT-related libraries be in your path. Be careful with this.
+ * add `VCPKG_ROOT` environment variable, pointing to vcpkg.exe path. This is really helpful.
 
 
 ## Linux installation instructions (not working yet, anyway.. will eventually make all this work via vcpkg)
