@@ -44,6 +44,7 @@ SQWLineItem::SQWLineItem(int level_, SQWLine* line_, double x1_, double x2_, dou
 }
 
 SQWLineItem::~SQWLineItem() {
+	segments.clear();
 	if (level != line->maxLevel) {
 		delete low[0][0];
 		delete low[0][1];
@@ -59,11 +60,11 @@ void SQWLineItem::addPoint(size_t i) {
 		i2 = i;
 	} else {  //   start of saving
 		if (i == (i2 + 1)) {  //  continue this line segment:
-			i2++;
+			++i2;
 		} else { //  start of next segment
 			//  finish previous segment:
-			LineSegment ls(i1, i2);
-			segments.push_back(ls);
+			//LineSegment ls(i1, i2);
+			segments.push_back(LineSegment(i1, i2));
 
 			//  start a new one:
 			i1 = i;
@@ -73,14 +74,14 @@ void SQWLineItem::addPoint(size_t i) {
 
 	// feed the child:
 	if (level != line->maxLevel) {
-		if (line->x[i] < cx) {
-			if (line->y[i] < cy) {
+		if (line->x[i] <= cx) {
+			if (line->y[i] <= cy) {
 				low[0][0]->addPoint(i);
 			} else {
 				low[1][0]->addPoint(i);
 			}
 		} else {
-			if (line->y[i] < cy) {
+			if (line->y[i] <= cy) {
 				low[0][1]->addPoint(i);
 			} else {
 				low[1][1]->addPoint(i);
@@ -91,8 +92,8 @@ void SQWLineItem::addPoint(size_t i) {
 
 void SQWLineItem::polish() {
 	if (!empty) {
-		LineSegment ls(i1, i2);
-		segments.push_back(ls);
+		//LineSegment ls(i1, i2);
+		segments.push_back(LineSegment(i1, i2));
 
 		if (level != line->maxLevel) {
 			low[0][0]->polish(); 		low[0][1]->polish(); 
@@ -102,7 +103,11 @@ void SQWLineItem::polish() {
 }
 
 size_t SQWLineItem::findClosestPoint(double xx, double yy, double& distance) {
+	size_t i, ret = 0xffffffff;
 	mxassert(!empty, "");
+	if (empty) { //  not supposed to happen?
+		return ret;
+	}
 	double md1;
 	distance =  sqr(xx - x1) + sqr(yy - y1);
 	if ((md1 = sqr(xx - x1) + sqr(yy - y2)) > distance) {
@@ -114,8 +119,9 @@ size_t SQWLineItem::findClosestPoint(double xx, double yy, double& distance) {
 	if ((md1 = sqr(xx - x2) + sqr(yy - y2)) > distance) {
 		distance = md1;
 	}
+	distance *= 10.0;  // adding some magic here
 	std::list<LineSegment>::iterator it = segments.begin();
-	size_t i, ret = 0xffffffff;
+	
 	while (it != segments.end()) {
 		for (i = it->i1; i <= it->i2; i++) {
 			if ((md1 = sqr(xx - line->x[i]) + sqr(yy - line->y[i])) < distance) {
@@ -125,13 +131,14 @@ size_t SQWLineItem::findClosestPoint(double xx, double yy, double& distance) {
 		}
 		it++;
 	}
+	mxat(ret != 0xffffffff);
 	return ret;
 }
 
 
 SQWLine::SQWLine(int maxLevel_) : maxLevel(maxLevel_), 	sqw(0), low(0)	{
 	x = 0; y = 0; w = 0;
-	nn = 1 << maxLevel;
+	nn = 1 << maxLevel; // maxLevel = 5, nn=  32 
 }
 
 SQWLine::~SQWLine() {
@@ -150,9 +157,9 @@ void SQWLine::onLine(double* x_, double* y_, size_t w_) {
 
 	//  find min and max;
 	x1 = x[0];
-	x2 = x[w-1];
+	x2 = x[0];
 	y1 = y[0];
-	y2 = y[w-1];
+	y2 = y[0];
 	size_t i;
 	for (i = 1; i < w; i++) {
 		if (x1 > x[i]) x1 = x[i];
@@ -162,14 +169,15 @@ void SQWLine::onLine(double* x_, double* y_, size_t w_) {
 	}
 
 	if((x2 - x1) <= DELTA_ZERO_1) {
-	    mxassert(false, "SQWLine::onLine: empty line #1");
+	    //mxassert(false, "SQWLine::onLine: empty line #1");
+		xm_printf("line has zero width\n");
 	    return;
 	}
 	if((y2 - y1) <= DELTA_ZERO_1) {
-	    mxassert(false, "SQWLine::onLine: empty line #2");
+	    //mxassert(false, "SQWLine::onLine: empty line #2");
+		xm_printf("line has zero height\n");
 	    return;
 	}
-
 
 	//  remove old info:
 	if (sqw != 0) {
@@ -178,8 +186,8 @@ void SQWLine::onLine(double* x_, double* y_, size_t w_) {
 	if (low != 0) { 
 		delete low; 
 	}
-	dx = (x2 - x1) / nn;
-	dy = (y2 - y1) / nn;
+	dx = (x2 - x1) / ((double)(nn));
+	dy = (y2 - y1) / ((double)(nn));
 
 	low = new SQWLineItem*[nn*nn];
 	memset(low, 0, sizeof(SQWLineItem*) * nn * nn);
@@ -192,6 +200,10 @@ void SQWLine::onLine(double* x_, double* y_, size_t w_) {
 		sqw->addPoint(i);
 	}
 	sqw->polish();
+
+	for (int i = 0; i < nn * nn; ++i) { //  just to ckeck:
+		mxat(low[i] != 0);
+	}
 }
 
 void SQWLine::addLowLevelItem(double cx, double cy, SQWLineItem* item) {
@@ -217,7 +229,8 @@ size_t SQWLine::findClosestPoint(double xx, double yy) {
 	}
 
 	//  find max distance:
-	double md =  sqr(xx - x1) + sqr(yy - y1), md1;
+	double md = sqr(xx - x1) + sqr(yy - y1);
+	double  md1;
 	if ((md1 = sqr(xx - x1) + sqr(yy - y2)) > md) {
 		md = md1;
 	}
@@ -227,6 +240,7 @@ size_t SQWLine::findClosestPoint(double xx, double yy) {
 	if ((md1 = sqr(xx - x2) + sqr(yy - y2)) > md) {
 		md = md1;
 	}
+	md *= 1.6;  //  add some magic here
 	cDistance = md;
 
 	double r = 0., f, df, cx, cy;
@@ -250,9 +264,11 @@ size_t SQWLine::findClosestPoint(double xx, double yy) {
 			low[i + nn*j]->checked = true;
 
 			iTest = low[i + nn*j]->findClosestPoint(xx, yy, md1);
-			if (md1 < cDistance) {
-				cDistance = md1;
-				ii = iTest;
+			if (iTest != 0xffffffff) {
+				if (md1 < cDistance) {
+					cDistance = md1;
+					ii = iTest;
+				}
 			}
 		}
 		r += ds;

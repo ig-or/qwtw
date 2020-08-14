@@ -121,7 +121,7 @@ long long fcp(LineItemInfo* i, double x, double y) {
 	if (i->mode == 3) {
 		mxat(i->sqwLine != 0);
 		ret = i->sqwLine->findClosestPoint(x, y);
-		mxat(ret < 0xffffffff);
+		//mxat(ret < 0xffffffff);
 	} else {
 		ret = findClosestPoint_1(0, i->size - 1, i->x, x);
 	}

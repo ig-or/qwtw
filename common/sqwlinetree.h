@@ -58,8 +58,8 @@ public:
 	*/
 	size_t findClosestPoint(double xx, double yy, double& distance);
 private:
-	size_t i1;
-	size_t i2;
+	size_t i1; ///< first index of the current line segment	
+	size_t i2; ///< last index of the current line segment
 };
 
 /** an object for line handling (line preprocessor)
@@ -89,10 +89,11 @@ private:
 	SQWLineItem** low;  ///< low level items
 
 	// our line:
-	double* x;
-	double* y;
-	size_t	w;
+	double* x; ///< info about the line
+	double* y; ///< info about the line
+	size_t	w; ///< size of the x and y
 
+	///  this is the bounding box
 	double x1, x2, y1, y2;
 	double dx, dy;  ///< sides of the small squares
 	void addLowLevelItem(double cx, double cy, SQWLineItem* item);
