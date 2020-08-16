@@ -31,6 +31,11 @@
 #include <QtCore/QIODevice>
 #include <QBrush> 
 #include <QToolButton>
+
+#include <QDebug>
+#include <QtNetwork/qssl.h>
+#include <QtNetwork/qsslsocket.h>
+
 //#include <marble/global.h>
 
 
@@ -88,6 +93,14 @@ private:
 
 MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 	maxLat = 0; maxLon = 0; minLat = 0; minLon = 0;
+	bool haveSSL = QSslSocket::supportsSsl();
+
+	xm_printf("MWidgetEx ssl info: build version = %s, supports = %s,  lib version =  %s\n", 
+		QSslSocket::sslLibraryBuildVersionString().toUtf8().constData(), 
+		haveSSL ? "yes" : "no",
+		QSslSocket::sslLibraryVersionString().toUtf8().constData());
+	xm_printf("ERROR: looks like SSL not working; no maps will be downloaded\n");
+
 }
 
 void MWidgetEx::addLine(LineItemInfo* line) {
@@ -294,7 +307,7 @@ void MWidgetEx::drawMarker(double t) {
 
 		i->ma.coord = (*i->geo)[index];
 	}
-	
+	 
 	update();
 }
 
