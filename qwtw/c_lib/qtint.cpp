@@ -679,7 +679,8 @@ void startQt2Thread() {
 #else
 			setenv("PATH", env_p1.c_str(), 1);
 #endif
-			xm_printf("%s added to the PATH\n", vcpkg_path);
+			//xm_printf("%s added to the PATH\n", vcpkg_path);
+
 			//xm_printf("\nPATH =  %s\n\n", std::getenv("PATH"));
 
 			//wchar_t wtmp[4096];

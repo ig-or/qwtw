@@ -42,7 +42,7 @@ macro (setPlatformName)
 		message(STATUS "MSVC_CXX_ARCHITECTURE_ID = ${MSVC_CXX_ARCHITECTURE_ID}")
 		message(STATUS "CMAKE_CL_64 = ${CMAKE_CL_64}")
 		set(vs2017_versions "1910" "1911" "1912" "1915" "1916")
-		set(vs2019_versions "1920" "1921" "1922" "1923" "1924" "1925" "1926")
+		set(vs2019_versions "1920" "1921" "1922" "1923" "1924") # "1925" "1926")
 	
 		if (MSVC_VERSION STREQUAL 1600) # VS 2010 
 			if (CMAKE_CL_64) # Using the 64 bit compiler from Microsoft
@@ -87,7 +87,9 @@ macro (setPlatformName)
 
 
 		else()
-			message(FATAL_ERROR " this Visual Studio version ${MSVC_VERSION} look like not supported yet")
+			#message(FATAL_ERROR " this Visual Studio version ${MSVC_VERSION} look like not supported yet")
+			set(ourPlatform win32_build)
+			set (ourLibSuffix lib_win32_build)
 		endif()
 	else()
 		message ( FATAL_ERROR " platform not supported " )
