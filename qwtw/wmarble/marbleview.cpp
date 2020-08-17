@@ -95,11 +95,14 @@ MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 	maxLat = 0; maxLon = 0; minLat = 0; minLon = 0;
 	bool haveSSL = QSslSocket::supportsSsl();
 
-	xm_printf("MWidgetEx ssl info: build version = %s, supports = %s,  lib version =  %s\n", 
-		QSslSocket::sslLibraryBuildVersionString().toUtf8().constData(), 
-		haveSSL ? "yes" : "no",
-		QSslSocket::sslLibraryVersionString().toUtf8().constData());
-	xm_printf("ERROR: looks like SSL not working; no maps will be downloaded\n");
+	if (!haveSSL) {
+		xm_printf("ERROR: looks like SSL not working; no maps will be downloaded\n");
+		xm_printf("MWidgetEx ssl info: build version = %s, supports = %s,  lib version =  %s\n",
+			QSslSocket::sslLibraryBuildVersionString().toUtf8().constData(),
+			haveSSL ? "yes" : "no",
+			QSslSocket::sslLibraryVersionString().toUtf8().constData());
+
+	}
 
 }
 

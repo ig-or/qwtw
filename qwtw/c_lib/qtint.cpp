@@ -8,12 +8,18 @@
 #include "xmutils.h"
 #include "sfigure.h"
 #include <boost/thread.hpp>
+#include <boost/filesystem.hpp>
 #include <QApplication>
 #include <thread>
 #include <chrono>
+#include <cstdlib>
 
 #include <mutex>
 #include <condition_variable>
+#include <locale>
+#include <codecvt>
+#include <string>
+
 
 // ################################################################
 // ################################################################
@@ -23,6 +29,7 @@
 #include <Windows.h>
 HMODULE qwtwLibModule = 0;
 #endif
+#include <stdlib.h>
 
 
 
@@ -586,6 +593,7 @@ Q_INVOKABLE void Worker::qwtplotImpl(double* x, double* y, int size, const char*
 
 Q_INVOKABLE int Worker::qtstartImpl() {
 	if (pf == nullptr) {
+		//xm_printf("PATH inside qtstartImpl: %s\n\n", std::getenv("PATH"));
 		pf = new XQPlots();
 		if (pf == nullptr) { //  fail
 			std::cout << " error qtstartImpl: (pf == nullptr)" << std::endl;
@@ -641,6 +649,48 @@ void startQt2Thread() {
 		argv[1] = 0;
 	}
 
+	if (qwtwLibModule == 0) {
+		xm_printf("qwtwLibModule == 0\n");
+	} 	else {
+		char dllPath[MAX_PATH];
+		DWORD dw = GetModuleFileNameA((HMODULE)(qwtwLibModule), dllPath, MAX_PATH);
+		dllPath[MAX_PATH - 1] = 0; dllPath[MAX_PATH - 2] = 0;
+		xm_printf("qwtw started by %s from %s\n", argv0, dllPath);
+
+		// lets adjust PATH a little bit at thsi point:
+		const char* env_p = std::getenv("PATH");
+		using namespace boost::filesystem;
+		std::string e = (path(dllPath)).parent_path().string();
+		const char* vcpkg_path = e.c_str();
+		if (strstr(env_p, vcpkg_path)) {
+			xm_printf("PATH looks like already OK\n");
+		} else {
+			std::string env_p1 = e + ";" + env_p;
+#ifdef WIN32
+			//std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+			//std::wstring wide = converter.from_bytes(env_p1);
+			//BOOL test1 = SetEnvironmentVariable(L"PATH", wide.c_str());
+			//if (!test1) {
+			//	DWORD test2 = GetLastError();
+			//	xm_printf("can not change PATH (error %d) \n\n", test2);
+			//}
+
+			_putenv_s("PATH", env_p1.c_str());
+#else
+			setenv("PATH", env_p1.c_str(), 1);
+#endif
+			xm_printf("%s added to the PATH\n", vcpkg_path);
+			//xm_printf("\nPATH =  %s\n\n", std::getenv("PATH"));
+
+			//wchar_t wtmp[4096];
+			//GetEnvironmentVariable(L"PATH", wtmp, 4096);
+			//std::string tmp = converter.to_bytes(std::wstring(wtmp));
+			//xm_printf("\none more PATH = %s\n\n", tmp.c_str());
+		}
+		
+
+	}
+
 	// http://habrahabr.ru/post/188816/ :
 	QStringList paths = QCoreApplication::libraryPaths();
 	paths.append(".");
@@ -659,6 +709,7 @@ void startQt2Thread() {
 	q2_loading_mutex.lock();
 	if (!qApp) {
 		//QApplication app(argc, &argv);
+//		xm_printf("PATH before new QApplication: %s\n\n", std::getenv("PATH"));
 		qt2App = new QApplication(argc, argv);
 		//QApplication app(argc, &argv);
 		//qt2App = &app;
@@ -739,6 +790,16 @@ extern "C" {
 		}
 		//  now lets wait for the internal QT message loop to start:
 		int u = q2worker->qtstart(true);
+
+		//if (const char* env_p = std::getenv("PATH")) {
+		//	xm_printf("qwtw started already; PATH = %s\n\n", env_p);
+		//}
+		//std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+		//wchar_t wtmp[4096];
+		//GetEnvironmentVariable(L"PATH", wtmp, 4096);
+		//std::string tmp = converter.to_bytes(std::wstring(wtmp));
+		//xm_printf("\n  one more PATH #3: %s\n\n", tmp.c_str());
+
 		return u;
 	}
 
