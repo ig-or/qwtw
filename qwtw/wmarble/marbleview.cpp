@@ -306,6 +306,7 @@ void MWidgetEx::drawMarker(double t) {
 		long long index = 0;
 		//printf("findClosestPoint_1 failed; siae = %u; time = %u, t = %f\n",
 		//	i->info->size, i->info->time, t);
+		mxat(i->info->size > 0);
 		index = findClosestPoint_1(0, i->info->size - 1, i->info->time, t);
 
 		i->ma.coord = (*i->geo)[index];

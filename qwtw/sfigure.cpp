@@ -471,6 +471,7 @@ Q_INVOKABLE void XQPlots::drawAllMarkers(double t) {
 
 #ifdef ENABLE_UDP_SYNC
 	if (broadCastInfo != 0) {
+		mxat(broadCastInfo->size > 0);
 		long long i = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, t);
 		broadCastInfo->ma.index = i; 
 		if ((i >= 0) && (i < broadCastInfo->size)) {

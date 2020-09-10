@@ -742,6 +742,7 @@ void Figure2::onTbFFT() {
 	for (it = selected.begin(); it != selected.end(); it++) {
 		LineItemInfo* info = (*it)->info;
 		// 1. get start and end indexes: use only visible part
+		mxat(info->size > 0);
 		size_t ix1 = findClosestPoint_1(0, info->size - 1, info->x, x1);
 		size_t ix2 = findClosestPoint_1(0, info->size - 1, info->x, x2);
 
@@ -984,8 +985,9 @@ void Figure2::onClip(double t1, double t2) {
 			//  bounds check:
 			if (i->x[0] > t2) continue;
 			if (i->x[i->size-1] < t1) continue;
-		
+			mxat(i->size > 0);
 			long long x1 = findClosestPoint_1(0, i->size - 1, i->x, t1);
+			mxat(i->size > x1);
 			long long x2 = findClosestPoint_1(x1, i->size - 1, i->x, t2);
 			for (long long k = x1; k < x2; k++) {
 				if (yMax < i->y[k]) { yMax = i->y[k]; 	}
@@ -997,7 +999,9 @@ void Figure2::onClip(double t1, double t2) {
 				mxat(false);
 				continue;
 			}
+			mxat(i->size > 0);
 			long long i1 = findClosestPoint_1(0, i->size - 1, i->time, t1);
+			mxat(i->size > i1);
 			long long i2 = findClosestPoint_1(i1, i->size - 1, i->time, t2);
 
 			for (long long k = i1; k < i2; k++) {

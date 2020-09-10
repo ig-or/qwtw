@@ -123,6 +123,7 @@ long long fcp(LineItemInfo* i, double x, double y) {
 		ret = i->sqwLine->findClosestPoint(x, y);
 		//mxat(ret < 0xffffffff);
 	} else {
+		mxat(i->size > 0);
 		ret = findClosestPoint_1(0, i->size - 1, i->x, x);
 	}
 	return ret;
@@ -204,10 +205,12 @@ void JustAplot::makeMarkersVisible(bool visible) {
 		 switch (i->mode) {
 			 case 1:
 			 case 2:
+				 mxat(i->size > 0);
 				 i->ma.index = findClosestPoint_1(0, i->size - 1, i->x, t);
 
 				 break;
 			 case 3:
+				 mxat(i->size > 0);
 				 i->ma.index = findClosestPoint_1(0, i->size - 1, i->time, t);
 
 				 break;
