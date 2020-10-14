@@ -949,7 +949,7 @@ macro (commonEnd   libType)
 		#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  /wd \\\"4267\\\" /wd\\\"4996\\\"     ")
 	endif()
 	if (UNIX)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17 ")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")  #-std=c++17 ")
 		add_definitions(-DLIN_UX -DUNIX)
 	endif()
 	

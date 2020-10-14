@@ -424,7 +424,7 @@ static std::thread qt2Thread;
 static QPointer<QApplication> qt2App = nullptr;
 static std::condition_variable q2_loading_cv;
 static std::mutex q2_loading_mutex;
-std::atomic<int> q2_started = 0;
+std::atomic<int> q2_started(0);
 
 Worker::Worker(): pf(nullptr) {
 	/*hello();*/ 
