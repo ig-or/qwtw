@@ -209,7 +209,7 @@ macro (addQT)
 	# Find the Qt library
 	if (NOT QT5_LIBRARIES_MINE)
 		message(STATUS "adding QT5 library for ${PROJECT_NAME} (platform ${ourPlatform})")
-		find_package(Qt5 REQUIRED COMPONENTS Core Gui OpenGL Widgets NetworkAuth)
+		find_package(Qt5 REQUIRED COMPONENTS Core Gui OpenGL Widgets) # NetworkAuth)
 		#find_package(Qt5NetworkAuth  REQUIRED)
 		set (QT5_LIBRARIES_MINE YES)
 	endif()
