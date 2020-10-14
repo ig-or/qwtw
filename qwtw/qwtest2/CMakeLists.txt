@@ -15,11 +15,17 @@ set(NO_VERSION_INFO 1)
 set(INC_DIR_LIST "../" "../c_lib"  "../../../common" "../../../xmatrix2" )
 	
 addSourceFiles("source" "../" qwtest2)	
-addOtherLib("dl")
+if(UNIX)
+    addOtherLib("dl")
+    addOtherLib("rt")
+endif()
 programEnd()
 
-#install(TARGETS qwtest2   DESTINATION bin)
-install (TARGETS ${PROJECT_NAME} RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/qwtw)
+if (VCPKG_EXISTS)
+    install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/qwtw)
+else()
+    install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+endif()
 
 # ========================================================
 

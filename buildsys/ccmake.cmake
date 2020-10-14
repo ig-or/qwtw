@@ -847,6 +847,14 @@ macro (commonEnd   libType)
 	endif()
 	set(src_cur_dir ${CMAKE_CURRENT_SOURCE_DIR})
 
+	if (UNIX)
+		set(CMAKE_CXX_STANDARD 14)
+		set(CMAKE_CXX_STANDARD_REQUIRED ON)
+		set(CMAKE_CXX_EXTENSIONS OFF)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -std=gnu++14 ") 
+		add_definitions(-DLIN_UX -DUNIX)
+	endif()
+
 	if(${libType} STREQUAL EXE)
 		set(win32_using)
 		if (WIN32 AND now_using_QT)
@@ -947,10 +955,6 @@ macro (commonEnd   libType)
 		#endforeach()
 		
 		#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  /wd \\\"4267\\\" /wd\\\"4996\\\"     ")
-	endif()
-	if (UNIX)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ")  #-std=c++17 ")
-		add_definitions(-DLIN_UX -DUNIX)
 	endif()
 	
 	#SET_TARGET_PROPERTIES( ${PROJECT_NAME}

@@ -136,6 +136,8 @@ if(WIN32)
 else()
 	add_definitions(-DLIN_UX)
 	addQWTLinux()
+	addOtherLib("rt")
+	addOtherLib("dl")
 	message("LIB_LIST: "  ${LIB_LIST})
 endif()
 libraryEnd(SHARED)
@@ -153,12 +155,13 @@ elseif(APPLE)
   # not supported
 else()
   install(TARGETS ${PROJECT_NAME}
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION  ${CMAKE_INSTALL_PREFIX}/lib  #${CMAKE_INSTALL_LIBDIR}
   )
 endif()
 
 INSTALL(FILES
     qwtw.h    
-	DESTINATION  include  CONFIGURATIONS Release 
+	DESTINATION  ${CMAKE_INSTALL_PREFIX}/include  # include  
+	CONFIGURATIONS Release 
 )
 

@@ -21,8 +21,17 @@ add_definitions(-DUNICODE -D_UNICODE) # -DUSE_QT3D )
 list(APPEND ${L_LIST} qwtw)
 list(APPEND INC_DIR_LIST "../c_lib")
 
+if(UNIX)
+    addOtherLib("dl")
+    addOtherLib("rt")
+endif()
+
 programEnd()
-install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/qwtw)
+if (VCPKG_EXISTS)
+    install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/qwtw)
+else()
+    install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+endif()
 
 # ========================================================
 
