@@ -145,7 +145,7 @@ int xqversion(char* vstr, int bufSize) {
 	}
 #ifdef WITH_VERSION_INFO
 	#if defined(_MSC_VER) && _MSC_VER < 1900
-		int bs = sprintf_s(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
+		int bs = snprintf(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
 			XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
 			GIT_INFO);
 	#else
@@ -154,7 +154,7 @@ int xqversion(char* vstr, int bufSize) {
 			GIT_INFO);
 	#endif
 #else // no version info
-	int bs = sprintf_s(vstr, bufSize, "\nbuilt without version info support\n");
+	int bs = snprintf(vstr, bufSize, "\nbuilt without version info support\n");
 #endif
 		vstr[bufSize - 1] = 0;
 		vstr[bufSize - 2] = 0;
@@ -198,12 +198,14 @@ void getExeFilePath(char* path, int pathSize) {
     #ifdef LIN_UX
          int len = readlink("/proc/self/exe", path, pathSize);
 		 path[len] = 0;
+		 /*
 		 char* p = strrchr(path, '/');
 		 if(p)  { 
 			 *(p + 1) = 0;
 		 } 	 else {
 			 path[0] = 0;
 		 }
+		 */
 	#elif defined(WIN32)
 #if 1
 		//TCHAR pa[_MAX_PATH];

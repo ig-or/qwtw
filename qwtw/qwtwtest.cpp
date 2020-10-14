@@ -8,7 +8,9 @@
 #include "stdlib.h"
 #include <iostream>
 #include <math.h>
-#include <conio.h>
+#ifdef WIN32
+	#include <conio.h>
+#endif
 
 //   our data arrays below:
 const int n1 = 24;
@@ -108,7 +110,13 @@ end:;
 		
 
 	std::cout << "press a key to close the DLL:" << std::endl;
-	int  ch = getch();
+	int  ch;
+	#ifdef WIN32
+	ch = getch();
+	#else
+	std::cin >> ch;
+	#endif
+
 
 
 	delete[] x_sinusData_2;

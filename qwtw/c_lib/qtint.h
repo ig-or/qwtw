@@ -20,7 +20,9 @@ class Worker : public QObject {
 	Q_INVOKABLE void helloImpl() { std::cout << "I'm alive." << std::endl; }
 	Q_INVOKABLE int qtstartImpl();
 	Q_INVOKABLE void qwtshowmwImpl();
+#ifdef USEMARBLE
 	Q_INVOKABLE int topviewImpl(int n);
+#endif
 	Q_INVOKABLE int qwttitleImpl(const char* s);
 	Q_INVOKABLE int qwtplot2Impl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time);
 	Q_INVOKABLE void qwtEnableCoordBroadcastImpl(double* x, double* y, double* z, double* time, int size);

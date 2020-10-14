@@ -6,15 +6,24 @@
 #include "stdlib.h"
 #include <iostream>
 #include <math.h>
-#include <conio.h>
+ 
+#ifdef WIN32
+	#include <conio.h>
+	#include <Shlobj.h>
+	#include <tchar.h>
+#else
+	#include <sys/types.h>
+	#include <dlfcn.h>
+#endif
 
 #include <iomanip>
 #include <locale>
 #include <codecvt>
 #include <sstream>
 #include <string>
-#include <Shlobj.h>
-#include <tchar.h>
+#include <chrono>
+#include <thread>
+
 #include "boost/filesystem.hpp"
 
 
@@ -73,27 +82,41 @@ int main(int argc, char* argv[]) {
 }
 
 //  the library instance
-static volatile  HINSTANCE hQWTW_DLL = 0;
+//static volatile  HINSTANCE hQWTW_DLL = 0;
 
 void test(int n) {
 	printf("\n\n\ndoing the test # %d\n", n);
-	Sleep(500);
+	std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
 	//  where our EXE is located? lets find out
-	TCHAR buf[MAX_PATH];
 	std::string exeFileName;
+	#ifdef WIN32
+	TCHAR buf[MAX_PATH];
 	int ok = GetModuleFileName(0, buf, MAX_PATH);
 	if (ok == 0) { // and what?
 		std::cout << "TRACE:  GetModuleFileName failed  " << std::endl;
 		return;
 	} 
 	exeFileName = buf;
+	#else
+		char arg1[32];
+		char exepath[2014] = {0};
+		sprintf( arg1, "/proc/%d/exe", getpid() );
+		int test = readlink( arg1, exepath, 1020 );
+		if (test > 0) {
+			exeFileName.assign(exepath);
+		} else {
+			exeFileName = "/home";
+		}
+	#endif
 	std::cout << "exeFileName = " << exeFileName << std::endl;
 
 	using namespace boost::filesystem;
 
 	//  at first, lets load the library form the same folder
 	path p = ((path)(exeFileName)).parent_path();
+
+	#ifdef WIN32
 #ifdef DEBUG123
 	std::string qwtw_name = "qwtwd.dll";
 #else
@@ -126,21 +149,42 @@ void test(int n) {
 	}	else {
 		std::cout << "library loaded! " << std::endl;
 	}
+	#else
+ 		void *lib_handle;
+		#ifdef DEBUG123
+		std::string qwtw_name = "libqwtwd.so";
+		#else
+		std::string qwtw_name = "libqwtw.so";
+		#endif
+		std::string qwtwPath = (p / qwtw_name).string();
+		lib_handle = dlopen(qwtwPath.c_str(), RTLD_LAZY);
+		if (!lib_handle)	   {
+			printf("can not load library from %s: %s;   trying another way..\n", qwtwPath.c_str(), dlerror());
+			lib_handle = dlopen(qwtw_name.c_str(), RTLD_LAZY);
+			if (!lib_handle)	   {
+				printf("can not load library %s: %s\n", qwtw_name.c_str(), dlerror());
+				exit(1);
+			} else {
+				printf("%s loaded \n", qwtw_name.c_str());
+			}
+	   } else {
+		   printf("%s loaded \n", qwtwPath.c_str());
+	   }
+	#endif
 
 	//  some of the function prototypes are below:
 	typedef void(*pQSimple)();
 	typedef void(*pQSimple1)(int);
-	typedef void(*pQSimple2)(char*);
+	typedef void(*pQSimple2)(const char*);
 	typedef int(*pVersion)(char*, int);
 	typedef int(*pQ2Start)();
-	typedef void (*pPlot)(double*, double*, int, char*, const char*, int, int);
-	typedef void (*pPlot2)(double*, double*, int, char*, const char*, int, int, double*);
+	typedef void (*pPlot)(double*, double*, int, const char*, const char*, int, int);
+	typedef void (*pPlot2)(double*, double*, int, const char*, const char*, int, int, double*);
 
+#ifdef WIN32
 	pQSimple qHello = (pQSimple)GetProcAddress(hQWTW_DLL, "kyleHello");
 	pQSimple2 qXLabel = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwtxlabel");
 	pQSimple2 qYLabel = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwtylabel");
-
-
 	pVersion qVersion = (pVersion)GetProcAddress(hQWTW_DLL, "qwtversion");
 	pQ2Start q2Start = (pQ2Start)GetProcAddress(hQWTW_DLL, "qtstart");
 	pQSimple qSMW = (pQSimple)GetProcAddress(hQWTW_DLL, "qwtshowmw");
@@ -150,7 +194,26 @@ void test(int n) {
 	pPlot2 qPlot2 = (pPlot2)GetProcAddress(hQWTW_DLL, "qwtplot2");
 	pPlot qPlot = (pPlot)GetProcAddress(hQWTW_DLL, "qwtplot");
 	//void qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
+#else
+	pQSimple qHello = (pQSimple)dlsym(lib_handle, "kyleHello");
+	pQSimple2 qXLabel = (pQSimple2)dlsym(lib_handle, "qwtxlabel");
+	pQSimple2 qYLabel = (pQSimple2)dlsym(lib_handle, "qwtylabel");
+	pVersion qVersion = (pVersion)dlsym(lib_handle, "qwtversion");
+	pQ2Start q2Start = (pQ2Start)dlsym(lib_handle, "qtstart");
+	pQSimple qSMW = (pQSimple)dlsym(lib_handle, "qwtshowmw");
+	#ifdef USEMARBLE
+	pQSimple1 qTopView = (pQSimple1)dlsym(lib_handle, "topview");
+	#endif
+	pQSimple1 qFigure = (pQSimple1)dlsym(lib_handle, "qwtfigure");
+	pQSimple2 qTitle = (pQSimple2)dlsym(lib_handle, "qwttitle");
+	pPlot2 qPlot2 = (pPlot2)dlsym(lib_handle, "qwtplot2");
+	pPlot qPlot = (pPlot)dlsym(lib_handle, "qwtplot");
+#endif
 
+	if ((qHello == NULL) || (q2Start == NULL) || (qVersion == NULL)) {
+		printf("ERROR: cannot load symbols. \n");
+		exit(2);
+	}
 
 	using namespace std::chrono_literals;
 	std::this_thread::sleep_for(100ms);
@@ -173,6 +236,7 @@ void test(int n) {
 	qSMW();
 
 	// --------   map view test: draw on a map  ---------------------
+#ifdef USEMARBLE
 	t4[0] = sinusTime_1[0]; 
 	t4[1] = sinusTime_1[int(n1 / 4.)];
 	t4[2] = sinusTime_1[int(n1 / 3.)];
@@ -180,7 +244,7 @@ void test(int n) {
 	qTopView(1);
 	qPlot2(east, north, mwn, "test mw", "-rb", 2, 8, t4);
 	qTitle("marble test");
-
+#endif
 	
 	// ------------- create first plot: ---------------------
 	qFigure(14);	//  set up ID for current plot
@@ -217,17 +281,28 @@ void test(int n) {
 
 
 	std::cout << "press a key to close the DLL:" << std::endl;
-	int  ch = getch();
+	int  ch;
+	#ifdef WIN32
+	ch = getch();
+	#else
+	std::cin >> ch;
+	#endif
 	//qClose();
 
-	Sleep(500);
+	std::this_thread::sleep_for(400ms);
 	std::cout << "closing the library " << std::endl;
-	Sleep(500);
+	std::this_thread::sleep_for(400ms);
+
+	#ifdef WIN32
 	BOOL test = FreeLibrary(hQWTW_DLL);
 	if (test == 0) {
 		std::cout << "FreeLibrary failed; error = " << GetLastError() << std::endl;
 	}
 	hQWTW_DLL = 0;
+	#else
+	dlclose(lib_handle);
+	lib_handle = 0;
+	#endif
 	std::cout << "library unloaded! " << std::endl;
 }
 

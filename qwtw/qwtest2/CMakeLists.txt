@@ -9,12 +9,13 @@ set(USE_QT YES)
 set(PROJECT_NAME qwtest2)
 set (NEED_BOOST  thread system filesystem date_time chrono)
 commonStart()
-set (NO_VERSION_INFO 1)
+set(NO_VERSION_INFO 1) 
+#add_definitions(-DUSEMARBLE)
 
 set(INC_DIR_LIST "../" "../c_lib"  "../../../common" "../../../xmatrix2" )
 	
 addSourceFiles("source" "../" qwtest2)	
-
+addOtherLib("dl")
 programEnd()
 
 #install(TARGETS qwtest2   DESTINATION bin)

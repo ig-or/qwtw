@@ -60,12 +60,12 @@ qwtwc_API 	void qwttitle(const char* s);
 /** put a 'label' on X (bottom) axis.
 	@param[s] axis name string
 */
-qwtwc_API 	void qwtxlabel(char* s);
+qwtwc_API 	void qwtxlabel(const char* s);
 
 /** put a 'label' on Y (left) axis.
 @param[s] axis name string
 */
-qwtwc_API 	void qwtylabel(char* s);
+qwtwc_API 	void qwtylabel(const char* s);
 
 /** close all figures.
 */
@@ -149,10 +149,10 @@ qwtwc_API 	void qwtplot(double* x, double* y, int size, const char* name, const 
 
 	for first plot we'll use 'x velo' and 'time' arrays, and for second plot we'll use 'x coord', 'y coord' and 'time' arrays.
 */
-qwtwc_API 	void qwtplot2(double* x, double* y, int size, char* name, const char* style, 
+qwtwc_API 	void qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
     int lineWidth, int symSize, double* time);
 #ifdef USE_QT3D
-qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, char* name, const char* style,
+qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);
 #endif
 #ifdef ENABLE_UDP_SYNC

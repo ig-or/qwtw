@@ -209,11 +209,8 @@ macro (addQT)
 	# Find the Qt library
 	if (NOT QT5_LIBRARIES_MINE)
 		message(STATUS "adding QT5 library for ${PROJECT_NAME} (platform ${ourPlatform})")
-		find_package(Qt5 REQUIRED COMPONENTS Core Gui OpenGL Widgets)
-		find_package(Qt5NetworkAuth CONFIG REQUIRED)
-		#find_package(Qt5Core REQUIRED)
-		#find_package(Qt5Gui REQUIRED)
-		#find_package(Qt5Widgets REQUIRED)
+		find_package(Qt5 REQUIRED COMPONENTS Core Gui OpenGL Widgets NetworkAuth)
+		#find_package(Qt5NetworkAuth  REQUIRED)
 		set (QT5_LIBRARIES_MINE YES)
 	endif()
 	list(APPEND ${L_LIST} Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL Qt5::NetworkAuth Qt5::NetworkAuthPrivate)
@@ -758,6 +755,10 @@ macro (setPropsOnTarget     tgt)
 			ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${OUR_LIBRARY_DIR}/debug"  
 			ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${OUR_LIBRARY_DIR}/release"
 			ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO "${OUR_LIBRARY_DIR}/release"
+
+			LIBRARY_OUTPUT_DIRECTORY_DEBUG "${OUR_LIBRARY_DIR}/debug"  
+			LIBRARY_OUTPUT_DIRECTORY_RELEASE "${OUR_LIBRARY_DIR}/release"
+			LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${OUR_LIBRARY_DIR}/release"
 			
 			RUNTIME_OUTPUT_DIRECTORY_RELEASE "${OUR_LIBRARY_DIR}/release"
 			RUNTIME_OUTPUT_DIRECTORY_DEBUG "${OUR_LIBRARY_DIR}/debug"
@@ -769,25 +770,14 @@ macro (setPropsOnTarget     tgt)
 		DEBUG_OUTPUT_NAME ${tgt}d      RELEASE_OUTPUT_NAME ${tgt}    RELWITHDEBINFO_OUTPUT_NAME ${tgt}d  # 'd' suffix rule
 		#and put the libs in different folders:
 		${TGT_PROPS_WHERE}
-		
-		#if (VCPKG_EXISTS)
-		#	message(STATUS "[${tgt}]: using vcpkg toolchain")
-		#else()
-		#	message(STATUS "[${tgt}]: not using vcpkg toolchain")
-		#	ARCHIVE_OUTPUT_DIRECTORY_DEBUG "${OUR_LIBRARY_DIR}/debug"  
-		#	ARCHIVE_OUTPUT_DIRECTORY_RELEASE "${OUR_LIBRARY_DIR}/release"
-		#	ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO "${OUR_LIBRARY_DIR}/release"
-		#	
-		#	RUNTIME_OUTPUT_DIRECTORY_RELEASE "${OUR_LIBRARY_DIR}/release"
-		#	RUNTIME_OUTPUT_DIRECTORY_DEBUG "${OUR_LIBRARY_DIR}/debug"
-		#	RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${OUR_LIBRARY_DIR}/release"
-		#endif()
+
 		
 		# looks like this is not working:
-		VERSION  ${VERSION_INFO_STRING}
-		SOVERSION  ${VERSION_INFO_STRING}
+		#VERSION  ${VERSION_INFO_STRING}
+		#SOVERSION  ${VERSION_INFO_STRING}
 		
 	)
+	message(STATUS "setting properties on ${tgt}; OUR_LIBRARY_DIR = ${OUR_LIBRARY_DIR}")
 	if (OUR_DEPS_LIST)
 		foreach(lib ${OUR_DEPS_LIST})
 			message(STATUS "[${tgt}]: have our lib3: ${lib}")

@@ -468,6 +468,7 @@ int Worker::qVersion(char* vstr, int vstr_size) {
 	return xqversion(vstr, vstr_size - 2, qwtwLibModule);
 #else
 	strcpy(vstr, " linux? ");
+	return 7;
 #endif
 }
 int Worker::qwttitle(const char* s) {  //  blocking because have to copy param "s"
@@ -631,12 +632,14 @@ int Worker::qtstart(bool wait) {
 
 static QPointer<Worker> q2worker = nullptr;
  
+static int argc = 1;
+static char* argv[8];
+static char argv0[MAX_PATH];
 
 void startQt2Thread() {
 	//  create arguments for QApplication:
-	static char argv0[MAX_PATH];
-	int argc = 1;
-	char* argv[2];
+	
+
 	getExeFilePath(argv0, MAX_PATH);
 	if (argv0[0] == 0) {
 		xm_printf("startQt2Thread   error #74635 \n");
@@ -647,8 +650,9 @@ void startQt2Thread() {
 		//xm_printf("startQt2Thread: start [%s]\n", argv0);
 		argv[0] = argv0;
 		argv[1] = 0;
+		argv[2] = 0;
 	}
-
+#ifdef WIN32
 	if (qwtwLibModule == 0) {
 		xm_printf("qwtwLibModule == 0\n");
 	} 	else {
@@ -691,7 +695,7 @@ void startQt2Thread() {
 		
 
 	}
-
+#endif
 	// http://habrahabr.ru/post/188816/ :
 	QStringList paths = QCoreApplication::libraryPaths();
 	paths.append(".");
@@ -712,8 +716,8 @@ void startQt2Thread() {
 		//QApplication app(argc, &argv);
 //		xm_printf("PATH before new QApplication: %s\n\n", std::getenv("PATH"));
 		qt2App = new QApplication(argc, argv);
-		//QApplication app(argc, &argv);
-		//qt2App = &app;
+		//qt2App = new QApplication();
+
 	}	else {
 		qt2App = qApp;
 	}
@@ -812,17 +816,17 @@ extern "C" {
 		q2worker->qwtplot(x, y, size, name, style, lineWidth, symSize);
 	}
 
-	qwtwc_API void qwtplot2(double* x, double* y, int size, char* name, const char* style, int lineWidth, int symSize, double* time) {
+	qwtwc_API void qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time) {
 		//	qwtController->setmode(3);
 		//	qwtController->plot(x, y, size, name, style, lineWidth, symSize, time);
 		q2worker->qwtplot2(x, y, size, name, style, lineWidth, symSize, time);
 	}
 
-	qwtwc_API void qwtxlabel(char* s) {
+	qwtwc_API void qwtxlabel(const char* s) {
 		q2worker->qwtxlabel(s);
 	}
 	
-	qwtwc_API void qwtylabel(char* s) {
+	qwtwc_API void qwtylabel(const char* s) {
 		q2worker->qwtylabel(s);
 	}
 

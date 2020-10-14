@@ -13,7 +13,7 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, size_t size_, std::string leg
 	   int mode_, double* time_) {
     mxassert(size_ > 0, "");
     x = x_;
-    y = y_;
+    y = y_; 
 	z = 0; //  2D plot
     time = time_;
     important = true;
