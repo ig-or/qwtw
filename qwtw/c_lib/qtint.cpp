@@ -638,6 +638,7 @@ static char argv0[MAX_PATH];
 
 void startQt2Thread() {
 	//  create arguments for QApplication:
+	printf("startQt2Thread() started! now starting QT5 .. \n");
 	
 
 	getExeFilePath(argv0, MAX_PATH);
@@ -714,7 +715,7 @@ void startQt2Thread() {
 	q2_loading_mutex.lock();
 	if (!qApp) {
 		//QApplication app(argc, &argv);
-//		xm_printf("PATH before new QApplication: %s\n\n", std::getenv("PATH"));
+		xm_printf("PATH before new QApplication: %s\n\n", std::getenv("PATH"));
 		qt2App = new QApplication(argc, argv);
 		//qt2App = new QApplication();
 
@@ -728,7 +729,7 @@ void startQt2Thread() {
 	q2worker->qtstart(false);
 	QObject::connect(qt2App, SIGNAL(aboutToQuit()), q2worker, SLOT(onQtAppClosing()));
 
-	//std::cout << "runQt2Thread() started " << std::endl;
+	std::cout << "runQt2Thread() started " << std::endl;
 	q2_started = 1;
 	q2_loading_mutex.unlock();
 	q2_loading_cv.notify_all();
@@ -907,11 +908,13 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 class DLLStarter {
 public:
     DLLStarter() {
+		printf("DLLStarter!! (1)\n");
 		if (qt2App == nullptr) {
 			//std::cout << "DLLStarter: starting the Qt2Thread " << std::endl;
 			if (qt2Thread.joinable()) {
 				std::cout << "DLLStarter: qt2Thread.joinable() ! " << std::endl;
 			} else {
+				printf("starting another thread for QT \n");
 				std::thread ttmp(startQt2Thread);
 				ttmp.swap(qt2Thread);
 			}
