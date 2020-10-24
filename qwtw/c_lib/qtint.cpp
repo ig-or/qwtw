@@ -717,6 +717,7 @@ void startQt2Thread() {
 		//QApplication app(argc, &argv);
 		xm_printf("PATH before new QApplication: %s\n\n", std::getenv("PATH"));
 		qt2App = new QApplication(argc, argv);
+		printf("QApplication created!! \n");
 		//qt2App = new QApplication();
 
 	}	else {
@@ -733,6 +734,7 @@ void startQt2Thread() {
 	q2_started = 1;
 	q2_loading_mutex.unlock();
 	q2_loading_cv.notify_all();
+	printf("running QT exec ..... \n");
 	qt2App->exec();
 	q2_loading_mutex.lock(); 
 	std::cout << "startQt2Thread() STOPPED " << std::endl;
