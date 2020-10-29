@@ -43,14 +43,15 @@ class BCUdpClient;
 class BCUdpServer;
 #endif
 
-
+/*
 class PlotsInterfaceModel: public QStandardItemModel {
 	public: 
 
 
 };
+*/
 
-class qqwtw_API XQPlots: public QDialog {
+class /*qqwtw_API*/ XQPlots: public QDialog {
 	Q_OBJECT
 
 public:
@@ -139,8 +140,8 @@ protected:
 	void clearFigures();
 
 private:
-	//double ecefOrigin[3];
-	PlotsInterfaceModel pim;
+	//PlotsInterfaceModel pim;
+	QStandardItemModel pim;
 	/**
 	@return 0 if cannot find
 	*/

@@ -236,7 +236,9 @@ XQPlots::XQPlots(QWidget * parent1): QDialog(parent1, Qt::Dialog
 }
 
 XQPlots::~XQPlots() {
+	printf("stopping XQPlots .... \n");
 	onExit();
+	printf("XQPlots stopped\n");
 }
 
 void XQPlots::setmode(int mode_) {
@@ -644,6 +646,7 @@ void XQPlots::disableCoordBroacast() {
 
 void XQPlots::onExit() {
 	clearFigures();
+	
 #ifdef ENABLE_UDP_SYNC
 	if (broadCastInfo != 0) {
 		delete broadCastInfo;

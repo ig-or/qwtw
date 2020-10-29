@@ -57,6 +57,7 @@ int main(int argc, char* argv[]) {
 	qwtplot3d(x3d2 + n3d2, x3d2 + 2 * n3d2, x3d2 + 3 * n3d2, n3d2, "3D test #3", "-g", 2, 5, x3d2);
 #endif
 
+	//return 0;
 
 	//goto end;
 	// ------------- create first plot: ---------------------
