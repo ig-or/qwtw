@@ -5,8 +5,6 @@
 cmake_minimum_required (VERSION 2.8.11)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 
-option(WITH_UDP_SYNC "use UDP port for marker position broadcast"  ON)
-option(USE_MARBLE "use marble-qt for 'top-view' data" OFF)
 #option(WITH_QT3D "3D plotting support from QT" OFF)
 
 set(PROJECT_NAME qwtw)

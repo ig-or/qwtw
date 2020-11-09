@@ -66,6 +66,10 @@ void test(int n);
 
 int main(int argc, char* argv[]) {
 	createInfo(); //    fill in all data arrays
+
+	setbuf(stdout, NULL);
+	setvbuf(stdout, NULL, _IONBF, 0); 
+
 	for (int i = 0; i < 1; i++) {
 		test(i);
 	}
@@ -86,7 +90,8 @@ int main(int argc, char* argv[]) {
 
 void test(int n) {
 	printf("\n\n\ndoing the test # %d\n", n);
-	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	using namespace std::chrono_literals;
+	//std::this_thread::sleep_for(100ms);
 
 	//  where our EXE is located? lets find out
 	std::string exeFileName;
@@ -214,9 +219,11 @@ void test(int n) {
 		printf("ERROR: cannot load symbols. \n");
 		exit(2);
 	}
+	//printf("exiting from TEST\n");
+	//return;
 
-	using namespace std::chrono_literals;
-	std::this_thread::sleep_for(100ms);
+	
+	//std::this_thread::sleep_for(100ms);
 	int test0 = q2Start();
 	std::cout << "test 0 = " << test0 << std::endl;
 
@@ -279,6 +286,7 @@ void test(int n) {
 	qPlot2(circleData_x1, circleData_y1, nc, "circle", "-qm", 1, 12, circleTime_1);
 	qTitle("'top view' test");
 
+	return;
 
 	std::cout << "press a key to close the DLL:" << std::endl;
 	int  ch;
