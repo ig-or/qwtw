@@ -32,8 +32,8 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtclearImpl();
 
 public:
-	std::mutex appMutex;///< for waiting on QT app 
-	std::condition_variable appV; ///< for waiting on QT app 
+	//std::mutex appMutex;///< for waiting on QT app 
+	//std::condition_variable appV; ///< for waiting on QT app 
 
 	void hello();
 	QWorker(); //{  }

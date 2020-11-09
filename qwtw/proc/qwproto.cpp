@@ -78,17 +78,17 @@ void QProcInterface::stop() {
 
 void QProcInterface::run() {
 	using namespace boost::interprocess;
-	printf("QProcInterface::run() 1\n");
+	//printf("QProcInterface::run() 1\n");
 	while (!needStopThread) {
 		//   wait for another command
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		pd.hdr->cmdWait.wait(lock);
-		printf("QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
+		//printf("QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
 		int cmd = pd.hdr->cmd;
 		processCommand(cmd);
 		pd.hdr->workDone.notify_all();
 	}
-	printf("QProcInterface::run() exiting \n");
+	//printf("QProcInterface::run() exiting \n");
 }
 
 void QProcInterface::processCommand(int cmd) {
@@ -96,9 +96,9 @@ void QProcInterface::processCommand(int cmd) {
 
 	switch(cmd) {
 		case CmdHeader::exit:
-			printf("QProcInterface::processCommand : sending QUIT to QT..  \n");
+			//printf("QProcInterface::processCommand : sending QUIT to QT..  \n");
 			QMetaObject::invokeMethod(&app, "quit", Qt::BlockingQueuedConnection); // QueuedConnection
-			printf("QProcInterface::processCommand : QUIT was sent \n");
+			//printf("QProcInterface::processCommand : QUIT was sent \n");
 			needStopThread = true;
 			//now  lets wait for the app to exit
 			{
