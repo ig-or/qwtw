@@ -3,6 +3,8 @@
 #pragma once
 
 #include <QObject>
+#include <mutex>
+#include <condition_variable>
 //#include <QPointer>
 //#include <QThread>
 
@@ -30,6 +32,8 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtclearImpl();
 
 public:
+	std::mutex appMutex;///< for waiting on QT app 
+	std::condition_variable appV; ///< for waiting on QT app 
 
 	void hello();
 	QWorker(); //{  }
@@ -47,6 +51,7 @@ public:
 	void qwtclear();
 	void qwtfigure(int n);
 	void qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
+	//void appMutexLock
 
 #ifdef USEMARBLE
 	void topview(int n);
@@ -55,6 +60,7 @@ public slots:
 	void onQtAppClosing();
 
 private:
+	
 	XQPlots* pf;
     
 };

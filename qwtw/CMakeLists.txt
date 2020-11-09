@@ -10,6 +10,7 @@ option(WITH_UDP_SYNC "use UDP port for marker position broadcast"  ON)
 option(USE_MARBLE "use marble-qt for 'top-view' data" OFF)
 
 add_subdirectory(proc)
+add_subdirectory(proctest)
 add_subdirectory(c_lib)
 add_subdirectory(qwtest2)
 add_subdirectory(c_lib_test)

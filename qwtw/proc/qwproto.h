@@ -10,13 +10,18 @@ class shared_memory_object;
 class mapped_region;
 }}
 
+class QWorker;
+class QApplication;
+
 class QProcInterface {
 
 public:
-    QProcInterface();
+    QProcInterface(QWorker& worker_, QApplication& app_);
     ~QProcInterface();
+
+    ///  start everything
     void start();
-    void stop();
+    
 
 private:
     ProcData pd;
@@ -27,8 +32,14 @@ private:
 
     boost::interprocess::mapped_region* commandReg;
     bool started;
+    bool needStopThread;
     std::thread  wThread;
+    
+    QWorker& worker;
+    QApplication& app;
 
-
+    /// stop the thread
+    void stop();
     void run();
+    void processCommand(int cmd);
 };

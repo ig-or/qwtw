@@ -29,6 +29,7 @@ struct CmdHeader {
 	boost::interprocess::interprocess_mutex      mutex;
 	boost::interprocess::interprocess_condition  cmdWait;
 	boost::interprocess::interprocess_condition  workDone;
+	CmdHeader() {}
 };
 
 
