@@ -31,10 +31,13 @@ private:
     boost::interprocess::shared_memory_object* shmDataT;
 
     boost::interprocess::mapped_region* commandReg;
+    boost::interprocess::mapped_region* xDataReg;
+    boost::interprocess::mapped_region* yDataReg;
+    boost::interprocess::mapped_region* tDataReg;
     bool started;
     bool needStopThread;
     std::thread  wThread;
-    
+
     QWorker& worker;
     QApplication& app;
 
@@ -42,4 +45,10 @@ private:
     void stop();
     void run();
     void processCommand(int cmd);
+    void setupSHM1(long long size, boost::interprocess::shared_memory_object* shm, boost::interprocess::mapped_region* reg);
+
+    //  change size of the memory segments
+    void changeSize(long long newSize);
+    void removeSHM();
+    void plot();
 };

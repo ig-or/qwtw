@@ -19,7 +19,7 @@ QProcInterface::QProcInterface(QWorker& worker_, QApplication& app_):
 }
 
 QProcInterface::~QProcInterface() {
-	using namespace boost::interprocess;
+	
 
 	stop();
 
@@ -29,8 +29,22 @@ QProcInterface::~QProcInterface() {
 	//}
 
 	//if (shmCommand != 0) {
-		shared_memory_object::remove("QWTWCommand");
+		removeSHM();
 	//}
+}
+
+void QProcInterface::removeSHM() {
+	using namespace boost::interprocess;
+		shared_memory_object::remove(ProcData::shmNames[0]);
+		shared_memory_object::remove(ProcData::shmNames[1]);
+		shared_memory_object::remove(ProcData::shmNames[2]);
+		shared_memory_object::remove(ProcData::shmNames[3]);
+}
+
+void QProcInterface::setupSHM1(long long size, 
+		boost::interprocess::shared_memory_object* shm, 
+		boost::interprocess::mapped_region* reg) {
+	
 }
 
 
@@ -38,23 +52,38 @@ void QProcInterface::start() {
 	if (started) {
 		return;
 	}
+	const long long startSegSize = 1024;
 	using namespace boost::interprocess;
 	//Create a shared memory object.
-	shared_memory_object::remove("QWTWCommand");
+	removeSHM();
 	try{
 
-		shmCommand =  new shared_memory_object(create_only, "QWTWCommand", read_write);
+		shmCommand =  new shared_memory_object(create_only, ProcData::shmNames[0], read_write);
+		shmDataX =  new shared_memory_object(create_only, ProcData::shmNames[1], read_write);
+		shmDataY =  new shared_memory_object(create_only, ProcData::shmNames[2], read_write);
+		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
 	} catch (interprocess_exception &ex){
 		printf("cannot create shared memory: %s \n", ex.what());
 		return;
 	}
 	shmCommand->truncate(sizeof(CmdHeader));
+	shmDataX->truncate(sizeof(double) * startSegSize);
+	shmDataY->truncate(sizeof(double) * startSegSize);
+	shmDataT->truncate(sizeof(double) * startSegSize);
 	commandReg = new mapped_region(*shmCommand, read_write);
+	xDataReg   = new mapped_region(*shmDataX, read_write);
+	yDataReg   = new mapped_region(*shmDataY, read_write);
+	tDataReg   = new mapped_region(*shmDataT, read_write);
 
 	//pd.hdr = (CmdHeader*)commandReg->get_address();
 	pd.hdr = new (commandReg->get_address()) CmdHeader;
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	pd.hdr->cmd = 100; //    just started
+	pd.hdr->segSize = startSegSize;
+
+	pd.x = static_cast<double*>(xDataReg->get_address());
+	pd.y = static_cast<double*>(yDataReg->get_address());
+	pd.t = static_cast<double*>(tDataReg->get_address());
 
 	needStopThread = false;
 	std::thread ttmp(&QProcInterface::run, this);
@@ -91,6 +120,34 @@ void QProcInterface::run() {
 	//printf("QProcInterface::run() exiting \n");
 }
 
+void QProcInterface::changeSize(long long newSize) {
+	using namespace boost::interprocess;
+	if (newSize <= pd.hdr->segSize) {
+		return;
+	}
+	newSize <<= 1;
+	long long s1 = newSize * sizeof(double);
+	shmDataX->truncate(s1);
+	shmDataY->truncate(s1);
+	shmDataT->truncate(s1);
+	delete xDataReg;
+	delete yDataReg;
+	delete tDataReg;
+	xDataReg   = new mapped_region(*shmDataX, read_write);
+	yDataReg   = new mapped_region(*shmDataY, read_write);
+	tDataReg   = new mapped_region(*shmDataT, read_write);
+
+	pd.x = static_cast<double*>(xDataReg->get_address());
+	pd.y = static_cast<double*>(yDataReg->get_address());
+	pd.t = static_cast<double*>(tDataReg->get_address());
+
+	pd.hdr->segSize = newSize;
+}
+
+void QProcInterface::plot() {
+	worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
+}
+
 void QProcInterface::processCommand(int cmd) {
 	printf("QProcInterface::processCommand got cmd = %d \n", cmd);
 
@@ -108,6 +165,19 @@ void QProcInterface::processCommand(int cmd) {
 				//printf("QProcInterface::processCommand : QT app looks like exited! \n");
 			}
 			
+			break;
+		case CmdHeader::changeSize:
+			changeSize(pd.hdr->size);
+			break;
+
+		case CmdHeader::qMW:
+			worker.qwtshowmw();
+			break;
+		case CmdHeader::qPlot:
+			if (pd.hdr->size <= pd.hdr->segSize) {
+				printf("qPlot: style = [%s]\n", pd.hdr->style);
+				worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
+			}
 			break;
 
 	};
