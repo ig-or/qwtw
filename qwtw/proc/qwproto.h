@@ -21,6 +21,11 @@ public:
 
     ///  start everything
     void start();
+
+    /**
+     * \return true if already running
+    **/
+    static bool runningAlready();
     
 
 private:
@@ -45,7 +50,7 @@ private:
     void stop();
     void run();
     void processCommand(int cmd);
-    void setupSHM1(long long size, boost::interprocess::shared_memory_object* shm, boost::interprocess::mapped_region* reg);
+    //void setupSHM1(long long size, boost::interprocess::shared_memory_object* shm, boost::interprocess::mapped_region* reg);
 
     //  change size of the memory segments
     void changeSize(long long newSize);

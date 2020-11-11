@@ -35,16 +35,29 @@ QProcInterface::~QProcInterface() {
 
 void QProcInterface::removeSHM() {
 	using namespace boost::interprocess;
-		shared_memory_object::remove(ProcData::shmNames[0]);
-		shared_memory_object::remove(ProcData::shmNames[1]);
-		shared_memory_object::remove(ProcData::shmNames[2]);
-		shared_memory_object::remove(ProcData::shmNames[3]);
+	shared_memory_object::remove(ProcData::shmNames[0]);
+	shared_memory_object::remove(ProcData::shmNames[1]);
+	shared_memory_object::remove(ProcData::shmNames[2]);
+	shared_memory_object::remove(ProcData::shmNames[3]);
 }
 
+/*
 void QProcInterface::setupSHM1(long long size, 
 		boost::interprocess::shared_memory_object* shm, 
 		boost::interprocess::mapped_region* reg) {
 	
+}
+*/
+bool QProcInterface::runningAlready() {
+	using namespace boost::interprocess;
+	bool ret = false;
+	try {
+		shared_memory_object shmCommandTest(open_only, ProcData::shmNames[0], read_write);
+		ret = true;
+	} catch(interprocess_exception &ex) { 
+
+	}
+	return ret;
 }
 
 

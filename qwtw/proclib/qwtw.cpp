@@ -2,11 +2,12 @@
 
 #include "xstdef.h"
 #include "qwtw.h"
-
-#include "qtint.h"
 #include "xmutils.h"
 #include "build_info.h"
 #include "build_number.h"
+
+#include "pclient.h"
+
 
 #ifdef WIN32
 #include <Windows.h>
@@ -18,170 +19,131 @@ void assert_failed(const char* file, unsigned int line, const char* str) {
 	xm_printf("ASSERT faild: %s (file %s, line %d)\n", str, file, line);
 }
 
-//void startQWT();
+SHMTest test;
 
 #ifdef __cplusplus
 	extern "C" {
 #endif
 
-qwtwc_API int get42(int n) {
-    return 42;
+/**  this is just for testing*/
+qwtwc_API 	int get42(int n) {
+	return 42;
 }
 
-/*
-qwtwc_API int qwtversion(char* vstr, int vstr_size) {
-#ifdef WIN32
-	return xqversion(vstr, vstr_size - 1, qwtwLibModule);
-#else
-	strcpy(vstr, " linux? ");
-	
-#endif
-	return 0;
-}
-*/
+qwtwc_API void kyleHello() {
 
-/*
-qwtwc_API void qwtfigure(int n) {
-	if (qwtController == 0) {
-		startQWT();
-	}
-	if (qwtController != 0 ) {
-		qwtController->figure(n);
-	}
 }
+
+//  just wait for QT proc to start
+qwtwc_API	int qtstart() {
+	return test.testInit();
+}
+
+qwtwc_API	void qwtclose() {
+	test.stopQt();
+}
+
+
+/**  print version info string (with 'sprintf'). warning: no vstr length check!!
+	@param[out] vstr string with version info
+	@return number of bytes in vstr
+
 */
-/*
+qwtwc_API		int qwtversion(char* vstr, int vstr_size) {
+	return xqversion(vstr, vstr_size - 1);
+}
+
+
+/**  create (and draw) new plot with ID 'n';  make this plot 'active'
+     if plot with this ID already exists, it will be made 'active'
+ @param[in] n this plot ID
+*/
+qwtwc_API 	void qwtfigure(int n) {
+	test.qwtfigure(n);
+}
+
 #ifdef USEMARBLE
-qwtwc_API void topview(int n) {
-	if (qwtController == 0) {
-		startQWT();
-	}
-	if (qwtController != 0) {
-		qwtController->figure_topview(n);
-	}
-}
-#endif
+/**  create (and draw) new map plot with ID 'n'.
+@param[in] n this plot ID
 */
+qwtwc_API 	void topview(int n);
+#endif
 #ifdef USE_QT3D
-/*
-qwtwc_API 	void qwtfigure3d(int n) {
-	if (qwtController == 0) {
-		startQWT();
-	}
-	if (qwtController != 0) {
-		qwtController->figure_3d(n);
-	}
-}
-*/
+qwtwc_API 	void qwtfigure3d(int n);
 #endif
-/*
-qwtwc_API void qwttitle(char* s) {
-	if (qwtController != 0 )
-	qwtController->title(s);
-}
+
+/** put a title on currently 'active' plot.
+	@param[in] s the title
 */
-/*
-void qwtaxesequal() {
-	if (qwtController != 0 )
-	qwtController->axesequal();
-}
-*/
-/*
-qwtwc_API void qwtxlabel(char* s) {
-	if (qwtController != 0 )
-	qwtController->xlabel(s);
+qwtwc_API 	void qwttitle(const char* s) {
+	test.qwttitle(s);
 }
 
+/** put a 'label' on X (bottom) axis.
+	@param[s] axis name string
+*/
+qwtwc_API 	void qwtxlabel(const char* s) {
+	test.qwtxlabel(s);
+}
 
-qwtwc_API void qwtylabel(char* s) {
-	if (qwtController != 0 )
-	qwtController->ylabel(s);
-}
+/** put a 'label' on Y (left) axis.
+@param[s] axis name string
 */
-/*
-void qwtmode(int mode) {
-    if(qwtController != 0)
-	   qwtController->setmode(mode);
+qwtwc_API 	void qwtylabel(const char* s) {
+	test.qwtylabel(s);
 }
+
+/** close all figures.
 */
-/*
 qwtwc_API 	void qwtclear() {
-	if (qwtController != 0) {
-		qwtController->clear();
-	}
+	test.qwtclear();
 }
+
+/** This function sets some additional flags on (following) lines.
+	@param[in] status if '0', all next lines will be "not important":
+	 this means that they will not participate in 'clipping' and after pressing "clip" button
+	 thier range will not be considered.
+	 '1' would return this backward.
 */
-/*
 qwtwc_API 	void qwtsetimpstatus(int status) {
-	if (qwtController != 0) {
-		qwtController->setImportantStatus(status);
-	}
-}
-*/
-/*
-qwtwc_API void qwtplot(double* x, double* y, int size, char* name, const char* style, int lineWidth, int symSize) {
-    if(qwtController != 0) {
-	   qwtController->plot(x, y, size, name, style, lineWidth, symSize);
-    }
-}
-*/
-/*
-qwtwc_API 	void qwtshowmw() {
-	if (qwtController != 0) {
-		qwtController->showMW();
-	}
-}
-*/
-
-/*
-void qwtplot2(double* x, double* y, int size, char* name, const char* style,
-    int lineWidth, int symSize, double* time) {
-    if(qwtController != 0) {
-	   qwtController->setmode(3);
-	   qwtController->plot(x, y, size, name, style, lineWidth, symSize, time);
-    }
-}
-*/
-
-/*
-#ifdef ENABLE_UDP_SYNC
-qwtwc_API 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double* time, int size) {
-	if (qwtController != 0) {
-		qwtController->qwtEnableCoordBroadcast(x, y, z, time, size);
-	}
+	test.qwtsetimpstatus(status);
 }
 
-qwtwc_API 	void qwtDisableCoordBroadcast() {
-	if (qwtController != 0) {
-		qwtController->qwtDisableCoordBroadcast();
-	}
+qwtwc_API 	void qwtplot(double* x, double* y, int size, const char* name, const char* style, 
+	    int lineWidth, int symSize) {
+	test.qwtplot(x, y, size, name, style, lineWidth, symSize);
 }
-#endif
-*/
+
+qwtwc_API 	void qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
+	    int lineWidth, int symSize, double* time) {
+	test.qwtplot2(x, y, size, name, style, lineWidth, symSize, time);
+	}
 #ifdef USE_QT3D
-/*
-void qwtplot3d(double* x, double* y, double* z, int size, char* name, const char* style,
-	int lineWidth, int symSize, double* time) {
-	if (qwtController != 0) {
-		//qwtController->setmode(3);
-		qwtController->plot(x, y, z, size, name, style, lineWidth, symSize, time);
-	}
-}
-*/
+qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
+	int lineWidth, int symSize, double* time);
 #endif
 
- //  not working!
-/*
-qwtwc_API void qwtclose() {
-	xm_printf("got qwtwc_API void qwtclose() \n");
-	if (qwtController != 0 ) {
-		qwtController->close();
+#ifdef ENABLE_UDP_SYNC
+qwtwc_API 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double* time, int size);
+qwtwc_API 	void qwtDisableCoordBroadcast();
+#endif
 
-		delete qwtController;
-		qwtController = 0;
-	}
-}
+/** do not use it if all is working without it.
+    This function will try to "close" QT library.  Craches sometimes.
 */
+//qwtwc_API 	void qwtclose(); //  works strange
+
+/** Show 'main window' which allow to easily switch between other windows.
+
+*/
+qwtwc_API 	void qwtshowmw() {
+
+}
+
+
+
+
+
 #ifdef __cplusplus
 	}
 #endif

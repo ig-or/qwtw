@@ -1,6 +1,5 @@
 /**
 QWT-based 2D plotting library.
-
 */
 
 
@@ -26,7 +25,7 @@ qwtwc_API 	int get42(int n);
 
 qwtwc_API void kyleHello();
 
-//  just wait for QT thread to start
+//  just wait for QT proc to start
 qwtwc_API	int qtstart();
 
 /**  print version info string (with 'sprintf'). warning: no vstr length check!!
@@ -160,10 +159,9 @@ qwtwc_API 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double*
 qwtwc_API 	void qwtDisableCoordBroadcast();
 #endif
 
-/** do not use it if all is working without it.
-    This function will try to "close" QT library.  Craches sometimes.
+/** 
 */
-//qwtwc_API 	void qwtclose(); //  works strange
+qwtwc_API 	void qwtclose(); 
 
 /** Show 'main window' which allow to easily switch between other windows.
 

@@ -188,6 +188,7 @@ void test(int n) {
 
 #ifdef WIN32
 	pQSimple qHello = (pQSimple)GetProcAddress(hQWTW_DLL, "kyleHello");
+	pQSimple qClose = (pQSimple)GetProcAddress(hQWTW_DLL, "qwtclose");
 	pQSimple2 qXLabel = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwtxlabel");
 	pQSimple2 qYLabel = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwtylabel");
 	pVersion qVersion = (pVersion)GetProcAddress(hQWTW_DLL, "qwtversion");
@@ -201,6 +202,7 @@ void test(int n) {
 	//void qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 #else
 	pQSimple qHello = (pQSimple)dlsym(lib_handle, "kyleHello");
+	pQSimple qClose = (pQSimple)dlsym(lib_handle, "qwtclose");
 	pQSimple2 qXLabel = (pQSimple2)dlsym(lib_handle, "qwtxlabel");
 	pQSimple2 qYLabel = (pQSimple2)dlsym(lib_handle, "qwtylabel");
 	pVersion qVersion = (pVersion)dlsym(lib_handle, "qwtversion");
@@ -286,6 +288,8 @@ void test(int n) {
 	qPlot2(circleData_x1, circleData_y1, nc, "circle", "-qm", 1, 12, circleTime_1);
 	qTitle("'top view' test");
 
+	std::this_thread::sleep_for(5s);
+	qClose();
 	return;
 
 	std::cout << "press a key to close the DLL:" << std::endl;
@@ -295,7 +299,7 @@ void test(int n) {
 	#else
 	std::cin >> ch;
 	#endif
-	//qClose();
+	//
 
 	std::this_thread::sleep_for(400ms);
 	std::cout << "closing the library " << std::endl;

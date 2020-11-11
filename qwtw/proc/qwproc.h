@@ -12,10 +12,14 @@ struct CmdHeader {
 		exit = 1,
 		changeSize,
 		qMW,
+		qFigure,
 		qPlot,
-		qPlot1, 
 		qPlot2, 
-
+		qTitle, 
+		qXlabel,
+		qYlabel,
+		qClear,
+		qImpStatus,
 		qwcmdSize
 	};
 	enum {
