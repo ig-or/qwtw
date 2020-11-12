@@ -159,7 +159,8 @@ qwtwc_API 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double*
 qwtwc_API 	void qwtDisableCoordBroadcast();
 #endif
 
-/** 
+/** close QT proc. use it for debugging/testing only.
+ *  There is another function to close all windows.
 */
 qwtwc_API 	void qwtclose(); 
 

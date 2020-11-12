@@ -16,7 +16,7 @@ set (NO_VERSION_INFO 1)
 set (NEED_BOOST  thread system filesystem date_time chrono regex)
 	
 addSourceFiles("source" "." qwtw )	
-addSourceFiles("lib" "../proc" qwproc.h pclient )	
+addSourceFiles("lib" "../proc" qwproc pclient )	
 addSourceFiles("${PROJECT_NAME}" "../" plib1.qrc)	
 
 addSourceFiles("common" "../../common"

@@ -26,7 +26,6 @@
 
 #include "boost/filesystem.hpp"
 
-
 //  ==========  path #1. lets create some data ===================================
 //   our data arrays below:
 const int n1 = 24;
@@ -288,9 +287,9 @@ void test(int n) {
 	qPlot2(circleData_x1, circleData_y1, nc, "circle", "-qm", 1, 12, circleTime_1);
 	qTitle("'top view' test");
 
-	std::this_thread::sleep_for(5s);
-	qClose();
-	return;
+	//std::this_thread::sleep_for(5s);
+	//qClose();
+	//return;
 
 	std::cout << "press a key to close the DLL:" << std::endl;
 	int  ch;

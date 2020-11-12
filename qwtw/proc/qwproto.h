@@ -33,11 +33,13 @@ private:
     boost::interprocess::shared_memory_object* shmCommand;
     boost::interprocess::shared_memory_object* shmDataX;
     boost::interprocess::shared_memory_object* shmDataY;
+    boost::interprocess::shared_memory_object* shmDataZ;
     boost::interprocess::shared_memory_object* shmDataT;
 
     boost::interprocess::mapped_region* commandReg;
     boost::interprocess::mapped_region* xDataReg;
     boost::interprocess::mapped_region* yDataReg;
+    boost::interprocess::mapped_region* zDataReg;
     boost::interprocess::mapped_region* tDataReg;
     bool started;
     bool needStopThread;

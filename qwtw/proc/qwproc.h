@@ -20,6 +20,8 @@ struct CmdHeader {
 		qYlabel,
 		qClear,
 		qImpStatus,
+		qEnableBC,
+		qDisableBC,
 		qwcmdSize
 	};
 	enum {
@@ -43,14 +45,15 @@ struct CmdHeader {
 
 
 struct ProcData {
-	static constexpr const char* shmNames[] = {"QWTWCommand", "QWTW_x", "QWTW_y", "QWTW_t"};
+	static constexpr const char* shmNames[] = {"QWTWCommand", "QWTW_x", "QWTW_y", "QWTW_z", "QWTW_t"};
 	CmdHeader* hdr;
 	double*	x;
 	double* y;
+	double* z;
 	double* t;
 };
 
-
-
 #pragma pack()
+
+int checkProcRunning();
 

@@ -34,7 +34,11 @@ qwtwc_API void kyleHello() {
 
 }
 
-//  just wait for QT proc to start
+/** starting  QT proc, if not started yet.
+ * 	return 0 if all is OK, 
+ *  not 0 means nothing is working.
+ * */ 
+
 qwtwc_API	int qtstart() {
 	return test.testInit();
 }
@@ -124,8 +128,12 @@ qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char*
 #endif
 
 #ifdef ENABLE_UDP_SYNC
-qwtwc_API 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double* time, int size);
-qwtwc_API 	void qwtDisableCoordBroadcast();
+qwtwc_API 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double* time, int size) {
+	test.qwtEnableCoordBroadcast(x, y, z, time, size);
+}
+qwtwc_API 	void qwtDisableCoordBroadcast() {
+	test.qwtDisableCoordBroadcast();
+}
 #endif
 
 /** do not use it if all is working without it.

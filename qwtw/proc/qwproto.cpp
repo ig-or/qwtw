@@ -14,6 +14,7 @@ QProcInterface::QProcInterface(QWorker& worker_, QApplication& app_):
 	shmCommand = 0;
 	shmDataX = 0;
 	shmDataY = 0;
+	shmDataZ = 0;
 	shmDataT = 0;
 	started = false;
 }
@@ -39,6 +40,7 @@ void QProcInterface::removeSHM() {
 	shared_memory_object::remove(ProcData::shmNames[1]);
 	shared_memory_object::remove(ProcData::shmNames[2]);
 	shared_memory_object::remove(ProcData::shmNames[3]);
+	shared_memory_object::remove(ProcData::shmNames[4]);
 }
 
 /*
@@ -74,7 +76,8 @@ void QProcInterface::start() {
 		shmCommand =  new shared_memory_object(create_only, ProcData::shmNames[0], read_write);
 		shmDataX =  new shared_memory_object(create_only, ProcData::shmNames[1], read_write);
 		shmDataY =  new shared_memory_object(create_only, ProcData::shmNames[2], read_write);
-		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
+		shmDataZ =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
+		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
 	} catch (interprocess_exception &ex){
 		printf("cannot create shared memory: %s \n", ex.what());
 		return;
@@ -82,10 +85,13 @@ void QProcInterface::start() {
 	shmCommand->truncate(sizeof(CmdHeader));
 	shmDataX->truncate(sizeof(double) * startSegSize);
 	shmDataY->truncate(sizeof(double) * startSegSize);
+	shmDataZ->truncate(sizeof(double) * startSegSize);
 	shmDataT->truncate(sizeof(double) * startSegSize);
+
 	commandReg = new mapped_region(*shmCommand, read_write);
 	xDataReg   = new mapped_region(*shmDataX, read_write);
 	yDataReg   = new mapped_region(*shmDataY, read_write);
+	zDataReg   = new mapped_region(*shmDataZ, read_write);
 	tDataReg   = new mapped_region(*shmDataT, read_write);
 
 	//pd.hdr = (CmdHeader*)commandReg->get_address();
@@ -96,6 +102,7 @@ void QProcInterface::start() {
 
 	pd.x = static_cast<double*>(xDataReg->get_address());
 	pd.y = static_cast<double*>(yDataReg->get_address());
+	pd.z = static_cast<double*>(zDataReg->get_address());
 	pd.t = static_cast<double*>(tDataReg->get_address());
 
 	needStopThread = false;
@@ -142,16 +149,20 @@ void QProcInterface::changeSize(long long newSize) {
 	long long s1 = newSize * sizeof(double);
 	shmDataX->truncate(s1);
 	shmDataY->truncate(s1);
+	shmDataZ->truncate(s1);
 	shmDataT->truncate(s1);
 	delete xDataReg;
 	delete yDataReg;
+	delete zDataReg;
 	delete tDataReg;
 	xDataReg   = new mapped_region(*shmDataX, read_write);
 	yDataReg   = new mapped_region(*shmDataY, read_write);
+	zDataReg   = new mapped_region(*shmDataZ, read_write);
 	tDataReg   = new mapped_region(*shmDataT, read_write);
 
 	pd.x = static_cast<double*>(xDataReg->get_address());
 	pd.y = static_cast<double*>(yDataReg->get_address());
+	pd.z = static_cast<double*>(zDataReg->get_address());
 	pd.t = static_cast<double*>(tDataReg->get_address());
 
 	pd.hdr->segSize = newSize;
@@ -186,12 +197,54 @@ void QProcInterface::processCommand(int cmd) {
 		case CmdHeader::qMW:
 			worker.qwtshowmw();
 			break;
+
+		case CmdHeader::qFigure:
+			worker.qwtfigure(pd.hdr->test);
+			break;
+
+		case CmdHeader::qTitle:
+			worker.qwttitle(pd.hdr->name);
+			break;
+			
+		case CmdHeader::qXlabel:
+			worker.qwtxlabel(pd.hdr->name);
+			break;
+			
+		case CmdHeader::qYlabel:
+			worker.qwtylabel(pd.hdr->name);
+			break;
+			
+		case CmdHeader::qClear:
+			worker.qwtclear();
+			break;
+			
+		case CmdHeader::qImpStatus:
+			worker.qwtsetimpstatus(pd.hdr->test);
+			break;
+
 		case CmdHeader::qPlot:
 			if (pd.hdr->size <= pd.hdr->segSize) {
-				printf("qPlot: style = [%s]\n", pd.hdr->style);
+				//printf("qPlot: style = [%s]\n", pd.hdr->style);
 				worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
 			}
 			break;
+
+		case CmdHeader::qPlot2:
+			if (pd.hdr->size <= pd.hdr->segSize) {
+				//printf("qPlot: style = [%s]\n", pd.hdr->style);
+				worker.qwtplot2(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, 
+					pd.hdr->lineWidth, pd.hdr->symSize, pd.t);
+			}
+			break;
+
+		case CmdHeader::qEnableBC:
+			worker.qwtEnableCoordBroadcast(pd.x, pd.y, pd.z, pd.t, pd.hdr->size);
+			break;
+
+		case CmdHeader::qDisableBC:
+			worker.qwtDisableCoordBroadcast();
+			break;
+
 
 	};
 

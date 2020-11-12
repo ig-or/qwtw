@@ -9,6 +9,9 @@ struct SHMTest {
 
 	SHMTest();
 
+	/**  init and start everything.
+	 * 	\return 0 if all is OK. 
+	**/
 	int testInit();
 	void qwtfigure(int n);
 
@@ -49,13 +52,16 @@ private:
 	boost::interprocess::shared_memory_object shmX;
 	boost::interprocess::shared_memory_object shmY;
 	boost::interprocess::shared_memory_object shmZ;
+	boost::interprocess::shared_memory_object shmT;
 
 	boost::interprocess::mapped_region commandReg;
 	boost::interprocess::mapped_region xReg;
 	boost::interprocess::mapped_region yReg;
+	boost::interprocess::mapped_region zReg;
 	boost::interprocess::mapped_region tReg;
 
 	ProcData pd;
+	int status;
 };
 
 
