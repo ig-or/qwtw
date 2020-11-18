@@ -16,7 +16,7 @@ QWorker::QWorker(): pf(nullptr) {
 
 void QWorker::onQtAppClosing() {
 	if (pf != nullptr) {
-		//printf("QWorker::onQtAppClosing()! \n \tdeleting 'pf'... \n");
+		xm_printf("QWorker::onQtAppClosing()! \n \tdeleting 'pf'... \n");
 		//delete pf;  
 
 
@@ -30,7 +30,7 @@ void QWorker::onQtAppClosing() {
 
 QWorker::~QWorker() {
 	if (pf != nullptr) {
-		//printf("QWorker::~QWorker() \n");
+		xm_printf("QWorker::~QWorker() \n");
 		//delete pf;  // this is not 100% OK here, not a QT thread
 		//pf = nullptr;
 		//std::cout << "QWorker::~QWorker(): pf was deleted!  this is not 100% OK here, not a QT thread" << std::endl;

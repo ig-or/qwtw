@@ -304,7 +304,7 @@ void MWidgetEx::drawMarker(double t) {
 		}
 		i->ma.active = true;
 		long long index = 0;
-		//printf("findClosestPoint_1 failed; siae = %u; time = %u, t = %f\n",
+		//xm_printf("findClosestPoint_1 failed; siae = %u; time = %u, t = %f\n",
 		//	i->info->size, i->info->time, t);
 		mxat(i->info->size > 0);
 		index = findClosestPoint_1(0, i->info->size - 1, i->info->time, t);
@@ -319,13 +319,13 @@ MarView::MarView(const std::string& key_, XQPlots* pf_, QWidget *parent) : JustA
 	if (!mpWasSet) {
 		mpWasSet = true;
 #ifdef VCPKG_MARBLE_DATA_PATH
-		printf("Trying to use marble data path1 %s \n ", XQX9STR(VCPKG_MARBLE_DATA_PATH));
+		xm_printf("Trying to use marble data path1 %s \n ", XQX9STR(VCPKG_MARBLE_DATA_PATH));
 		setMarbleDataPath(XQX9STR(VCPKG_MARBLE_DATA_PATH));
 #else
 	#ifdef WIN32
 			std::string cp = getCommonAppDataPath();
 			cp.append("\\qwtw\\marble-data");
-			printf("Trying to use marble data path2 %s\n", cp.c_str());
+			xm_printf("Trying to use marble data path2 %s\n", cp.c_str());
 			setMarbleDataPath(cp.c_str());
 	#else
 			setMarbleDataPath("/usr/share/marble/data");

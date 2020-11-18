@@ -446,7 +446,7 @@ void Worker::onQtAppClosing() {
 
 Worker::~Worker() {
 	if (pf != nullptr) {
-		//printf("Worker::~Worker() \n");
+		//xm_printf("Worker::~Worker() \n");
 		//delete pf;  // this is not 100% OK here, not a QT thread
 		//pf = nullptr;
 		//std::cout << "Worker::~Worker(): pf was deleted!  this is not 100% OK here, not a QT thread" << std::endl;
@@ -762,9 +762,9 @@ void stopQt2Thread() {
 			std::cout << "stopQt2Thread(): stopping the thread..invokeMethod(qt2App->quit)" << std::endl;
 			QMetaObject::invokeMethod(qt2App, "quit", Qt::BlockingQueuedConnection); // QueuedConnection
 			//std::this_thread::sleep_for(100ms);
-			printf("now calling 'qt2App->quit()'\n");
+			xm_printf("now calling 'qt2App->quit()'\n");
 			qt2App->quit();
-			printf("now calling 'qt2App->exit(0)'\n");
+			xm_printf("now calling 'qt2App->exit(0)'\n");
 			qt2App->exit(0);
 			//std::this_thread::sleep_for(100ms);
 		}
@@ -925,7 +925,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 class DLLStarter {
 public:
     DLLStarter() {
-		printf("starting another thread for QT \n");
+		xm_printf("starting another thread for QT \n");
 		std::thread ttmp(startQt2Thread);
 		qt2Thread = new std::thread();
 		ttmp.swap(*qt2Thread);
@@ -935,7 +935,7 @@ public:
     ~DLLStarter() {
 		std::cout << "~DLLStarter()! started" << std::endl;
 		stopQt2Thread();
-		printf("~DLLStarter()!  finished!!\n");
+		xm_printf("~DLLStarter()!  finished!!\n");
 		//delete thread;
 		//thread = 0;
 		

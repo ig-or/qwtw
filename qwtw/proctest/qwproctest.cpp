@@ -1,3 +1,5 @@
+
+#include "xstdef.h"
 #include "qwproc.h"
 
 #include <boost/interprocess/shared_memory_object.hpp>
@@ -7,7 +9,6 @@
 #include <chrono>
 #include <iostream>
 
-#define xm_printf printf
 
 ProcData pd;
 
@@ -57,10 +58,10 @@ struct SHMTest {
 		using namespace boost::interprocess;
 		
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-		printf("cmd = %d  \n", pd.hdr->cmd);
+		xm_printf("cmd = %d  \n", pd.hdr->cmd);
 		pd.hdr->cmd = CmdHeader::exit;
 		pd.hdr->cmdWait.notify_all();
-		printf("TEST: start waiting ..\n");
+		xm_printf("TEST: start waiting ..\n");
 		pd.hdr->workDone.wait(lock);
 	}
 
@@ -69,7 +70,7 @@ struct SHMTest {
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		pd.hdr->cmd = CmdHeader::qMW;
 		pd.hdr->cmdWait.notify_all();
-		printf("TEST: start waiting ..\n");
+		xm_printf("TEST: start waiting ..\n");
 		pd.hdr->workDone.wait(lock);
 	}
 
@@ -82,7 +83,7 @@ struct SHMTest {
 		pd.hdr->size = newSize;
 
 		pd.hdr->cmdWait.notify_all();
-		printf("TEST: start waiting ..\n");
+		xm_printf("TEST: start waiting ..\n");
 		pd.hdr->workDone.wait(lock);
 	}
 
@@ -102,14 +103,14 @@ struct SHMTest {
 		strncpy(pd.hdr->name, "test name", pd.hdr->nameSize);
 
 		pd.hdr->cmdWait.notify_all();
-		printf("TEST: start waiting ..\n");
+		xm_printf("TEST: start waiting ..\n");
 		pd.hdr->workDone.wait(lock);
 
 	}
 
 	void plotSomethingBig() {
 		using namespace boost::interprocess;
-		printf("TEST: plotSomethingBig start \n");
+		xm_printf("TEST: plotSomethingBig start \n");
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 
 		//  prepare the data
@@ -124,7 +125,7 @@ struct SHMTest {
 		//   check max size on the other side:
 		long long a = pd.hdr->segSize;
 		if (a < bsize) {
-			printf("TEST: inc seg size (1); current size = %lld \n", a);
+			xm_printf("TEST: inc seg size (1); current size = %lld \n", a);
 			pd.hdr->cmd = CmdHeader::changeSize;
 			pd.hdr->size = bsize;	
 			pd.hdr->cmdWait.notify_all();
@@ -132,7 +133,7 @@ struct SHMTest {
 
 			//  now we have to adjust our memory somehow..
 			long long segSize = pd.hdr->segSize;
-			printf("TEST: new size is %lld \n", segSize);
+			xm_printf("TEST: new size is %lld \n", segSize);
 					
 			shmX.truncate(segSize * sizeof(double));
 			shmY.truncate(segSize * sizeof(double));
@@ -160,9 +161,9 @@ struct SHMTest {
 		
 		
 		pd.hdr->cmdWait.notify_all();
-		printf("TEST: start waiting plotSomethingBig..\n");
+		xm_printf("TEST: start waiting plotSomethingBig..\n");
 		pd.hdr->workDone.wait(lock);
-		printf("TEST: plotSomethingBig.. done\n");
+		xm_printf("TEST: plotSomethingBig.. done\n");
 
 	}
 
@@ -185,7 +186,7 @@ int main(int argc, char** argv) {
    	using namespace boost::interprocess;
 	using namespace std::chrono_literals;
 
-	printf("TEST main: starting \n");
+	xm_printf("TEST main: starting \n");
 	SHMTest test;
 	test.testInit();
 	test.drawMW();
@@ -197,7 +198,7 @@ int main(int argc, char** argv) {
 	int tmp;
 	std::cin >> tmp;
 	test.stopQt();
-	printf("TEST main: exiting \n");
+	xm_printf("TEST main: exiting \n");
 	return 0;
 }
 

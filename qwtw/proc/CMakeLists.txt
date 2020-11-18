@@ -27,6 +27,8 @@ if (WITH_UDP_SYNC)
 	add_definitions(-DENABLE_UDP_SYNC)
 endif()
 
+add_definitions(-DXMPRINTF_TO_FILE)
+
 if (USE_MARBLE)	
 	add_definitions(-DUSEMARBLE)
 	FIND_PACKAGE (marble REQUIRED)	

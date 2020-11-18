@@ -1,5 +1,5 @@
 
-
+#include "xstdef.h"
 #include "pclient.h"
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <thread>
@@ -20,22 +20,21 @@ void SHMTest::qwtsetimpstatus(int status) {
 }
 
 int SHMTest::startProc() {
-	//printf("starting proc.. \n");
+	xm_printf("starting proc.. \n");
 	using namespace std::chrono_literals;
-	const char* procName = "./qwproc";
+	const char* procName = "qwproc";
 	int ret = std::system(procName);
 	std::this_thread::sleep_for(250ms);
-	//printf("SHMTest::startProc() exiting \n");
+	xm_printf("SHMTest::startProc() exiting \n");
 	return ret;
 }
-
 
 int SHMTest::testInit() {
 	if (status == 0) {
 		return 0;
 	}
 	using namespace boost::interprocess;
-	printf("starting SHMTest::testInit()\n");
+	xm_printf("starting SHMTest::testInit()\n");
 	int test = checkProcRunning();
 	if (test == 0) {  //  not running
 		startProc();
@@ -51,7 +50,7 @@ int SHMTest::testInit() {
 		shared_memory_object shmCommand_(open_only, ProcData::shmNames[0], read_write);
 		shmCommand.swap(shmCommand_);
 	} catch(interprocess_exception &ex) { // proc not started?  something is not OK
-		printf("SHMTest::testInit():  proc not started? cannot connect to the SHM \n");
+		xm_printf("SHMTest::testInit():  proc not started? cannot connect to the SHM \n");
 		status = 2;
 		return 2;
 	}
@@ -102,10 +101,10 @@ void SHMTest::stopQt() {
 	using namespace boost::interprocess;
 	
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-	//printf("cmd = %d  \n", pd.hdr->cmd);
+	//xm_printf("cmd = %d  \n", pd.hdr->cmd);
 	pd.hdr->cmd = CmdHeader::exit;
 	pd.hdr->cmdWait.notify_all();
-	//printf("TEST: start waiting ..\n");
+	//xm_printf("TEST: start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 	status = 4; //   stopped
 }
@@ -140,7 +139,7 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 		strncpy(pd.hdr->name, text, CmdHeader::nameSize);
 	}
 	pd.hdr->cmdWait.notify_all();
-	//printf("TEST: start waiting ..\n");
+	//xm_printf("TEST: start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 }
 void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
@@ -151,7 +150,7 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
 	pd.hdr->test = v;
 
 	pd.hdr->cmdWait.notify_all();
-	//printf("TEST: start waiting ..\n");
+	//xm_printf("TEST: start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 }
 
@@ -196,7 +195,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 	//   check max size on the other side:
 	long long a = pd.hdr->segSize;
 	if (a < size) {
-		printf("SHMTest: inc seg size (1); current size = %lld \n", a);
+		xm_printf("SHMTest: inc seg size (1); current size = %lld \n", a);
 		pd.hdr->cmd = CmdHeader::changeSize;
 		pd.hdr->size = size;	
 		pd.hdr->cmdWait.notify_all();
@@ -204,7 +203,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 
 		//  now we have to adjust our memory somehow..
 		long long segSize = pd.hdr->segSize;
-		printf("SHMTest: new size is %lld \n", segSize);
+		xm_printf("SHMTest: new size is %lld \n", segSize);
 		
 		// truncate our part to the new size
 		shmX.truncate(segSize * sizeof(double));

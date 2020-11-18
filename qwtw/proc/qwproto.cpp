@@ -1,5 +1,5 @@
 
-
+#include "xstdef.h"
 #include "qwproto.h"
 #include "qwproc.h"
 #include "qworker.h"
@@ -79,7 +79,7 @@ void QProcInterface::start() {
 		shmDataZ =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
 		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
 	} catch (interprocess_exception &ex){
-		printf("cannot create shared memory: %s \n", ex.what());
+		xm_printf("cannot create shared memory: %s \n", ex.what());
 		return;
 	}
 	shmCommand->truncate(sizeof(CmdHeader));
@@ -127,17 +127,17 @@ void QProcInterface::stop() {
 
 void QProcInterface::run() {
 	using namespace boost::interprocess;
-	//printf("QProcInterface::run() 1\n");
+	//xm_printf("QProcInterface::run() 1\n");
 	while (!needStopThread) {
 		//   wait for another command
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		pd.hdr->cmdWait.wait(lock);
-		//printf("QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
+		//xm_printf("QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
 		int cmd = pd.hdr->cmd;
 		processCommand(cmd);
 		pd.hdr->workDone.notify_all();
 	}
-	//printf("QProcInterface::run() exiting \n");
+	//xm_printf("QProcInterface::run() exiting \n");
 }
 
 void QProcInterface::changeSize(long long newSize) {
@@ -173,20 +173,20 @@ void QProcInterface::plot() {
 }
 
 void QProcInterface::processCommand(int cmd) {
-	printf("QProcInterface::processCommand got cmd = %d \n", cmd);
+	xm_printf("QProcInterface::processCommand got cmd = %d \n", cmd);
 
 	switch(cmd) {
 		case CmdHeader::exit:
-			//printf("QProcInterface::processCommand : sending QUIT to QT..  \n");
+			//xm_printf("QProcInterface::processCommand : sending QUIT to QT..  \n");
 			QMetaObject::invokeMethod(&app, "quit", Qt::BlockingQueuedConnection); // QueuedConnection
-			//printf("QProcInterface::processCommand : QUIT was sent \n");
+			//xm_printf("QProcInterface::processCommand : QUIT was sent \n");
 			needStopThread = true;
 			//now  lets wait for the app to exit
 			{
-				//printf("QProcInterface::processCommand :  lets wait for the app to exit..  \n");
+				//xm_printf("QProcInterface::processCommand :  lets wait for the app to exit..  \n");
 				//std::unique_lock<std::mutex> lck(worker.appMutex);
 				//worker.appV.wait(lck);
-				//printf("QProcInterface::processCommand : QT app looks like exited! \n");
+				//xm_printf("QProcInterface::processCommand : QT app looks like exited! \n");
 			}
 			
 			break;
@@ -224,14 +224,14 @@ void QProcInterface::processCommand(int cmd) {
 
 		case CmdHeader::qPlot:
 			if (pd.hdr->size <= pd.hdr->segSize) {
-				//printf("qPlot: style = [%s]\n", pd.hdr->style);
+				//xm_printf("qPlot: style = [%s]\n", pd.hdr->style);
 				worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
 			}
 			break;
 
 		case CmdHeader::qPlot2:
 			if (pd.hdr->size <= pd.hdr->segSize) {
-				//printf("qPlot: style = [%s]\n", pd.hdr->style);
+				//xm_printf("qPlot: style = [%s]\n", pd.hdr->style);
 				worker.qwtplot2(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, 
 					pd.hdr->lineWidth, pd.hdr->symSize, pd.t);
 			}
