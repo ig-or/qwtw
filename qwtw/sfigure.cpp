@@ -236,9 +236,9 @@ XQPlots::XQPlots(QWidget * parent1): QDialog(parent1, Qt::Dialog
 }
 
 XQPlots::~XQPlots() {
-	printf("stopping XQPlots .... \n");
+	xm_printf("stopping XQPlots .... \n");
 	onExit();
-	printf("XQPlots stopped\n");
+	xm_printf("XQPlots stopped\n");
 }
 
 void XQPlots::setmode(int mode_) {

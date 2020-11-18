@@ -26,7 +26,6 @@
 
 #include "boost/filesystem.hpp"
 
-
 //  ==========  path #1. lets create some data ===================================
 //   our data arrays below:
 const int n1 = 24;
@@ -66,6 +65,10 @@ void test(int n);
 
 int main(int argc, char* argv[]) {
 	createInfo(); //    fill in all data arrays
+
+	setbuf(stdout, NULL);
+	setvbuf(stdout, NULL, _IONBF, 0); 
+
 	for (int i = 0; i < 1; i++) {
 		test(i);
 	}
@@ -86,7 +89,8 @@ int main(int argc, char* argv[]) {
 
 void test(int n) {
 	printf("\n\n\ndoing the test # %d\n", n);
-	std::this_thread::sleep_for(std::chrono::milliseconds(500));
+	using namespace std::chrono_literals;
+	//std::this_thread::sleep_for(100ms);
 
 	//  where our EXE is located? lets find out
 	std::string exeFileName;
@@ -183,6 +187,7 @@ void test(int n) {
 
 #ifdef WIN32
 	pQSimple qHello = (pQSimple)GetProcAddress(hQWTW_DLL, "kyleHello");
+	pQSimple qClose = (pQSimple)GetProcAddress(hQWTW_DLL, "qwtclose");
 	pQSimple2 qXLabel = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwtxlabel");
 	pQSimple2 qYLabel = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwtylabel");
 	pVersion qVersion = (pVersion)GetProcAddress(hQWTW_DLL, "qwtversion");
@@ -196,6 +201,7 @@ void test(int n) {
 	//void qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 #else
 	pQSimple qHello = (pQSimple)dlsym(lib_handle, "kyleHello");
+	pQSimple qClose = (pQSimple)dlsym(lib_handle, "qwtclose");
 	pQSimple2 qXLabel = (pQSimple2)dlsym(lib_handle, "qwtxlabel");
 	pQSimple2 qYLabel = (pQSimple2)dlsym(lib_handle, "qwtylabel");
 	pVersion qVersion = (pVersion)dlsym(lib_handle, "qwtversion");
@@ -214,9 +220,11 @@ void test(int n) {
 		printf("ERROR: cannot load symbols. \n");
 		exit(2);
 	}
+	//printf("exiting from TEST\n");
+	//return;
 
-	using namespace std::chrono_literals;
-	std::this_thread::sleep_for(100ms);
+	
+	//std::this_thread::sleep_for(100ms);
 	int test0 = q2Start();
 	std::cout << "test 0 = " << test0 << std::endl;
 
@@ -279,6 +287,9 @@ void test(int n) {
 	qPlot2(circleData_x1, circleData_y1, nc, "circle", "-qm", 1, 12, circleTime_1);
 	qTitle("'top view' test");
 
+	//std::this_thread::sleep_for(5s);
+	//qClose();
+	//return;
 
 	std::cout << "press a key to close the DLL:" << std::endl;
 	int  ch;
@@ -287,7 +298,7 @@ void test(int n) {
 	#else
 	std::cin >> ch;
 	#endif
-	//qClose();
+	//
 
 	std::this_thread::sleep_for(400ms);
 	std::cout << "closing the library " << std::endl;

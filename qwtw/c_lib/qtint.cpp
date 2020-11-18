@@ -419,7 +419,7 @@ void stopQWT() {
 
 
 
-static std::thread qt2Thread;
+static std::thread* qt2Thread = 0;
 //static QPointer<QCoreApplication> qt2App = nullptr;
 static QPointer<QApplication> qt2App = nullptr;
 static std::condition_variable q2_loading_cv;
@@ -446,7 +446,7 @@ void Worker::onQtAppClosing() {
 
 Worker::~Worker() {
 	if (pf != nullptr) {
-		//printf("Worker::~Worker() \n");
+		//xm_printf("Worker::~Worker() \n");
 		//delete pf;  // this is not 100% OK here, not a QT thread
 		//pf = nullptr;
 		//std::cout << "Worker::~Worker(): pf was deleted!  this is not 100% OK here, not a QT thread" << std::endl;
@@ -645,8 +645,11 @@ static char argv0[MAX_PATH];
 
 void startQt2Thread() {
 	//  create arguments for QApplication:
-	//printf("startQt2Thread() started! now starting QT5 .. \n");
-	
+	printf("startQt2Thread() started! \n");
+
+	using namespace std::chrono_literals;
+	std::this_thread::sleep_for(100ms);
+	printf("now starting QT5 .. \n");
 
 	getExeFilePath(argv0, MAX_PATH);
 	if (argv0[0] == 0) {
@@ -704,6 +707,7 @@ void startQt2Thread() {
 
 	}
 #endif
+/*
 	// http://habrahabr.ru/post/188816/ :
 	QStringList paths = QCoreApplication::libraryPaths();
 	paths.append(".");
@@ -718,12 +722,12 @@ void startQt2Thread() {
 #endif
 	paths.append(qwtwSysPath.c_str());
 	QCoreApplication::setLibraryPaths(paths);
-
+*/
 	q2_loading_mutex.lock();
 	if (!qApp) {
 		//xm_printf("PATH before new QApplication: %s\n\n", std::getenv("PATH"));
 		qt2App = new QApplication(argc, argv);
-		//printf("QApplication created!! \n");
+		printf("QApplication created!! \n");
 
 	}	else {
 		qt2App = qApp;
@@ -740,7 +744,8 @@ void startQt2Thread() {
 	q2_loading_mutex.unlock();
 	q2_loading_cv.notify_all();
 	//printf("running QT exec ..... \n");
-	qt2App->exec();
+	
+	
 	q2worker = nullptr;
 	q2_loading_mutex.lock(); 
 	//std::cout << "startQt2Thread() STOPPED " << std::endl;
@@ -750,30 +755,30 @@ void startQt2Thread() {
 }
 
 void stopQt2Thread() {
-	//std::cout << "stopQt2Thread(): q2_started = " << q2_started << std::endl;
+	std::cout << "stopQt2Thread(): q2_started = " << q2_started << std::endl;
 	using namespace std::chrono_literals;
-	if ((q2_started == 1) && (qt2Thread.joinable())) { //  looks like QT thread is still running
+	if ((q2_started == 1)) { //  looks like QT thread is still running
 		if (qt2App != nullptr) { // try to make QT to stop
-			//std::cout << "stopQt2Thread(): stopping the thread..invokeMethod(qt2App->quit)" << std::endl;
-			QMetaObject::invokeMethod(qt2App, "quit", Qt::QueuedConnection);
-			std::this_thread::sleep_for(100ms);
-			//printf("now calling 'qt2App->quit()'\n");
+			std::cout << "stopQt2Thread(): stopping the thread..invokeMethod(qt2App->quit)" << std::endl;
+			QMetaObject::invokeMethod(qt2App, "quit", Qt::BlockingQueuedConnection); // QueuedConnection
+			//std::this_thread::sleep_for(100ms);
+			xm_printf("now calling 'qt2App->quit()'\n");
 			qt2App->quit();
-			//printf("now calling 'qt2App->exit(0)'\n");
+			xm_printf("now calling 'qt2App->exit(0)'\n");
 			qt2App->exit(0);
-			std::this_thread::sleep_for(100ms);
+			//std::this_thread::sleep_for(100ms);
 		}
 		// wait some more time:
 		//std::cout << "stopQt2Thread(): stopping the thread...2 " << std::endl;
 		std::unique_lock<std::mutex> lk(q2_loading_mutex);
 		if (q2_started != 1) {
 			//std::cout << "stopQt2Thread(): QT stopped already; q2_started = " << q2_started << std::endl;
-			qt2Thread.join(); 
+			//qt2Thread.join(); 
 			//std::cout << "stopQt2Thread(): bye. " << std::endl;
 		} else {
 			q2_loading_cv.wait_for(lk, 150ms, [] {return (q2_started != 1); });
 			std::cout << "stopQt2Thread(): stopping the thread...3; q2_started =  " << q2_started << std::endl;
-			qt2Thread.join();
+			//qt2Thread.join();
 			std::cout << "stopQt2Thread(): done stopping the thread; q2_started =  " << q2_started << std::endl;
 		}
 	}
@@ -920,26 +925,17 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 class DLLStarter {
 public:
     DLLStarter() {
-		//printf("DLLStarter!! (1)\n");
-		if (qt2App == nullptr) {
-			//std::cout << "DLLStarter: starting the Qt2Thread " << std::endl;
-			if (qt2Thread.joinable()) {
-				std::cout << "DLLStarter: qt2Thread.joinable() ! " << std::endl;
-			} else {
-				//printf("starting another thread for QT \n");
-				std::thread ttmp(startQt2Thread);
-				ttmp.swap(qt2Thread);
-			}
-		} else {
-			std::cout << "DLLStarter: qt2App != 0 " << std::endl;
-		}
-		
-        //startQWT();
+		xm_printf("starting another thread for QT \n");
+		std::thread ttmp(startQt2Thread);
+		qt2Thread = new std::thread();
+		ttmp.swap(*qt2Thread);
+		qt2Thread->detach();
     } 
+
     ~DLLStarter() {
-		//std::cout << "~DLLStarter()! " << std::endl;
+		std::cout << "~DLLStarter()! started" << std::endl;
 		stopQt2Thread();
-		//printf("stopped!!\n");
+		xm_printf("~DLLStarter()!  finished!!\n");
 		//delete thread;
 		//thread = 0;
 		

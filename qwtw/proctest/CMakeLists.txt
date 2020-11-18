@@ -1,25 +1,27 @@
 #
-# 	# qwtwc library test2 project
+# 	# proctest  project
 #
 
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required (VERSION 3.1)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
-set(USE_QT YES)
 
-set(PROJECT_NAME qwtest2)
+set (NO_VERSION_INFO 1)
+set(PROJECT_NAME qwproctest)
 set (NEED_BOOST  thread system filesystem date_time chrono)
-commonStart()
-set(NO_VERSION_INFO 1) 
 
+commonStart()
 set(INC_DIR_LIST "../" "../c_lib"  "../../../common" "../../../xmatrix2" )
 	
-addSourceFiles("source" "../" qwtest2)	
+addSourceFiles("source" "." qwproctest )	
+addSourceFiles("source" "../proc/" qwproc.h)	
+add_definitions(-DBOOST_DATE_TIME_NO_LIB)
+
 if(UNIX)
-    addOtherLib("dl")
+    #addOtherLib("dl")
     addOtherLib("rt")
 endif()
-programEnd()
 
+programEnd()
 if (VCPKG_EXISTS)
     install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/qwtw)
 else()
