@@ -20,12 +20,12 @@ void SHMTest::qwtsetimpstatus(int status) {
 }
 
 int SHMTest::startProc() {
-	xm_printf("starting proc.. \n");
+	//xm_printf("starting proc.. \n");
 	using namespace std::chrono_literals;
 	const char* procName = "qwproc";
 	int ret = std::system(procName);
-	std::this_thread::sleep_for(250ms);
-	xm_printf("SHMTest::startProc() exiting \n");
+	std::this_thread::sleep_for(275ms);
+	//xm_printf("SHMTest::startProc() exiting \n");
 	return ret;
 }
 
@@ -34,7 +34,7 @@ int SHMTest::testInit() {
 		return 0;
 	}
 	using namespace boost::interprocess;
-	xm_printf("starting SHMTest::testInit()\n");
+	//xm_printf("starting SHMTest::testInit()\n");
 	int test = checkProcRunning();
 	if (test == 0) {  //  not running
 		startProc();
@@ -195,7 +195,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 	//   check max size on the other side:
 	long long a = pd.hdr->segSize;
 	if (a < size) {
-		xm_printf("SHMTest: inc seg size (1); current size = %lld \n", a);
+		//xm_printf("SHMTest: inc seg size (1); current size = %lld \n", a);
 		pd.hdr->cmd = CmdHeader::changeSize;
 		pd.hdr->size = size;	
 		pd.hdr->cmdWait.notify_all();
@@ -203,7 +203,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 
 		//  now we have to adjust our memory somehow..
 		long long segSize = pd.hdr->segSize;
-		xm_printf("SHMTest: new size is %lld \n", segSize);
+		//xm_printf("SHMTest: new size is %lld \n", segSize);
 		
 		// truncate our part to the new size
 		shmX.truncate(segSize * sizeof(double));

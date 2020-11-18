@@ -37,7 +37,7 @@ qwtwc_API void kyleHello() {
 /** starting  QT proc, if not started yet.
  * 	return 0 if all is OK, 
  *  not 0 means nothing is working.
- * */ 
+ **/ 
 
 qwtwc_API	int qtstart() {
 	return test.testInit();
@@ -145,7 +145,7 @@ qwtwc_API 	void qwtDisableCoordBroadcast() {
 
 */
 qwtwc_API 	void qwtshowmw() {
-
+	test.qwtshowmw();
 }
 
 

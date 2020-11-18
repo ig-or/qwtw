@@ -178,8 +178,10 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : Just
 	setupUi();
 
 	QIcon icon;
-    icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.PNG")), QIcon::Normal, QIcon::Off);
+    icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
+	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
     setWindowIcon(icon);
+	//setWindowIconText("qwtw");
 
 	connect(tb1, SIGNAL(toggled( bool )), this, SLOT(ontb1( bool )));
 	connect(tb2, SIGNAL(toggled( bool )), this, SLOT(ontb2( bool )));

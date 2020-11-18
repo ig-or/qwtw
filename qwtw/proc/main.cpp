@@ -10,6 +10,8 @@
 #include <QObject>
 #include <QPointer>
 #include <QApplication>
+#include <QIcon>
+#include <QMainWindow>
 
 #include <unistd.h>
 #include <signal.h>
@@ -54,7 +56,7 @@ int lockHandle() {
 int main(int argc, char** argv) {
 	bool test = QProcInterface::runningAlready();
 	if (test) {
-		xm_printf("shm exists\n");
+		//xm_printf("shm exists\n");
 		//return 2;
 	}
 
@@ -156,6 +158,12 @@ int main(int argc, char** argv) {
 	QProcInterface qpi(qWorker, app);
 	qpi.start();
 	QObject::connect(&app, SIGNAL(aboutToQuit()), &qWorker, SLOT(onQtAppClosing()));
+
+	QIcon icon;
+    icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
+	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
+	app.setWindowIcon(icon);
+	//QMainWindow::
 	//qWorker.appMutex.lock();
 	xm_printf("main: starting QT thread  \n");
 	app.exec();

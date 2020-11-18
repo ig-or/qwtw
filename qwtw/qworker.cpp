@@ -191,6 +191,11 @@ Q_INVOKABLE int QWorker::qtstartImpl() {
 			std::cout << " error qtstartImpl: (pf == nullptr)" << std::endl;
 		}	else {
 			//std::cout << "q2  started! " << std::endl;
+				QIcon icon;
+    			icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
+				icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
+			pf->setWindowIcon(icon);
+			
 		}
 	} 
 	return 25;

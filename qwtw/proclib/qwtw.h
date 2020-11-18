@@ -6,13 +6,13 @@ QWT-based 2D plotting library.
 #pragma once
 
 #ifdef WIN32
-#ifdef qwtwcEXPORTS	
-#define qwtwc_API __declspec(dllexport) // Q_DECL_EXPORT 
+    #ifdef qwtwcEXPORTS	
+        #define qwtwc_API __declspec(dllexport) // Q_DECL_EXPORT 
+    #else
+        #define qwtwc_API  __declspec(dllimport) // Q_DECL_IMPORT
+    #endif
 #else
-#define qwtwc_API  __declspec(dllimport) // Q_DECL_IMPORT
-#endif
-#else
-#define qwtwc_API
+    #define qwtwc_API
 #endif
 
 
@@ -20,26 +20,32 @@ QWT-based 2D plotting library.
 	extern "C" {
 #endif
 
-/**  this is just for testing*/
+/**  this is just for testing
+ *  \return 42
+*/
 qwtwc_API 	int get42(int n);
 
-qwtwc_API void kyleHello();
-
-//  just wait for QT proc to start
+/** starting  QT proc, if not started yet.
+ * 	return 0 if all is OK, 
+ *  not 0 means nothing is working.
+ **/ 
 qwtwc_API	int qtstart();
 
-/**  print version info string (with 'sprintf'). warning: no vstr length check!!
+/**  print version info string (with 'snprintf')
 	@param[out] vstr string with version info
+    \param vstr_size size of vstr
 	@return number of bytes in vstr
-
 */
 qwtwc_API		int qwtversion(char* vstr, int vstr_size);
 
 /**  create (and draw) new plot with ID 'n';  make this plot 'active'
      if plot with this ID already exists, it will be made 'active'
- @param[in] n this plot ID
+
+     if n == 0 then will add another plot anyway
+    @param[in] n this plot ID
 */
 qwtwc_API 	void qwtfigure(int n);
+
 
 #ifdef USEMARBLE
 /**  create (and draw) new map plot with ID 'n'.
@@ -159,7 +165,7 @@ qwtwc_API 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double*
 qwtwc_API 	void qwtDisableCoordBroadcast();
 #endif
 
-/** close QT proc. use it for debugging/testing only.
+/** close QT proc (why not?  You do not have to, though..). 
  *  There is another function to close all windows.
 */
 qwtwc_API 	void qwtclose(); 
