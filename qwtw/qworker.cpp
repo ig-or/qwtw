@@ -59,8 +59,13 @@ void QWorker::topview(int n) {
 #endif
 int QWorker::qVersion(char* vstr, int vstr_size) {
 #ifdef WIN32
+#ifdef qwtwcEXPORTS
 	extern HMODULE qwtwLibModule;
 	return xqversion(vstr, vstr_size - 2, qwtwLibModule);
+#else
+	return xqversion(vstr, vstr_size - 2);
+#endif
+	
 #else
 	strcpy(vstr, " linux? ");
 	return 7;

@@ -84,8 +84,10 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
+#ifdef WIN32
 //  the library instance
-//static volatile  HINSTANCE hQWTW_DLL = 0;
+static volatile  HINSTANCE hQWTW_DLL = 0;
+#endif
 
 void test(int n) {
 	printf("\n\n\ndoing the test # %d\n", n);
