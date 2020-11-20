@@ -8,10 +8,9 @@
 
 #include "pclient.h"
 
-
 #ifdef WIN32
 #include <Windows.h>
-extern HMODULE qwtwLibModule;
+HMODULE qwtwLibModule = 0;
 #endif
 
 
@@ -54,7 +53,11 @@ qwtwc_API	void qwtclose() {
 
 */
 qwtwc_API		int qwtversion(char* vstr, int vstr_size) {
-	return xqversion(vstr, vstr_size - 1);
+	if (qwtwLibModule == 0) {
+		return xqversion(vstr, vstr_size - 1);
+	}	else {
+		return xqversion(vstr, vstr_size - 1, qwtwLibModule);
+	}
 }
 
 
@@ -148,6 +151,36 @@ qwtwc_API 	void qwtshowmw() {
 	test.qwtshowmw();
 }
 
+
+#ifdef WIN32
+BOOL APIENTRY DllMain(HMODULE hModule,
+	DWORD  ul_reason_for_call,
+	LPVOID lpReserved
+) {
+	switch (ul_reason_for_call) {
+	case DLL_PROCESS_ATTACH:
+		qwtwLibModule = hModule;
+		//++prCounter;
+		//printf("DLL main: DLL_PROCESS_ATTACH; prCounter = %d\n", prCounter);
+		break;
+	case DLL_THREAD_ATTACH:
+		//++trCounter;
+		//printf("DLL main: DLL_THREAD_ATTACH; trCounter = %d\n", trCounter);
+		break;
+	case DLL_THREAD_DETACH:
+		//--trCounter;
+		//printf("DLL main: DLL_THREAD_DETACH; trCounter = %d\n", trCounter);
+		break;
+	case DLL_PROCESS_DETACH:
+		//--prCounter;
+		//printf("DLL main: DLL_PROCESS_DETACH; prCounter = %d\n", prCounter);
+		break;
+		break;
+	}
+	return TRUE;
+}
+
+#endif
 
 
 

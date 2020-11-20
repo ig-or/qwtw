@@ -4,23 +4,67 @@
 #include "xstdef.h"
 #include "qwproc.h"
 
-#include <unistd.h>
+
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <syslog.h>
+
+#ifdef WIN32	
+	#include "windows.h"
+	#include "shlobj_core.h"
+#else
+	#include <syslog.h>
+	#include <unistd.h>
+#endif
 
 #include <string>
 #include <iostream>
 #include <sstream>
 
+
 #include "boost/filesystem.hpp"
+
+bool getFolderLocation(char* p, int pSize) {
+	using namespace boost::filesystem;
+	boost::system::error_code ec;
+	char hPath[512];
+	char* ePath = getenv("HOME");
+	if (ePath == nullptr) {
+		ePath = getenv("USERPROFILE");
+		if (ePath == nullptr) {
+#ifdef WIN32
+			HRESULT result = SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, hPath);
+			if (SUCCEEDED(result)) {
+				ePath = hPath;
+			}
+			else {
+				xm_printf("ERROR: cannot find a path to the config file\n");
+				return false;
+			}
+#else	
+			xm_printf("ERROR: cannot find a path to the config file\n");
+			return false;
+#endif
+		}
+	}
+
+	path home(ePath);
+	path dir = home / ".qwtw";
+	strncpy(p, dir.string().c_str(), pSize);
+	return true;
+}
 
 int checkProcRunning() {
 	using namespace boost::filesystem;
 	boost::system::error_code ec;
-	path home(getenv("HOME"));
-	path dir = home / ".qwtw" / "lock";
+	char p[512];
+	if (getFolderLocation(p, 512)) {
+
+	} else {
+		xm_printf("ERROR: cannot obtain lock file location\n");
+		return 5;
+	}
+	path dir = path(p) / "lock";
 	path f = dir / "qwproc";
 #ifndef qwtwcEXPORTS
 	xm_printf("checkProcRunning() starting\n");
@@ -40,6 +84,19 @@ int checkProcRunning() {
 #endif
 
 		//  do we still have this process?
+#ifdef WIN32
+		DWORD pid = strtoul(sp.c_str(), 0, 10);
+		HANDLE ph = OpenProcess(SYNCHRONIZE, TRUE, pid);
+		if (ph != NULL) {   //  ok, we have something
+			DWORD status;
+			BOOL test = GetExitCodeProcess(ph, &status);
+			if (test) { // ....
+				if (status == STILL_ACTIVE) {
+					return 1; //  running!
+				}
+			}
+		}
+#else
 		path proc = path("/proc") / sp / "status";
 		if (exists(proc)) { // lets check the name
 			//path pf = proc / "status";
@@ -65,11 +122,12 @@ int checkProcRunning() {
 			xm_printf("checkProcRunning: no %s file detected \n", proc.string().c_str());
 #endif			
 		}
+#endif
 	} else {
 #ifndef qwtwcEXPORTS		
 		xm_printf("checkProcRunning(): no lock file detected\n");
 #endif		
 	}
-	return 0; 
+	return 0; //  not running
 }
 

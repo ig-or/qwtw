@@ -13,12 +13,18 @@
 #include <QIcon>
 #include <QMainWindow>
 
-#include <unistd.h>
+#include <stdlib.h>
+
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#ifdef WIN32
+#include "windows.h"
+#include "shlobj_core.h"
+#else
 #include <syslog.h>
-#include <stdlib.h>
+#include <unistd.h>
+#endif
 
 #include <string>
 #include <iostream>
@@ -33,12 +39,33 @@ static FILE* logFile = 0;
 int lockHandle() {
 	using namespace boost::filesystem;
 	boost::system::error_code ec;
-	path home(getenv("HOME"));
+	char hPath[512];
+	char* ePath = getenv("HOME");
+	if (ePath == nullptr) {
+		ePath = getenv("USERPROFILE");
+		if (ePath == nullptr) {
+#ifdef WIN32
+			HRESULT result = SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, hPath);
+			if (SUCCEEDED(result)) {
+				ePath = hPath;
+			}	else {
+
+			}
+#else
+
+#endif
+		}
+	}
+	path home(ePath);
 	path dir = home / ".qwtw" / "lock";
 	path f = dir / "qwproc";
 
 	// install our lock
+#ifdef WIN32
+	DWORD pid = GetCurrentProcessId();
+#else
 	pid_t pid = getpid(); //  my PID
+#endif
 	if (!exists(dir, ec)) {
 		bool lockDirCreated = create_directories(dir, ec);
 		if (!lockDirCreated) {
@@ -60,6 +87,9 @@ int main(int argc, char** argv) {
 		//return 2;
 	}
 
+#ifdef WIN32
+
+#else
 	//  code partially from https://github.com/pasce/daemon-skeleton-linux-c:
 	pid_t pid;
 	// Fork off the parent process 
@@ -105,28 +135,40 @@ int main(int argc, char** argv) {
 	for (x3 = sysconf(_SC_OPEN_MAX); x3>=0; x3--)	{
 		close (x3);
 	}
+#endif
 
 	// ===========   open log file ==========
 	if (logFile == 0) { //  try to open
-		using namespace boost::filesystem;
-		boost::system::error_code ec;
-		path home(getenv("HOME"));
-		path dir = home / ".qwtw" / "log";
-		path f = dir / "log.txt";
 
-		pid_t pid = getpid(); //  my PID
-		if (!exists(dir, ec)) {
-			bool logDirCreated = create_directories(dir, ec);
-			if (!logDirCreated) {
-				xm_printf("cannot create dirs; error %s\n", ec.message().c_str());
-				return 2;
+		char p[512];
+		if (getFolderLocation(p, 512)) {
+			using namespace boost::filesystem;
+			boost::system::error_code ec;
+			path dir = path(p) / "log";
+			path f = dir / "log.txt";
+
+			if (!exists(dir, ec)) {
+				bool logDirCreated = create_directories(dir, ec);
+				if (!logDirCreated) {
+					xm_printf("cannot create dirs [%s]; error [%s]\n", dir.string().c_str(),  ec.message().c_str());
+					return 2;
+				}
 			}
-		}
-		logFile = fopen(f.string().c_str(), "wt");
-		if (logFile) {
-			xm_printf("\n\n =========== %d =================\nlog started\n", pid);
+			logFile = fopen(f.string().c_str(), "wt");
+			if (logFile) {
+#ifdef WIN32
+				DWORD pid = 0;
+#else
+				pid_t pid = getpid(); //  my PID
+#endif
+				xm_printf("\n\n =========== %d =================\nlog started\n", pid);
+			}
+			else {
+				return 3;
+			}
+
 		} else {
-			return 3;
+			printf("ERROR: cannot obtain log file location\n");
 		}
 	}
 	

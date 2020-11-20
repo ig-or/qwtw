@@ -55,5 +55,9 @@ struct ProcData {
 
 #pragma pack()
 
+/** get location for all the 'system' files
+\return 0 if error
+*/
+bool getFolderLocation(char* p, int pSize);
 int checkProcRunning();
 

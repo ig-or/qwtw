@@ -2,6 +2,7 @@
 #include "xstdef.h"
 #include "pclient.h"
 #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/process/spawn.hpp>
 #include <thread>
 #include <chrono>
 #include <cstdlib>
@@ -22,11 +23,19 @@ void SHMTest::qwtsetimpstatus(int status) {
 int SHMTest::startProc() {
 	//xm_printf("starting proc.. \n");
 	using namespace std::chrono_literals;
+	namespace bp = boost::process;
+	std::error_code ec;
 	const char* procName = "qwproc";
-	int ret = std::system(procName);
-	std::this_thread::sleep_for(275ms);
+	//int ret = std::system(procName);
+	try {
+		bp::spawn(procName);
+		std::this_thread::sleep_for(275ms);
+	}	catch (std::exception& ex) {
+		xm_printf("cannot start process %s \n", procName);
+		return 1;
+	}
 	//xm_printf("SHMTest::startProc() exiting \n");
-	return ret;
+	return 0;
 }
 
 int SHMTest::testInit() {

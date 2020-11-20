@@ -2,13 +2,16 @@
 
 
 #include "xstdef.h"
+#include "xmutils.h"
 #include "sfigure.h"
 
 
 #include "qworker.h"
 
 #include <iostream>
-
+#ifdef WIN32
+#include "windows.h"
+#endif
 
 QWorker::QWorker(): pf(nullptr) {
 	/*hello();*/ 
@@ -56,6 +59,7 @@ void QWorker::topview(int n) {
 #endif
 int QWorker::qVersion(char* vstr, int vstr_size) {
 #ifdef WIN32
+	extern HMODULE qwtwLibModule;
 	return xqversion(vstr, vstr_size - 2, qwtwLibModule);
 #else
 	strcpy(vstr, " linux? ");
