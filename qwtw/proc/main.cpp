@@ -19,11 +19,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #ifdef WIN32
-#include "windows.h"
-#include "shlobj_core.h"
-#else
-#include <syslog.h>
-#include <unistd.h>
+	#include "windows.h"
+	#include "shlobj_core.h"
+#else // linux?
+	#include <syslog.h>
+	#include <unistd.h>
 #endif
 
 #include <string>
@@ -39,33 +39,18 @@ static FILE* logFile = 0;
 int lockHandle() {
 	using namespace boost::filesystem;
 	boost::system::error_code ec;
-	char hPath[512];
-	char* ePath = getenv("HOME");
-	if (ePath == nullptr) {
-		ePath = getenv("USERPROFILE");
-		if (ePath == nullptr) {
-#ifdef WIN32
-			HRESULT result = SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, hPath);
-			if (SUCCEEDED(result)) {
-				ePath = hPath;
-			}	else {
+	char p[512];
+	if (getFolderLocation(p, 512)) {
 
-			}
-#else
-
-#endif
-		}
+	} else {
+		xm_printf("ERROR: getFolderLocation not working \n");
+		return 3;
 	}
-	path home(ePath);
-	path dir = home / ".qwtw" / "lock";
+
+	path home(p);
+	path dir = home / "lock";
 	path f = dir / "qwproc";
 
-	// install our lock
-#ifdef WIN32
-	DWORD pid = GetCurrentProcessId();
-#else
-	pid_t pid = getpid(); //  my PID
-#endif
 	if (!exists(dir, ec)) {
 		bool lockDirCreated = create_directories(dir, ec);
 		if (!lockDirCreated) {
@@ -73,6 +58,14 @@ int lockHandle() {
 			return 2;
 		}
 	}
+
+	// install our lock
+#ifdef WIN32
+	DWORD pid = GetCurrentProcessId();
+#else
+	pid_t pid = getpid(); //  my PID
+#endif
+
 	std::ofstream lockFile(f.string());
 	lockFile << pid;
 	lockFile.close();
@@ -87,8 +80,10 @@ int main(int argc, char** argv) {
 		//return 2;
 	}
 
-#ifdef WIN32
+#ifdef WIN32	// make it a windows service could be a better way, though.. 
+				//  probably this also works:
 
+				
 #else
 	//  code partially from https://github.com/pasce/daemon-skeleton-linux-c:
 	pid_t pid;
@@ -157,7 +152,7 @@ int main(int argc, char** argv) {
 			logFile = fopen(f.string().c_str(), "wt");
 			if (logFile) {
 #ifdef WIN32
-				DWORD pid = 0;
+				DWORD pid = GetCurrentProcessId();
 #else
 				pid_t pid = getpid(); //  my PID
 #endif

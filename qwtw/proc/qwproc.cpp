@@ -15,6 +15,7 @@
 #else
 	#include <syslog.h>
 	#include <unistd.h>
+	#include <pwd.h>
 #endif
 
 #include <string>
@@ -27,13 +28,18 @@
 bool getFolderLocation(char* p, int pSize) {
 	using namespace boost::filesystem;
 	boost::system::error_code ec;
+	if (pSize < 2) {
+		return false;
+	}
+	p[0] = 0;
+
 	char hPath[512];
 	char* ePath = getenv("HOME");
-	if (ePath == nullptr) {
-		ePath = getenv("USERPROFILE");
+	if (ePath == nullptr) {  // "HOME" may be empty 
+		ePath = getenv("USERPROFILE");    // " this can work on Windows
 		if (ePath == nullptr) {
 #ifdef WIN32
-			HRESULT result = SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, hPath);
+			HRESULT result = SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, hPath); // one more test for Windows
 			if (SUCCEEDED(result)) {
 				ePath = hPath;
 			}
@@ -41,9 +47,14 @@ bool getFolderLocation(char* p, int pSize) {
 				xm_printf("ERROR: cannot find a path to the config file\n");
 				return false;
 			}
-#else	
-			xm_printf("ERROR: cannot find a path to the config file\n");
-			return false;
+#else	// other options for Linux? 
+			struct passwd* pw = getpwuid(getuid());
+			if (pw == NULL) {
+				xm_printf("ERROR: cannot find a path to the config file\n");
+				return false;
+			}
+			ePath = pw->pw_dir;
+		}
 #endif
 		}
 	}
@@ -59,8 +70,6 @@ bool getFolderLocation(char* p, int pSize) {
 	path dir = home / ".qwtw";
 	strncpy(p, dir.string().c_str(), pSize);
 #endif
-	
-	
 	return true;
 }
 
@@ -68,7 +77,7 @@ int checkProcRunning() {
 	using namespace boost::filesystem;
 	boost::system::error_code ec;
 	char p[512];
-	xm_printf("\n======checkProcRunning()============\n");
+	//xm_printf("\n======checkProcRunning()============\n");
 	if (getFolderLocation(p, 512)) {
 
 	} else {
@@ -97,12 +106,14 @@ int checkProcRunning() {
 		//  do we still have this process?
 #ifdef WIN32
 		DWORD pid = strtoul(sp.c_str(), 0, 10);
-		xm_printf("\tpid = %u\n", pid);
+		//xm_printf("\tpid = %u\n", pid);
 		HANDLE ph = OpenProcess(SYNCHRONIZE, FALSE, pid);
 		if (ph != NULL) {   //  ok, we have something
 			DWORD status = STILL_ACTIVE;
 			BOOL test = GetExitCodeProcess(ph, &status);
+#ifndef qwtwcEXPORTS
 			xm_printf("\tgot the handle.. GetExitCodeProcess() returned %d, status = %u \n", test, status);
+#endif
 			if (test) { // ....
 				if (status == STILL_ACTIVE) {
 					xm_printf("\tstill running\n");
@@ -131,8 +142,8 @@ int checkProcRunning() {
 				xm_printf("\tGetExitCodeProcess returned error # %d (%s)\n", dw, (LPTSTR)lpMsgBuf);
 
 			}
-		}	else {
-			xm_printf("\tOpenProcess returned NULL\n");
+		}	else { //    looks like not running
+			//xm_printf("\tOpenProcess returned NULL\n");
 		}
 #else
 		path proc = path("/proc") / sp / "status";
