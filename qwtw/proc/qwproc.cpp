@@ -42,8 +42,7 @@ bool getFolderLocation(char* p, int pSize) {
 			HRESULT result = SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, hPath); // one more test for Windows
 			if (SUCCEEDED(result)) {
 				ePath = hPath;
-			}
-			else {
+			} else {
 				xm_printf("ERROR: cannot find a path to the config file\n");
 				return false;
 			}
@@ -54,7 +53,6 @@ bool getFolderLocation(char* p, int pSize) {
 				return false;
 			}
 			ePath = pw->pw_dir;
-		}
 #endif
 		}
 	}
