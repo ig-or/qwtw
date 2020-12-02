@@ -156,7 +156,7 @@ macro (addBoost)
 	
 	if (NOT OUR_BOOST_COMPONENTS_LIST)
 		set (OUR_BOOST_COMPONENTS_LIST ${ARGN})
-		find_package(Boost ${boost_version} REQUIRED COMPONENTS ${OUR_BOOST_COMPONENTS_LIST})
+		find_package(Boost  REQUIRED COMPONENTS ${OUR_BOOST_COMPONENTS_LIST})
 		set (OUR_BOOST_LIBRARIES_LIST ${Boost_LIBRARIES})
 		set (OUR_BOOST_INCLUDE_LIST ${Boost_INCLUDE_DIRS})
 	else()
@@ -832,7 +832,7 @@ macro (commonEnd   libType)
 	add_definitions(-DXQBUILDSYSTEM)
 	add_definitions(-DOURPROJECTNAME=${PROJECT_NAME}) # this can be used in 'version()' function
 	IF(WIN32)
-		add_definitions(-DWIN32)
+		add_definitions(-DWIN32 -DWINVER=0x0A00 -D_WIN32_WINNT=0x0A00)
 	endif()
 	
 	add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG123>") # just for the testing

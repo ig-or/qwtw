@@ -37,10 +37,13 @@
 #include <iostream>
 #include <atomic>
 #include <condition_variable>
-#include <thread>
-#include <chrono>
+//#include <thread>
+//#include <chrono>
+#include <boost/chrono.hpp>
 #include <functional>
-#include <mutex>
+//#include <mutex>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <stdexcept>
 #include <boost/bind.hpp>
 #include "xmutils.h"
@@ -90,8 +93,9 @@ private:
 	volatile bool created, createdMarker, somethingWasChanged;
 	volatile int cmd;
 	double pos[3];
-	std::mutex mu;
-	std::thread st;
+	boost::mutex mu;
+	//std::thread st;
+	boost::thread st;
 	volatile bool pleaseStop;
 	boost::asio::io_service io_service;
 	udp::socket socket_;
@@ -110,7 +114,8 @@ public:
 	void bStart(std::function<void(double[3])> aPoint) {
 		onPointF = aPoint;
 		pleaseStop = false;
-		std::thread tr([&] { tcpThread(); });
+		//std::thread tr([&] { tcpThread(); });
+		boost::thread tr([&] { tcpThread(); });
 		st.swap(tr);
 		created = true;
 	}
@@ -133,7 +138,8 @@ public:
 			s1.send_to(boost::asio::buffer(b, 5), destination);
 			s1.send_to(boost::asio::buffer(b, 5), destination);
 			//Sleep(10);
-			std::this_thread::sleep_for(10ms);
+			//std::this_thread::sleep_for(10ms);
+			boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
 			s1.send_to(boost::asio::buffer(b, 5), destination);
 		} catch (const std::exception& ex) {
 			//xm_printf("exception: %s\n", ex.what());

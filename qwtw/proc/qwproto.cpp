@@ -106,22 +106,25 @@ void QProcInterface::start() {
 	pd.t = static_cast<double*>(tDataReg->get_address());
 
 	needStopThread = false;
-	std::thread ttmp(&QProcInterface::run, this);
-	ttmp.swap(wThread);
+
+
+	//std::thread ttmp(&QProcInterface::run, this);
+	//ttmp.swap(wThread);
+	wThread = std::make_shared<boost::thread>(&QProcInterface::run, this);
 
 	started = true;
 }
 
 void QProcInterface::stop() {
 	using namespace boost::interprocess;
-	if (wThread.joinable()) {
+	if (wThread->joinable()) {
 		needStopThread = true;
 		pd.hdr->mutex.lock();
 		pd.hdr->cmd = CmdHeader::exit;
 		pd.hdr->mutex.unlock();
 		pd.hdr->cmdWait.notify_all();
 	
-		wThread.join();
+		wThread->join();
 	}
 }
 

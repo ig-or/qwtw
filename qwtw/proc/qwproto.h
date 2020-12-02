@@ -3,12 +3,19 @@
 #include "qwproc.h"
 ////#include <boost/interprocess/shared_memory_object.hpp>
 //#include <boost/interprocess/mapped_region.hpp>
-#include <thread>
 
-namespace boost { namespace interprocess {
-class shared_memory_object;
-class mapped_region;
-}}
+// therer are problems on mingw with this #include <thread>
+#include <memory>
+#include <boost/thread/thread.hpp>
+
+namespace boost { 
+    namespace interprocess {
+        class shared_memory_object;
+        class mapped_region;
+    }
+    //class thread;
+
+}
 
 class QWorker;
 class QApplication;
@@ -43,7 +50,8 @@ private:
     boost::interprocess::mapped_region* tDataReg;
     bool started;
     bool needStopThread;
-    std::thread  wThread;
+    //std::thread  wThread;
+    std::shared_ptr<boost::thread> wThread;
 
     QWorker& worker;
     QApplication& app;
