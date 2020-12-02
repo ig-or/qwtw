@@ -20,7 +20,7 @@
 #include <sys/stat.h>
 #ifdef WIN32
 	#include "windows.h"
-	#include <Shlobj.h>
+	#include <shlobj.h>
 #else // linux?
 	#include <syslog.h>
 	#include <unistd.h>

@@ -9,7 +9,7 @@
  
 #ifdef WIN32
 	#include <conio.h>
-	#include <Shlobj.h>
+	#include <shlobj.h>
 	#include <tchar.h>
 #else
 	#include <sys/types.h>

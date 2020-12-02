@@ -10,7 +10,7 @@
 
 #ifdef WIN32	
 	#include "windows.h"
-	#include <Shlobj.h>
+	#include <shlobj.h>
 #else
 	#include <syslog.h>
 	#include <unistd.h>

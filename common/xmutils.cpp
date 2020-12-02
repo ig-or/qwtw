@@ -29,7 +29,7 @@ Utilitis which do not belong to any calss.
 	#include <tchar.h>
 	#include <iostream>
 #endif
-#include <Shlobj.h>
+#include <shlobj.h>
 
 void w2str(wchar_t* src, char* dst) {
 	int length = ::WideCharToMultiByte(CP_UTF8, 0, src, -1, NULL, 0, NULL, NULL);

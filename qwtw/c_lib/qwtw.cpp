@@ -9,7 +9,7 @@
 #include "build_number.h"
 
 #ifdef WIN32
-#include <Windows.h>
+#include <windows.h>
 extern HMODULE qwtwLibModule;
 #endif
 
