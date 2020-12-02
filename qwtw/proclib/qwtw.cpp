@@ -53,11 +53,15 @@ qwtwc_API	void qwtclose() {
 
 */
 qwtwc_API		int qwtversion(char* vstr, int vstr_size) {
+#ifdef WIN32
 	if (qwtwLibModule == 0) {
 		return xqversion(vstr, vstr_size - 1);
 	}	else {
 		return xqversion(vstr, vstr_size - 1, qwtwLibModule);
 	}
+#else	
+	return xqversion(vstr, vstr_size - 1);
+#endif
 }
 
 
