@@ -25,13 +25,17 @@ int SHMTest::startProc() {
 	using namespace std::chrono_literals;
 	namespace bp = boost::process;
 	std::error_code ec;
+#ifdef WIN32
+	const char* procName = "qwproc.exe";
+#else
 	const char* procName = "qwproc";
+#endif
 	//int ret = std::system(procName);
 	try {
 		bp::spawn(procName);
 		std::this_thread::sleep_for(275ms);
 	}	catch (std::exception& ex) {
-		xm_printf("cannot start process %s \n", procName);
+		xm_printf("cannot start process %s (%s) \n", procName, ex.what());
 		return 1;
 	}
 	//xm_printf("SHMTest::startProc() exiting \n");
