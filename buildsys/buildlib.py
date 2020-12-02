@@ -106,7 +106,7 @@ def getVersionString():
         #raise
 		
 def writeCString(file, macro, value):
-    file.write('extern const char ' + macro + '[] = "' + value + '";\n')
+    file.write('extern const char ' + macro + '[] = \"' + value + '\"; \n')
 		
 
 def getBranchName():
@@ -179,7 +179,7 @@ def getGitInfo():
 
     #print 'getGitInfo: p2 = ' + p2
     try:
-        info = '[' + p2 + ']: ' + getBranchName() + '; [' + getGitSHA() + ']'
+        info = '[' + p2 + ']: ' + ' [' + getGitSHA() + ']'
     except  Exception as einst: # 
         raise Exception('getGitInfo(): git didnt work' + '[' + einst.args + ']')
     return info

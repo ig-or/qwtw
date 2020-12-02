@@ -57,6 +57,11 @@ except:
 	
 #put everything to a file:
 try:
+    try:
+        os.remove(dstName)
+    except:
+        pass
+
     with closing(open(dstName,'wt')) as bif:
         print('BN #' + str(x))
         print('build time = ' + __currentTime__)
@@ -74,7 +79,7 @@ try:
                 print('WARNING: cannot get GIT related info [' + str(einst.args) + ']'	)
                 traceback.print_exc()
             #gitInfo = pInfo + ' \n' + xqInfo + ' \n' + eInfo
-            gitInfo = pInfo + ' \\n' + xqInfo + ' \\n' + eInfo
+            gitInfo = pInfo# + ' \\n'# + xqInfo + ' \\n' + eInfo
 
         else:
             branch = ' '	
@@ -82,7 +87,7 @@ try:
                 branch = buildlib.getBranchName()
             except Exception as einst: #:
                 print('WARNING: cannot get branch name [' + str(einst.args) + ']'	)
-            gitInfo = branch + ' ' + buildlib.getGitSHA()
+            gitInfo = buildlib.getGitSHA()
             
         print('GIT info: ' + gitInfo)    
         buildlib.writeCString(bif, 'GIT_INFO', gitInfo)
