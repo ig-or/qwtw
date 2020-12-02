@@ -7,7 +7,7 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 
 set(PROJECT_NAME qwtw)
 commonStart()
-set (NO_VERSION_INFO 1)
+#set (NO_VERSION_INFO 1)
 
 #if (WITH_QT3D)
 #	set(USE_QT3D YES) 

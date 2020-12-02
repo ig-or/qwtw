@@ -5,7 +5,7 @@
 cmake_minimum_required (VERSION 3.1)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 
-set (NO_VERSION_INFO 1)
+#set (NO_VERSION_INFO 1)
 set(PROJECT_NAME qwproc)
 set (NEED_BOOST  thread system filesystem date_time chrono)
 
