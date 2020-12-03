@@ -3,6 +3,7 @@
 #include "pclient.h"
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/process/spawn.hpp>
+#include <boost/process/search_path.hpp>
 #include <thread>
 #include <chrono>
 #include <cstdlib>
@@ -32,7 +33,7 @@ int SHMTest::startProc() {
 #endif
 	//int ret = std::system(procName);
 	try {
-		bp::spawn(procName);
+		bp::spawn(bp::search_path(procName));
 		std::this_thread::sleep_for(275ms);
 	}	catch (std::exception& ex) {
 		xm_printf("cannot start process %s (%s) \n", procName, ex.what());
