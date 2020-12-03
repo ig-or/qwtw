@@ -176,7 +176,7 @@ void QProcInterface::plot() {
 }
 
 void QProcInterface::processCommand(int cmd) {
-	xm_printf("QProcInterface::processCommand got cmd = %d \n", cmd);
+	//xm_printf("QProcInterface::processCommand got cmd = %d \n", cmd);
 
 	switch(cmd) {
 		case CmdHeader::exit:
