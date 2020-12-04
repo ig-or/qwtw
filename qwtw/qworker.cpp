@@ -4,7 +4,7 @@
 #include "xstdef.h"
 #include "xmutils.h"
 #include "sfigure.h"
-
+#include "qwproc.h"
 
 #include "qworker.h"
 
@@ -194,7 +194,7 @@ Q_INVOKABLE void QWorker::qwtplotImpl(double* x, double* y, int size, const char
 
 Q_INVOKABLE int QWorker::qtstartImpl() {
 	if (pf == nullptr) {
-		//xm_printf("PATH inside qtstartImpl: %s\n\n", std::getenv("PATH"));
+		xmprintf(3, "PATH inside qtstartImpl: %s\n\n", std::getenv("PATH"));
 		pf = new XQPlots();
 		if (pf == nullptr) { //  fail
 			std::cout << " error qtstartImpl: (pf == nullptr)" << std::endl;

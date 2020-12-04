@@ -39,6 +39,7 @@
 
 static QPointer<QWorker> q2worker(nullptr);
 static FILE* logFile = 0;
+int xmPrintLevel = 2; // will printf messages with level <= then this
 
 int lockHandle() {
 	using namespace boost::filesystem;
@@ -47,7 +48,7 @@ int lockHandle() {
 	if (getFolderLocation(p, 512)) {
 
 	} else {
-		xm_printf("ERROR: getFolderLocation not working \n");
+		xmprintf(0, "ERROR: getFolderLocation not working \n");
 		return 3;
 	}
 
@@ -58,7 +59,7 @@ int lockHandle() {
 	if (!exists(dir, ec)) {
 		bool lockDirCreated = create_directories(dir, ec);
 		if (!lockDirCreated) {
-			xm_printf("cannot create dirs; error %s\n", ec.message().c_str());
+			xmprintf(0, "cannot create dirs; error %s\n", ec.message().c_str());
 			return 2;
 		}
 	}
@@ -73,14 +74,14 @@ int lockHandle() {
 	std::ofstream lockFile(f.string());
 	lockFile << pid;
 	lockFile.close();
-	xm_printf("lockHandle() complete\n");
+	xmprintf(1, "lockHandle() complete\n");
 	return 0;
 }
 
 int main(int argc, char** argv) {
 	bool test = QProcInterface::runningAlready();
 	if (test) {
-		//xm_printf("shm exists\n");
+		xmprintf(2, "shm exists\n");
 		//return 2;
 	}
 
@@ -149,7 +150,7 @@ int main(int argc, char** argv) {
 			if (!exists(dir, ec)) {
 				bool logDirCreated = create_directories(dir, ec);
 				if (!logDirCreated) {
-					xm_printf("cannot create dirs [%s]; error [%s]\n", dir.string().c_str(),  ec.message().c_str());
+					xmprintf(0, "cannot create dirs [%s]; error [%s]\n", dir.string().c_str(),  ec.message().c_str());
 					return 2;
 				}
 			}
@@ -160,7 +161,7 @@ int main(int argc, char** argv) {
 #else
 				pid_t pid = getpid(); //  my PID
 #endif
-				xm_printf("\n\n =========== %d =================\nlog started\n", pid);
+				xmprintf(0, "\n\n =========== %d =================\nlog started\n", pid);
 			}
 			else {
 				return 3;
@@ -177,11 +178,11 @@ int main(int argc, char** argv) {
 
 	int lockState = checkProcRunning();
 	if (lockState != 0) {
-		xm_printf("already started\n\n");
+		xmprintf(0, "already started\n\n");
 		exit(EXIT_FAILURE);
 	}
 	if (lockHandle() != 0) {
-		xm_printf("cannot setup a lock\n\n");
+		xmprintf(0, "cannot setup a lock\n\n");
 		exit(EXIT_FAILURE);
 	}
 
@@ -190,7 +191,7 @@ int main(int argc, char** argv) {
 
 	//setbuf(stdout, NULL);
 	//setvbuf(stdout, NULL, _IONBF, 0);
-	xm_printf("main: starting \n");
+	xmprintf(1, "main: starting \n");
 	QString l1 =  QLibraryInfo::location(QLibraryInfo::PluginsPath);
 	QString l2 =  QLibraryInfo::location(QLibraryInfo::PrefixPath);
 	QString l3 =  QLibraryInfo::location(QLibraryInfo::LibrariesPath);
@@ -200,25 +201,25 @@ int main(int argc, char** argv) {
 	std::string s3  =  l3.toStdString();
 	std::string s4  =  l4.toStdString();
 	#ifdef WIN32
-	xm_printf("\nWIN32 mode\n");
+	xmprintf(2, "\nWIN32 mode\n");
 	#else
-	xm_printf("\nLINUX mode\n");
+	xmprintf(2, "\nLINUX mode\n");
 	#endif
-	xm_printf("QT: \nPluginsPath=%s\nPrefixPath=%s\nLibrariesPath=%s\nLibraryExecutablesPath=%s\n\n",
+	xmprintf(2, "QT: \nPluginsPath=%s\nPrefixPath=%s\nLibrariesPath=%s\nLibraryExecutablesPath=%s\n\n",
 		s1.c_str(), s2.c_str(), s3.c_str(), s4.c_str());
 
 	QString l5 = QCoreApplication::applicationDirPath();
 	std::string s5 = l5.toStdString();
-	xm_printf("QT applicationDirPath = %s\n\n", s5.c_str());
+	xmprintf(2, "QT applicationDirPath = %s\n\n", s5.c_str());
 
 	QVersionNumber qt_version = QLibraryInfo::version();
 	QString l6 = qt_version.toString();
 	std::string s6 = l6.toStdString();
-	xm_printf("QLibraryInfo::version(): %s \n", s6.c_str());
+	xmprintf(2, "QLibraryInfo::version(): %s \n", s6.c_str());
 
 	const char* qv = qVersion();
-	xm_printf("qVersion() = %s \n", qv);
-	xm_printf("QT_VERSION_STR = %s \n", QT_VERSION_STR);
+	xmprintf(2, "qVersion() = %s \n", qv);
+	xmprintf(2, "QT_VERSION_STR = %s \n", QT_VERSION_STR);
 
 
 	QApplication app(argc, argv);
@@ -235,19 +236,19 @@ int main(int argc, char** argv) {
 	app.setWindowIcon(icon);
 	//QMainWindow::
 	//qWorker.appMutex.lock();
-	xm_printf("main: starting QT thread  \n");
+	xmprintf(2, "main: starting QT thread  \n");
 	app.exec();
-	xm_printf("main: QT thread finished  \n");
+	xmprintf(2, "main: QT thread finished  \n");
 	//qWorker.appMutex.unlock();
 	//qWorker.appV.notify_all();
 	
-	xm_printf("main: exiting \n");
+	xmprintf(2, "main: exiting \n");
 	return 0;
 }
 
 
 void assert_failed(const char* file, unsigned int line, const char* str) {
-	xm_printf("ASSERT faild: %s (file %s, line %d)\n", str, file, line);
+	xmprintf(0, "ASSERT faild: %s (file %s, line %d)\n", str, file, line);
 }
 
 static const int logBufLen = 2048;
@@ -259,6 +260,26 @@ int xm_printf(const char * _Format, ...) {
 	if (logFile == 0) {
 
 	}
+
+	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
+	logBuf[logBufLen - 1] = 0;
+	if(ok > 0) { // we got the message
+		if(logFile != 0) {
+			fwrite(logBuf, 1, strlen(logBuf), logFile);
+			fflush(logFile);
+		}
+		//std::cout << logBuf;
+	}
+	va_end(args);
+	return 0;
+}
+
+int xmprintf(int level, const char * _Format, ...) {
+	if (level > xmPrintLevel) {
+		return 1;
+	}
+	va_list args;
+	va_start(args, _Format);
 
 	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
 	logBuf[logBufLen - 1] = 0;

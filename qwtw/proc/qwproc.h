@@ -22,6 +22,7 @@ struct CmdHeader {
 		qImpStatus,
 		qEnableBC,
 		qDisableBC,
+		qSetLogLevel,
 		qwcmdSize
 	};
 	enum {
@@ -66,4 +67,6 @@ bool getFolderLocation(char* p, int pSize);
 \return 0 if proc is not running; 1 if running; smth else if error
 */
 int checkProcRunning();
+extern int xmPrintLevel;
+int xmprintf(int level, const char * _Format, ...);
 

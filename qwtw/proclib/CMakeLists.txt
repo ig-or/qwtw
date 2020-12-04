@@ -25,6 +25,7 @@ addSourceFiles("common" "../../common"
 
 #add_definitions(-DUNICODE -D_UNICODE)
 add_definitions(-DqqwtwEXPORTS -DqwtwcEXPORTS)
+#add_definitions(-DXMPRINTF_TO_FILE)
 if (WITH_UDP_SYNC)
 	add_definitions(-DENABLE_UDP_SYNC)
 endif()

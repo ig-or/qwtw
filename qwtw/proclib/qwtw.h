@@ -30,6 +30,7 @@ qwtwc_API 	int get42(int n);
  *  not 0 means nothing is working.
  **/ 
 qwtwc_API	int qtstart();
+qwtwc_API	int qtstart_debug(int level);
 
 /**  print version info string (with 'snprintf')
 	@param[out] vstr string with version info

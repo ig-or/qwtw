@@ -42,13 +42,13 @@ bool getFolderLocation(char* p, int pSize) {
 			if (SUCCEEDED(result)) {
 				ePath = hPath;
 			} else {
-				xm_printf("ERROR: cannot find a path to the config file\n");
+				xmprintf(0, "ERROR: cannot find a path to the config file\n");
 				return false;
 			}
 #else	// other options for Linux? 
 			struct passwd* pw = getpwuid(getuid());
 			if (pw == NULL) {
-				xm_printf("ERROR: cannot find a path to the config file\n");
+				xmprintf(0, "ERROR: cannot find a path to the config file\n");
 				return false;
 			}
 			ePath = pw->pw_dir;
@@ -74,49 +74,44 @@ int checkProcRunning() {
 	using namespace boost::filesystem;
 	boost::system::error_code ec;
 	char p[512];
-	//xm_printf("\n======checkProcRunning()============\n");
+	xmprintf(2, "\n======checkProcRunning()============\n");
 	if (getFolderLocation(p, 512)) {
 
 	} else {
-		xm_printf("\tERROR: cannot obtain lock file location\n");
+		xmprintf(0, "\tERROR: cannot obtain lock file location\n");
 		return 5;
 	}
+	xmprintf(2, "getFolderLocation: %s\n", p);
 	path dir = path(p) / "lock";
 	path f = dir / "qwproc";
-#ifndef qwtwcEXPORTS
-	xm_printf("\tcheckProcRunning() starting\n");
-	//xm_printf("file f: %s, %s, %s \n", f.string().c_str(), absolute(f).string().c_str(), canonical(f).string().c_str());
-#endif
+	xmprintf(2, "\tcheckProcRunning() starting\n");
+	xmprintf(3, "file f: %s, %s, %s \n", f.string().c_str(), absolute(f).string().c_str(), canonical(f).string().c_str());
 	if (exists(f, ec)) {  //   check the lock
-	#ifndef qwtwcEXPORTS
-		xm_printf("\tfile %s exists; ec = %s\n", f.string().c_str(), ec.message().c_str());
-	#endif
+		xmprintf(2, "\tfile %s exists; ec = %s\n", f.string().c_str(), ec.message().c_str());
 		int fs = file_size(f);
 		std::string sp;
 		std::ifstream lockFile(f.string());
 		std::getline(lockFile, sp);
 		lockFile.close();
-#ifndef qwtwcEXPORTS
-		xm_printf("\tcheckProcRunning: pid from file %s: %s\n",f.string().c_str(),  sp.c_str());
-#endif
+		xmprintf(2, "\tcheckProcRunning: pid from file %s: %s\n",f.string().c_str(),  sp.c_str());
 
 		//  do we still have this process?
 #ifdef WIN32
 		DWORD pid = strtoul(sp.c_str(), 0, 10);
-		//xm_printf("\tpid = %u\n", pid);
+		xmprintf(2, "\tpid = %u\n", pid);
 		HANDLE ph = OpenProcess(SYNCHRONIZE, FALSE, pid);
 		if (ph != NULL) {   //  ok, we have something
 			DWORD status = STILL_ACTIVE;
 			BOOL test = GetExitCodeProcess(ph, &status);
 #ifndef qwtwcEXPORTS
-			xm_printf("\tgot the handle.. GetExitCodeProcess() returned %d, status = %u \n", test, status);
+			xmprintf(2, "\tgot the handle.. GetExitCodeProcess() returned %d, status = %u \n", test, status);
 #endif
 			if (test) { // ....
 				if (status == STILL_ACTIVE) {
-					xm_printf("\tstill running\n");
+					xmprintf(2, "\tstill running\n");
 					return 1; //  running!
 				} else {
-					xm_printf("\tnot running!\n");
+					xmprintf(2, "\tnot running!\n");
 				}
 			}	else {
 				LPVOID lpMsgBuf;
@@ -136,11 +131,11 @@ int checkProcRunning() {
 					(LPTSTR)&lpMsgBuf,
 					0, NULL);
 
-				xm_printf("\tGetExitCodeProcess returned error # %d (%s)\n", dw, (LPTSTR)lpMsgBuf);
+				xmprintf(1, "\tGetExitCodeProcess returned error # %d (%s)\n", dw, (LPTSTR)lpMsgBuf);
 
 			}
 		}	else { //    looks like not running
-			//xm_printf("\tOpenProcess returned NULL\n");
+			xmprintf(3, "\tOpenProcess returned NULL\n");
 		}
 #else
 		path proc = path("/proc") / sp / "status";
@@ -150,29 +145,19 @@ int checkProcRunning() {
 			std::ifstream pFile(proc.string());
 			std::getline(pFile, pName);
 			pFile.close();
-#ifndef qwtwcEXPORTS			
-			xm_printf("lockHandle: %s is running\n", pName.c_str());
-#endif			
+			xmprintf(2, "lockHandle: %s is running\n", pName.c_str());
 			if (pName.find("qwproc") == std::string::npos) {
-				#ifndef qwtwcEXPORTS
-				xm_printf("\tbut looks like this is different program with same pid\n");
-				#endif
+				xmprintf(2, "\tbut looks like this is different program with same pid\n");
 			} else { // its me
-#ifndef qwtwcEXPORTS
-				xm_printf("\tit's me\n");
-#endif
+				xmprintf(2, "\tit's me\n");
 				return 1;
 			}
 		} else {
-#ifndef qwtwcEXPORTS			
-			xm_printf("checkProcRunning: no %s file detected \n", proc.string().c_str());
-#endif			
+			xmprintf(2, "checkProcRunning: no %s file detected \n", proc.string().c_str());
 		}
 #endif
 	} else {
-#ifndef qwtwcEXPORTS		
-		xm_printf("\tcheckProcRunning(): no lock file detected\n");
-#endif		
+		xmprintf(2, "\tcheckProcRunning(): no lock file detected\n");
 	}
 	return 0; //  not running
 }

@@ -713,7 +713,7 @@ void Figure2::onTbSquareAxis(bool checked) {
 }
 
 void Figure2::onTbFFT() {
-	xm_printf("onTbFFT()\n");
+	//"onTbFFT()\n");
 	
 	SLDialog dlg(lines, this);
 	dlg.exec();

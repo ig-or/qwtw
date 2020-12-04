@@ -79,7 +79,7 @@ void QProcInterface::start() {
 		shmDataZ =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
 		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
 	} catch (interprocess_exception &ex){
-		xm_printf("cannot create shared memory: %s \n", ex.what());
+		xmprintf(0, "cannot create shared memory: %s \n", ex.what());
 		return;
 	}
 	shmCommand->truncate(sizeof(CmdHeader));
@@ -130,17 +130,17 @@ void QProcInterface::stop() {
 
 void QProcInterface::run() {
 	using namespace boost::interprocess;
-	//xm_printf("QProcInterface::run() 1\n");
+	xmprintf(2, "QProcInterface::run() 1\n");
 	while (!needStopThread) {
 		//   wait for another command
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		pd.hdr->cmdWait.wait(lock);
-		//xm_printf("QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
+		xmprintf(3, "QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
 		int cmd = pd.hdr->cmd;
 		processCommand(cmd);
 		pd.hdr->workDone.notify_all();
 	}
-	//xm_printf("QProcInterface::run() exiting \n");
+	xmprintf(2, "QProcInterface::run() exiting \n");
 }
 
 void QProcInterface::changeSize(long long newSize) {
@@ -176,13 +176,13 @@ void QProcInterface::plot() {
 }
 
 void QProcInterface::processCommand(int cmd) {
-	//xm_printf("QProcInterface::processCommand got cmd = %d \n", cmd);
+	xmprintf(2, "QProcInterface::processCommand got cmd = %d \n", cmd);
 
 	switch(cmd) {
 		case CmdHeader::exit:
-			//xm_printf("QProcInterface::processCommand : sending QUIT to QT..  \n");
+			xmprintf(2, "QProcInterface::processCommand : sending QUIT to QT..  \n");
 			QMetaObject::invokeMethod(&app, "quit", Qt::BlockingQueuedConnection); // QueuedConnection
-			//xm_printf("QProcInterface::processCommand : QUIT was sent \n");
+			xmprintf(2, "QProcInterface::processCommand : QUIT was sent \n");
 			needStopThread = true;
 			//now  lets wait for the app to exit
 			{
@@ -227,14 +227,14 @@ void QProcInterface::processCommand(int cmd) {
 
 		case CmdHeader::qPlot:
 			if (pd.hdr->size <= pd.hdr->segSize) {
-				//xm_printf("qPlot: style = [%s]\n", pd.hdr->style);
+				xmprintf(5, "qPlot: style = [%s]\n", pd.hdr->style);
 				worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
 			}
 			break;
 
 		case CmdHeader::qPlot2:
 			if (pd.hdr->size <= pd.hdr->segSize) {
-				//xm_printf("qPlot: style = [%s]\n", pd.hdr->style);
+				xmprintf(5, "qPlot: style = [%s]\n", pd.hdr->style);
 				worker.qwtplot2(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, 
 					pd.hdr->lineWidth, pd.hdr->symSize, pd.t);
 			}
@@ -248,7 +248,9 @@ void QProcInterface::processCommand(int cmd) {
 			worker.qwtDisableCoordBroadcast();
 			break;
 
-
+		case CmdHeader::qSetLogLevel:
+			xmPrintLevel = pd.hdr->test;
+			break;
 	};
 
 }

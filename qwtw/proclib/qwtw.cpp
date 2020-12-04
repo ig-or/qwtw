@@ -15,9 +15,9 @@ HMODULE qwtwLibModule = 0;
 
 
 void assert_failed(const char* file, unsigned int line, const char* str) {
-	xm_printf("ASSERT faild: %s (file %s, line %d)\n", str, file, line);
+	xmprintf(0, "ASSERT faild: %s (file %s, line %d)\n", str, file, line);
 }
-
+int xmPrintLevel = 0; // will printf messages with level <= then this
 SHMTest test;
 
 #ifdef __cplusplus
@@ -39,6 +39,11 @@ qwtwc_API void kyleHello() {
  **/ 
 
 qwtwc_API	int qtstart() {
+	return test.testInit();
+}
+
+qwtwc_API	int qtstart_debug(int level) {
+	xmPrintLevel = level;
 	return test.testInit();
 }
 
@@ -187,9 +192,28 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 #endif
 
 
-
-
 #ifdef __cplusplus
 	}
 #endif
+
+
+static const int logBufLen = 2048;
+static char logBuf[logBufLen];
+int xmprintf(int level, const char * _Format, ...) {
+	if (level > xmPrintLevel) {
+		return 1;
+	}
+	va_list args;
+	va_start(args, _Format);
+
+	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
+	logBuf[logBufLen - 1] = 0;
+	if(ok > 0) { // we got the message
+		//printf("%s", logBuf);
+		std::cout << logBuf;
+	}
+	va_end(args);
+	return 0;
+}
+
 

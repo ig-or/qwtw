@@ -22,8 +22,9 @@ void SHMTest::qwtsetimpstatus(int status) {
 }
 
 int SHMTest::startProc() {
-	//xm_printf("starting proc.. \n");
+	xmprintf(2, "starting proc.. \n");
 	using namespace std::chrono_literals;
+	using namespace boost::filesystem;
 	namespace bp = boost::process;
 	std::error_code ec;
 #ifdef WIN32
@@ -32,23 +33,32 @@ int SHMTest::startProc() {
 	const char* procName = "qwproc";
 #endif
 	//int ret = std::system(procName);
+	path pa;
 	try {
-		bp::spawn(bp::search_path(procName));
+		pa = bp::search_path(procName);
+	} catch  (std::exception& ex) {
+		xmprintf(0, "cannot find %s in PATH \n", procName);
+		return 2;
+	}
+	try {
+		bp::spawn(pa);
 		std::this_thread::sleep_for(275ms);
 	}	catch (std::exception& ex) {
-		xm_printf("cannot start process %s (%s) \n", procName, ex.what());
+		xmprintf(0, "cannot start process %s from (%s) (%s) \n", procName, pa.string().c_str(), ex.what());
 		return 1;
 	}
-	//xm_printf("SHMTest::startProc() exiting \n");
+	xmprintf(2, "SHMTest::startProc() exiting \n");
 	return 0;
 }
 
 int SHMTest::testInit() {
+	xmprintf(2, "starting SHMTest::testInit()\n");
 	if (status == 0) {
-		return 0;
+		//return 0;
+		xmprintf(2, "starting SHMTest::testInit()  (status == 0)\n");
 	}
 	using namespace boost::interprocess;
-	//xm_printf("starting SHMTest::testInit()\n");
+	
 	int test = checkProcRunning();
 	if (test == 0) {  //  not running
 		startProc();
@@ -64,7 +74,7 @@ int SHMTest::testInit() {
 		shared_memory_object shmCommand_(open_only, ProcData::shmNames[0], read_write);
 		shmCommand.swap(shmCommand_);
 	} catch(interprocess_exception &ex) { // proc not started?  something is not OK
-		xm_printf("SHMTest::testInit():  proc not started? cannot connect to the SHM \n");
+		xmprintf(0, "SHMTest::testInit():  proc not started? cannot connect to the SHM \n");
 		status = 2;
 		return 2;
 	}
@@ -107,6 +117,7 @@ int SHMTest::testInit() {
 	pd.z = static_cast<double*>(zReg.get_address());
 	pd.t = static_cast<double*>(tReg.get_address());
 	status = 0;
+	xmprintf(2, "starting SHMTest::testInit() finished\n");
 	return 0;
 }
 
@@ -115,10 +126,10 @@ void SHMTest::stopQt() {
 	using namespace boost::interprocess;
 	
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-	//xm_printf("cmd = %d  \n", pd.hdr->cmd);
+	xmprintf(3, "cmd = %d  \n", pd.hdr->cmd);
 	pd.hdr->cmd = CmdHeader::exit;
 	pd.hdr->cmdWait.notify_all();
-	//xm_printf("TEST: start waiting ..\n");
+	xmprintf(3, "TEST: start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 	status = 4; //   stopped
 }
@@ -144,6 +155,11 @@ void SHMTest::qwtclear() {
 	sendCommand(CmdHeader::qClear);
 }
 
+void SHMTest::qsetloglevel(int level) {
+	if (status != 0) return;
+	sendCommand(CmdHeader::qSetLogLevel, level);
+}
+
 void SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	if (status != 0) return;
 	using namespace boost::interprocess;
@@ -153,7 +169,7 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 		strncpy(pd.hdr->name, text, CmdHeader::nameSize);
 	}
 	pd.hdr->cmdWait.notify_all();
-	//xm_printf("TEST: start waiting ..\n");
+	xmprintf(4, "TEST: start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 }
 void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
@@ -164,7 +180,7 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
 	pd.hdr->test = v;
 
 	pd.hdr->cmdWait.notify_all();
-	//xm_printf("TEST: start waiting ..\n");
+	xmprintf(4, "TEST: start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 }
 
@@ -209,7 +225,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 	//   check max size on the other side:
 	long long a = pd.hdr->segSize;
 	if (a < size) {
-		//xm_printf("SHMTest: inc seg size (1); current size = %lld \n", a);
+		xmprintf(3, "SHMTest: inc seg size (1); current size = %lld \n", a);
 		pd.hdr->cmd = CmdHeader::changeSize;
 		pd.hdr->size = size;	
 		pd.hdr->cmdWait.notify_all();
@@ -217,7 +233,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 
 		//  now we have to adjust our memory somehow..
 		long long segSize = pd.hdr->segSize;
-		//xm_printf("SHMTest: new size is %lld \n", segSize);
+		xmprintf(3, "SHMTest: new size is %lld \n", segSize);
 		
 		// truncate our part to the new size
 		shmX.truncate(segSize * sizeof(double));
