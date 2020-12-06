@@ -64,13 +64,16 @@ bool QProcInterface::runningAlready() {
 
 
 void QProcInterface::start() {
+	xmprintf(3, "QProcInterface::start() starting\n");
 	if (started) {
+		xmprintf(3, "\t - already\n");
 		return;
 	}
 	const long long startSegSize = 1024;
 	using namespace boost::interprocess;
 	//Create a shared memory object.
 	removeSHM();
+	xmprintf(3, "/tQProcInterface::start() setting up SHM\n");
 	try{
 
 		shmCommand =  new shared_memory_object(create_only, ProcData::shmNames[0], read_write);
@@ -79,7 +82,7 @@ void QProcInterface::start() {
 		shmDataZ =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
 		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
 	} catch (interprocess_exception &ex){
-		xmprintf(0, "cannot create shared memory: %s \n", ex.what());
+		xmprintf(0, "QProcInterface::start()  cannot create shared memory: %s \n", ex.what());
 		return;
 	}
 	shmCommand->truncate(sizeof(CmdHeader));
@@ -96,7 +99,9 @@ void QProcInterface::start() {
 
 	//pd.hdr = (CmdHeader*)commandReg->get_address();
 	pd.hdr = new (commandReg->get_address()) CmdHeader;
+	xmprintf(3, "/tQProcInterface::start() locking..\n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(3, "/tQProcInterface::start() locked.\n");
 	pd.hdr->cmd = 100; //    just started
 	pd.hdr->segSize = startSegSize;
 
@@ -110,30 +115,42 @@ void QProcInterface::start() {
 
 	//std::thread ttmp(&QProcInterface::run, this);
 	//ttmp.swap(wThread);
+	xmprintf(3, "\tQProcInterface::start() starting interface thread.. \n");
 	wThread = std::make_shared<boost::thread>(&QProcInterface::run, this);
-
+	
 	started = true;
+	xmprintf(3, "\tQProcInterface::start()  finished\n");
 }
 
 void QProcInterface::stop() {
 	using namespace boost::interprocess;
+	xmprintf(3, "QProcInterface::stop()  \n");
 	if (wThread->joinable()) {
 		needStopThread = true;
+		xmprintf(3, "\t QProcInterface::stop()  locking..\n");
 		pd.hdr->mutex.lock();
+		xmprintf(3, "\t QProcInterface::stop()  locked\n");
 		pd.hdr->cmd = CmdHeader::exit;
 		pd.hdr->mutex.unlock();
+		xmprintf(3, "\t QProcInterface::stop()  unlocked\n");
 		pd.hdr->cmdWait.notify_all();
 	
 		wThread->join();
+		xmprintf(3, "\t QProcInterface::stop()  join finished\n");
+	} else {
+		xmprintf(3, "\tQProcInterface::stop()  thread not joinable \n");
 	}
+	xmprintf(3, "\tQProcInterface::stop() finished \n");
 }
 
 void QProcInterface::run() {
 	using namespace boost::interprocess;
-	xmprintf(2, "QProcInterface::run() 1\n");
+	xmprintf(2, "QProcInterface::run() starting\n");
 	while (!needStopThread) {
 		//   wait for another command
+		xmprintf(5, "\tQProcInterface::run() locking..\n");
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+		xmprintf(5, "\tQProcInterface::run() locked; waiting.. \n");
 		pd.hdr->cmdWait.wait(lock);
 		xmprintf(3, "QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
 		int cmd = pd.hdr->cmd;
@@ -252,6 +269,7 @@ void QProcInterface::processCommand(int cmd) {
 			xmPrintLevel = pd.hdr->test;
 			break;
 	};
+	xmprintf(2, "QProcInterface::processCommand  cmd = %d finished\n", cmd);
 
 }
 

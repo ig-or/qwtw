@@ -39,7 +39,7 @@
 
 static QPointer<QWorker> q2worker(nullptr);
 static FILE* logFile = 0;
-int xmPrintLevel = 2; // will printf messages with level <= then this
+int xmPrintLevel = 1; // will printf messages with level <= then this
 
 int lockHandle() {
 	using namespace boost::filesystem;

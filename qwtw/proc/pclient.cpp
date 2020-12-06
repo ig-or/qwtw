@@ -51,7 +51,7 @@ int SHMTest::startProc() {
 	return 0;
 }
 
-int SHMTest::testInit() {
+int SHMTest::testInit(int level) {
 	xmprintf(2, "starting SHMTest::testInit()\n");
 	if (status == 0) {
 		//return 0;
@@ -70,6 +70,7 @@ int SHMTest::testInit() {
 		}
 	}
 
+	xmprintf(3, "SHMTest::testInit() setting up memory\n");
 	try {
 		shared_memory_object shmCommand_(open_only, ProcData::shmNames[0], read_write);
 		shmCommand.swap(shmCommand_);
@@ -116,7 +117,11 @@ int SHMTest::testInit() {
 	pd.y = static_cast<double*>(yReg.get_address());
 	pd.z = static_cast<double*>(zReg.get_address());
 	pd.t = static_cast<double*>(tReg.get_address());
-	status = 0;
+
+	status = 0;   ///  checked inside qsetloglevel
+	xmprintf(2, "starting SHMTest::testInit() making qsetloglevel..\n");
+	qsetloglevel(level);
+
 	xmprintf(2, "starting SHMTest::testInit() finished\n");
 	return 0;
 }
@@ -124,14 +129,15 @@ int SHMTest::testInit() {
 void SHMTest::stopQt() {
 	if (status != 0) return;
 	using namespace boost::interprocess;
-	
+	xmprintf(3, "SHMTest::stopQt();  locking.. \n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-	xmprintf(3, "cmd = %d  \n", pd.hdr->cmd);
+	xmprintf(3, "\tSHMTest::stopQt();  locked \n");
 	pd.hdr->cmd = CmdHeader::exit;
 	pd.hdr->cmdWait.notify_all();
-	xmprintf(3, "TEST: start waiting ..\n");
+	xmprintf(3, "\tSHMTest::stopQt();  start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 	status = 4; //   stopped
+	xmprintf(3, "\tSHMTest::stopQt();  done\n");
 }
 
 void SHMTest::qwtshowmw() {
@@ -156,39 +162,49 @@ void SHMTest::qwtclear() {
 }
 
 void SHMTest::qsetloglevel(int level) {
-	if (status != 0) return;
+	int tmp = xmPrintLevel;
+	xmPrintLevel = 10;
 	sendCommand(CmdHeader::qSetLogLevel, level);
+	xmPrintLevel = tmp; // level
 }
 
 void SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	if (status != 0) return;
 	using namespace boost::interprocess;
+	xmprintf(4, "SHMTest::sendCommand(%d, %s): locking ..\n", static_cast<int>(cmd), text);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): locked ..\n", static_cast<int>(cmd), text);
 	pd.hdr->cmd = cmd;
 	if (text != 0) {
 		strncpy(pd.hdr->name, text, CmdHeader::nameSize);
 	}
 	pd.hdr->cmdWait.notify_all();
-	xmprintf(4, "TEST: start waiting ..\n");
+	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): start waiting ..\n", static_cast<int>(cmd), text);
 	pd.hdr->workDone.wait(lock);
+	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): complete\n", static_cast<int>(cmd), text);
 }
 void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
 	if (status != 0) return;
 	using namespace boost::interprocess;
+	xmprintf(4, "SHMTest::sendCommand(%d, %d): locking ..\n", static_cast<int>(cmd), v);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(4, "\tSHMTest::sendCommand locked. \n");
 	pd.hdr->cmd = cmd;
 	pd.hdr->test = v;
 
 	pd.hdr->cmdWait.notify_all();
-	xmprintf(4, "TEST: start waiting ..\n");
+	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): start waiting ..\n", static_cast<int>(cmd), v);
 	pd.hdr->workDone.wait(lock);
+	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): finished\n", static_cast<int>(cmd), v);
 }
 
 #ifdef ENABLE_UDP_SYNC
 	void SHMTest::qwtEnableCoordBroadcast(double* x, double* y, double* z, double* time, int size) {
 		if (status != 0) return;
 		using namespace boost::interprocess;
+		xmprintf(3, "SHMTest::qwtEnableCoordBroadcast();  locking ..\n");
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+		xmprintf(3, "\tSHMTest::qwtEnableCoordBroadcast();  locked ..\n");
 
 		pd.hdr->cmd = CmdHeader::qEnableBC;
 		pd.hdr->size = size;
@@ -197,7 +213,9 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
 		pd.z = z;
 
 		pd.hdr->cmdWait.notify_all();
+		xmprintf(3, "\tSHMTest::qwtEnableCoordBroadcast();  waiting ..\n");
 		pd.hdr->workDone.wait(lock);	
+		xmprintf(3, "\tSHMTest::qwtEnableCoordBroadcast();  finished ..\n");
 	}
 	
 	void SHMTest::qwtDisableCoordBroadcast() {
@@ -220,12 +238,14 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
     	int lineWidth, int symSize, double* time) {
 	if (status != 0) return;
 	using namespace boost::interprocess;
+	xmprintf(3, "SHMTest::qwtplot2();  locking ..\n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(3, "\tSHMTest::qwtplot2();  locked ..\n");
 	
 	//   check max size on the other side:
 	long long a = pd.hdr->segSize;
 	if (a < size) {
-		xmprintf(3, "SHMTest: inc seg size (1); current size = %lld \n", a);
+		xmprintf(3, "\tSHMTest: inc seg size (1); current size = %lld \n", a);
 		pd.hdr->cmd = CmdHeader::changeSize;
 		pd.hdr->size = size;	
 		pd.hdr->cmdWait.notify_all();
@@ -233,7 +253,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 
 		//  now we have to adjust our memory somehow..
 		long long segSize = pd.hdr->segSize;
-		xmprintf(3, "SHMTest: new size is %lld \n", segSize);
+		xmprintf(3, "\tSHMTest: new size is %lld \n", segSize);
 		
 		// truncate our part to the new size
 		shmX.truncate(segSize * sizeof(double));
@@ -269,7 +289,9 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 	}
 	
 	pd.hdr->cmdWait.notify_all();
+	xmprintf(3, "\tSHMTest::qwtplot2();  waiting ..\n");
 	pd.hdr->workDone.wait(lock);
+	xmprintf(3, "\tSHMTest::qwtplot2();  done\n");
 }
 
 

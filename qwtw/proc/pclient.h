@@ -12,7 +12,7 @@ struct SHMTest {
 	/**  init and start everything.
 	 * 	\return 0 if all is OK. 
 	**/
-	int testInit();
+	int testInit(int level = 1);
 	void qwtfigure(int n);
 
 	void stopQt();

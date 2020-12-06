@@ -39,12 +39,12 @@ qwtwc_API void kyleHello() {
  **/ 
 
 qwtwc_API	int qtstart() {
-	return test.testInit();
+	return test.testInit();  //    default level == 1 ?
 }
 
 qwtwc_API	int qtstart_debug(int level) {
 	xmPrintLevel = level;
-	return test.testInit();
+	return test.testInit(level);
 }
 
 qwtwc_API	void qwtclose() {
