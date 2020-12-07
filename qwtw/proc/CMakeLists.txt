@@ -102,7 +102,7 @@ if(WIN32)
 endif()
 
 programEnd()
-if(WIN32)
+if(WIN32 AND MSVC)
 	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS " /ENTRY:\"mainCRTStartup\" ")
 endif()
 
