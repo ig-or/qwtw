@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 	std::string s3  =  l3.toStdString();
 	std::string s4  =  l4.toStdString();
 	#ifdef WIN32
-	xmprintf(2, "\nWIN32 mode\n");
+	printf("\nWIN32 mode\n");
 	#else
 	printf("\nLINUX mode\n");
 	#endif
