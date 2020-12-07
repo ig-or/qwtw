@@ -102,6 +102,10 @@ if(WIN32)
 endif()
 
 programEnd()
+if(WIN32)
+	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS " /ENTRY:\"mainCRTStartup\" ")
+endif()
+
 if (VCPKG_EXISTS)
     install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/tools/qwtw)
 else()

@@ -208,10 +208,6 @@ int main(int argc, char** argv) {
 	xmprintf(2, "QT: \nPluginsPath=%s\nPrefixPath=%s\nLibrariesPath=%s\nLibraryExecutablesPath=%s\n\n",
 		s1.c_str(), s2.c_str(), s3.c_str(), s4.c_str());
 
-	QString l5 = QCoreApplication::applicationDirPath();
-	std::string s5 = l5.toStdString();
-	xmprintf(2, "QT applicationDirPath = %s\n\n", s5.c_str());
-
 	QVersionNumber qt_version = QLibraryInfo::version();
 	QString l6 = qt_version.toString();
 	std::string s6 = l6.toStdString();
@@ -223,6 +219,10 @@ int main(int argc, char** argv) {
 
 
 	QApplication app(argc, argv);
+	QString l5 = QCoreApplication::applicationDirPath();
+	std::string s5 = l5.toStdString();
+	xmprintf(2, "QT applicationDirPath = %s\n\n", s5.c_str());
+
 	app.setQuitOnLastWindowClosed(false);   
 	QWorker qWorker;
 	qWorker.qtstart(false);

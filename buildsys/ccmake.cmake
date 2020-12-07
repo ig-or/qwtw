@@ -222,10 +222,10 @@ macro (addQT)
 	cmake_parse_arguments(earg "" "USE_CMD" "" ${ARGN})
 	
 	if (earg_USE_CMD) 
-		#message("******** with CMD")
+		message("******** with CMD")
 		set (QT_KEEP_CMD ON)
 	else()
-		#message("======= without CMD")
+		message("======= without CMD")
 	endif()
 endmacro()
 

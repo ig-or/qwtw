@@ -10,7 +10,7 @@ set(PROJECT_NAME qttest)
 #set (NEED_BOOST  thread system filesystem date_time chrono)
 
 commonStart()
-addQT()
+addQT(USE_CMD YES)
 set(INC_DIR_LIST   "../../../common" )
 	
 addSourceFiles("source" "." qttest)	
@@ -27,6 +27,9 @@ if(WIN32)
 endif()
 
 programEnd()
+if(WIN32)
+	set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS " /SUBSYSTEM:CONSOLE  /ENTRY:\"mainCRTStartup\" ")
+endif()
 
 install(TARGETS ${PROJECT_NAME}  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 
