@@ -12,6 +12,7 @@ option(USE_MARBLE "use marble-qt for 'top-view' data" OFF)
 
 add_subdirectory(proc)
 add_subdirectory(proclib)
+add_subdirectory(qttest)
 #add_subdirectory(proctest)
 #add_subdirectory(c_lib)
 add_subdirectory(qwtest2)
