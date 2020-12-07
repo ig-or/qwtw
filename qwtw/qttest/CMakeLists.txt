@@ -10,7 +10,7 @@ set(PROJECT_NAME qttest)
 #set (NEED_BOOST  thread system filesystem date_time chrono)
 
 commonStart()
-addQT()
+addQT(USE_CMD)
 set(INC_DIR_LIST   "../../../common" )
 	
 addSourceFiles("source" "." qttest)	
