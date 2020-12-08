@@ -36,6 +36,7 @@ int SHMTest::startProc() {
 	path pa;
 	try {
 		pa = bp::search_path(procName);
+		xmprintf(2, "got qwproc in %s \n", pa.string().c_str());
 	} catch  (std::exception& ex) {
 		xmprintf(0, "cannot find %s in PATH \n", procName);
 		return 2;
@@ -43,6 +44,7 @@ int SHMTest::startProc() {
 	try {
 		bp::spawn(pa);
 		std::this_thread::sleep_for(275ms);
+		xmprintf(3, "qwproc supposed to start from  (%s) \n", pa.string().c_str());
 	}	catch (std::exception& ex) {
 		xmprintf(0, "cannot start process %s from (%s) (%s) \n", procName, pa.string().c_str(), ex.what());
 		return 1;
@@ -66,6 +68,7 @@ int SHMTest::testInit(int level) {
 		test = checkProcRunning();
 		if (test == 0) {  // still not running
 			status = 1;
+			xmprintf(1, "ERROR: cannot start qwproc\n");
 			return 1; //  cannot start the program  (not installed?)
 		}
 	}
