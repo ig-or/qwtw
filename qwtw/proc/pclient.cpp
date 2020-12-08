@@ -162,10 +162,10 @@ void SHMTest::qwtclear() {
 }
 
 void SHMTest::qsetloglevel(int level) {
-	int tmp = xmPrintLevel;
-	xmPrintLevel = 10;
+	//int tmp = xmPrintLevel;
+	//xmPrintLevel = 10;
 	sendCommand(CmdHeader::qSetLogLevel, level);
-	xmPrintLevel = tmp; // level
+	//xmPrintLevel = tmp; // level
 }
 
 void SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {

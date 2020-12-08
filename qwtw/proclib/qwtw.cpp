@@ -209,8 +209,8 @@ int xmprintf(int level, const char * _Format, ...) {
 	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
 	logBuf[logBufLen - 1] = 0;
 	if(ok > 0) { // we got the message
-		//printf("%s", logBuf);
-		std::cout << logBuf;
+		printf("%d-%d \t%s", xmPrintLevel, level, logBuf);
+		//std::cout << logBuf;
 	}
 	va_end(args);
 	return 0;

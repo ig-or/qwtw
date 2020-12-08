@@ -285,7 +285,8 @@ int xmprintf(int level, const char * _Format, ...) {
 	logBuf[logBufLen - 1] = 0;
 	if(ok > 0) { // we got the message
 		if(logFile != 0) {
-			fwrite(logBuf, 1, strlen(logBuf), logFile);
+			//fwrite(logBuf, 1, strlen(logBuf), logFile);
+			fprintf(logFile, "%d-%d \t%s", xmPrintLevel, level, logBuf);
 			fflush(logFile);
 		}
 		//std::cout << logBuf;
