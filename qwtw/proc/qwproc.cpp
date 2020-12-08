@@ -85,7 +85,11 @@ int checkProcRunning() {
 	path dir = path(p) / "lock";
 	path f = dir / "qwproc";
 	xmprintf(2, "\tcheckProcRunning() starting\n");
-	xmprintf(3, "file f: %s, %s, %s \n", f.string().c_str(), absolute(f).string().c_str(), canonical(f).string().c_str());
+	try {
+		xmprintf(3, "file f: %s, %s, %s \n", f.string().c_str(), absolute(f).string().c_str(), canonical(f).string().c_str());
+	} catch  (std::exception& ex) {
+		xmprintf(3, "exception %s\n", ex.what());
+	}
 	if (exists(f, ec)) {  //   check the lock
 		xmprintf(2, "\tfile %s exists; ec = %s\n", f.string().c_str(), ec.message().c_str());
 		int fs = file_size(f);
