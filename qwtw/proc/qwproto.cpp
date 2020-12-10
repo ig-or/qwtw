@@ -148,7 +148,7 @@ void QProcInterface::run() {
 	xmprintf(2, "QProcInterface::run() starting\n");
 	xmprintf(5, "\tQProcInterface::run() locking..\n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-	xmprintf(, "\tQProcInterface::run() locked\n");
+	xmprintf(6, "\tQProcInterface::run() locked\n");
 	while (!needStopThread) {
 		//   wait for another command
 		xmprintf(5, "\tQProcInterface::run() waiting.. \n");
