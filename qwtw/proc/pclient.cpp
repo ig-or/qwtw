@@ -241,22 +241,24 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
     	int lineWidth, int symSize, double* time) {
 	if (status != 0) return;
 	using namespace boost::interprocess;
-	xmprintf(3, "SHMTest::qwtplot2();  locking ..\n");
+	xmprintf(3, "SHMTest::qwtplot2(); size = %d  locking ..\n", size);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	xmprintf(3, "\tSHMTest::qwtplot2();  locked ..\n");
 	
 	//   check max size on the other side:
 	long long a = pd.hdr->segSize;
 	if (a < size) {
-		xmprintf(3, "\tSHMTest: inc seg size (1); current size = %lld \n", a);
+		xmprintf(3, "\tSHMTest::qwtplot2: inc seg size (1); current size = %lld \n", a);
 		pd.hdr->cmd = CmdHeader::changeSize;
 		pd.hdr->size = size;	
 		pd.hdr->cmdWait.notify_all();
+		xmprintf(4, "\tSHMTest::qwtplot2: inc seg size, locking.. \n"); 
 		pd.hdr->workDone.wait(lock);
+		xmprintf(4, "\tSHMTest::qwtplot2: inc seg size, locked. \n");
 
 		//  now we have to adjust our memory somehow..
 		long long segSize = pd.hdr->segSize;
-		xmprintf(3, "\tSHMTest: new size is %lld \n", segSize);
+		xmprintf(3, "\tSHMTest::qwtplot2: new size is %lld \n", segSize);
 		
 		// truncate our part to the new size
 		shmX.truncate(segSize * sizeof(double));
@@ -272,9 +274,11 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 		pd.x = static_cast<double*>(xReg.get_address());
 		pd.y = static_cast<double*>(yReg.get_address());
 		pd.t = static_cast<double*>(tReg.get_address());
+		xmprintf(6, "\tSHMTest::qwtplot2: new size end \n");
 	}
 
 	//  now lets plot
+	xmprintf(6, "\tSHMTest::qwtplot2: copying .. \n");
 	pd.hdr->lineWidth = lineWidth;
 	pd.hdr->symSize = symSize;
 	strncpy(pd.hdr->style, style, 8);
@@ -290,7 +294,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 	} else {
 		pd.hdr->cmd = CmdHeader::qPlot;
 	}
-	
+	xmprintf(3, "\tSHMTest::qwtplot2(); notifying..\n");
 	pd.hdr->cmdWait.notify_all();
 	xmprintf(3, "\tSHMTest::qwtplot2();  waiting ..\n");
 	pd.hdr->workDone.wait(lock);

@@ -146,16 +146,19 @@ void QProcInterface::stop() {
 void QProcInterface::run() {
 	using namespace boost::interprocess;
 	xmprintf(2, "QProcInterface::run() starting\n");
+	xmprintf(5, "\tQProcInterface::run() locking..\n");
+	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(, "\tQProcInterface::run() locked\n");
 	while (!needStopThread) {
 		//   wait for another command
-		xmprintf(5, "\tQProcInterface::run() locking..\n");
-		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-		xmprintf(5, "\tQProcInterface::run() locked; waiting.. \n");
+		xmprintf(5, "\tQProcInterface::run() waiting.. \n");
 		pd.hdr->cmdWait.wait(lock);
-		xmprintf(3, "QProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
+		xmprintf(3, "\tQProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
 		int cmd = pd.hdr->cmd;
 		processCommand(cmd);
+		xmprintf(6, "\tQProcInterface::run() before notify_all\n");
 		pd.hdr->workDone.notify_all();
+		xmprintf(6, "\tQProcInterface::run() after notify_all\n");
 	}
 	xmprintf(2, "QProcInterface::run() exiting \n");
 }
@@ -244,16 +247,18 @@ void QProcInterface::processCommand(int cmd) {
 
 		case CmdHeader::qPlot:
 			if (pd.hdr->size <= pd.hdr->segSize) {
-				xmprintf(5, "qPlot: style = [%s]\n", pd.hdr->style);
+				xmprintf(5, "processCommand qPlot; style = [%s]\n", pd.hdr->style);
 				worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
+				xmprintf(5, "processCommand qPlot; worker complete;\n");
 			}
 			break;
 
 		case CmdHeader::qPlot2:
 			if (pd.hdr->size <= pd.hdr->segSize) {
-				xmprintf(5, "qPlot: style = [%s]\n", pd.hdr->style);
+				xmprintf(5, "processCommand qPlot2; style = [%s]\n", pd.hdr->style);
 				worker.qwtplot2(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, 
 					pd.hdr->lineWidth, pd.hdr->symSize, pd.t);
+				xmprintf(5, "processCommand qPlot2; worker complete;\n");
 			}
 			break;
 
