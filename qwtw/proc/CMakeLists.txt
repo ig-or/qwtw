@@ -14,7 +14,8 @@ addQT()
 set(INC_DIR_LIST "../" "../c_lib"  "../../../common" "../../../xmatrix2" )
 	
 addSourceFiles("source" "." qwproc qwproto main)	
-addSourceFiles("qwtw" "../" qworker  sfigure figure2 justaplot plib1.qrc)
+addSourceFiles("qwtw" "../" qworker  sfigure figure2 justaplot )
+addSourceFiles("qrc" "../../img" plib1.qrc)	
 addSourceFiles("common" "../../common"
 	xstdef xqbytebuffer xmutils queue_block  xmroundbuf
 	sqwlinetree coordtypes

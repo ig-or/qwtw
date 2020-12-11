@@ -14,7 +14,8 @@ addQT(USE_CMD YES)
 set(INC_DIR_LIST   "../../../common" )
 	
 addSourceFiles("source" "." qttest)	
-addSourceFiles("qwtw" "../" plib1.qrc)
+addSourceFiles("qrc" "../../img" plib1.qrc)	
+
 add_definitions(-DQT_DLL)
 
 if(UNIX)

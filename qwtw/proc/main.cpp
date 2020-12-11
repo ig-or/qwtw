@@ -11,6 +11,7 @@
 #include <QPointer>
 #include <QApplication>
 #include <QIcon>
+#include <QPixmap>
 #include <QString>
 #include <QMainWindow>
 #include <QLibraryInfo>
@@ -234,6 +235,7 @@ int main(int argc, char** argv) {
     icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
 	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 	app.setWindowIcon(icon);
+	app.setWindowIcon(QIcon(":/icons/binokl.png"));
 	//QMainWindow::
 	//qWorker.appMutex.lock();
 	xmprintf(2, "main: starting QT thread  \n");

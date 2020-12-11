@@ -6,6 +6,7 @@
 #include <QPointer>
 #include <QApplication>
 #include <QIcon>
+#include <QPixmap>
 #include <QString>
 
 #include <QMainWindow>
@@ -32,8 +33,19 @@
 #include "qttest.h"
 
 
-QTTest::QTTest(QWidget * parent1): QDialog(parent1) {
+QTTest::QTTest(QWidget * parent1): QMainWindow(parent1, 
+		Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowMinimizeButtonHint | 
+		Qt::WindowCloseButtonHint | Qt::WindowContextHelpButtonHint) {
 
+	QIcon icon;
+
+	QPixmap pm(":/icons/binokl.png");
+	printf("main wnd QPixmap: %s \n", pm.isNull() ? "null" : "OK");
+    icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
+	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
+
+	printf("main wnd icon: %s \n", icon.isNull() ? "null" : "OK");
+    setWindowIcon(icon);
 }
 
 
@@ -83,6 +95,8 @@ int main(int argc, char** argv) {
     icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
 	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 	app.setWindowIcon(icon);
+	app.setWindowIcon(QIcon(":/icons/binokl.png"));
+
 
 	QTTest test;
 	test.show();

@@ -416,7 +416,7 @@ int MarView::mvInit() {
 	horizontalLayout->setMargin(2);
 
 	QToolButton* tbHome = new QToolButton(top_frame);
-	tbHome->setIcon(QIcon(QPixmap(":/icons/img/binokl.png")));
+	tbHome->setIcon(QIcon(QPixmap(":/icons/binokl.png")));
 /*
 	QIcon icon;
 	QPixmap pm(":/icons/binokl.png");

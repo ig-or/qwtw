@@ -18,7 +18,11 @@
 #include <sstream>
 #include "justaplot.h"
 #include "xstdef.h"
-#include <QApplication>
+//#include <QApplication>
+#include <QDialog>
+//#include <QWindow>
+//#include <QtPlatformHeaders/QWindowsWindowFunctions>
+
 #include "qdesktopwidget.h"
 #include "xmatrixplatform.h"
 #include "xmatrix2.h"
@@ -207,8 +211,8 @@ public:
 
 #endif
 
-XQPlots::XQPlots(QWidget * parent1): QDialog(parent1, Qt::Dialog 
-		| Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowMinimizeButtonHint | 
+XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(parent1, Qt::Dialog |
+		Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowMinimizeButtonHint | 
 		Qt::WindowCloseButtonHint | Qt::WindowContextHelpButtonHint) {
 	parent = parent1;
 	cf = 0;  //cf3 = 0;
@@ -218,6 +222,16 @@ XQPlots::XQPlots(QWidget * parent1): QDialog(parent1, Qt::Dialog
 	currentImportanceMode = true;
 	//memset(ecefOrigin, 0, 3*sizeof(double));  //  this means 'not set'
 	ui.setupUi(this);
+
+	QIcon icon;
+    icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
+	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
+    setWindowIcon(icon);
+	//setIcon(icon);
+
+	//QWindow w;
+	//QWindowsWindowFunctions::
+
 
 	/*QStandardItem *i0 = pim.invisibleRootItem();
 	i0->insertColumn(0, new QStandardItem("key"));

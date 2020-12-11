@@ -184,6 +184,7 @@ void test(int n) {
 	typedef void(*pQSimple2)(const char*);
 	typedef int(*pVersion)(char*, int);
 	typedef int(*pQ2Start)();
+	typedef int(*pQ2StartDebug)(int);
 	typedef void (*pPlot)(double*, double*, int, const char*, const char*, int, int);
 	typedef void (*pPlot2)(double*, double*, int, const char*, const char*, int, int, double*);
 
@@ -194,8 +195,11 @@ void test(int n) {
 	pQSimple2 qYLabel = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwtylabel");
 	pVersion qVersion = (pVersion)GetProcAddress(hQWTW_DLL, "qwtversion");
 	pQ2Start q2Start = (pQ2Start)GetProcAddress(hQWTW_DLL, "qtstart");
+	pQ2StartDebug q2StartD = (pQ2StartDebug)GetProcAddress(hQWTW_DLL, "qtstart_debug");
 	pQSimple qSMW = (pQSimple)GetProcAddress(hQWTW_DLL, "qwtshowmw");
+	#ifdef USEMARBLE
 	pQSimple1 qTopView = (pQSimple1)GetProcAddress(hQWTW_DLL, "topview");
+	#endif
 	pQSimple1 qFigure = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtfigure");
 	pQSimple2 qTitle = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwttitle");
 	pPlot2 qPlot2 = (pPlot2)GetProcAddress(hQWTW_DLL, "qwtplot2");
@@ -203,11 +207,12 @@ void test(int n) {
 	//void qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 #else
 	pQSimple qHello = (pQSimple)dlsym(lib_handle, "kyleHello");
-	pQSimple qClose = (pQSimple)dlsym(lib_handle, "qwtclose");
+	pQSimple qClose = (pQSimple)dlsym(lib_handle, "qstop");
 	pQSimple2 qXLabel = (pQSimple2)dlsym(lib_handle, "qwtxlabel");
 	pQSimple2 qYLabel = (pQSimple2)dlsym(lib_handle, "qwtylabel");
 	pVersion qVersion = (pVersion)dlsym(lib_handle, "qwtversion");
 	pQ2Start q2Start = (pQ2Start)dlsym(lib_handle, "qtstart");
+	pQ2StartDebug q2StartD = (pQ2StartDebug)dlsym(lib_handle, "qtstart_debug");
 	pQSimple qSMW = (pQSimple)dlsym(lib_handle, "qwtshowmw");
 	#ifdef USEMARBLE
 	pQSimple1 qTopView = (pQSimple1)dlsym(lib_handle, "topview");
@@ -221,13 +226,16 @@ void test(int n) {
 	if ((qHello == NULL) || (q2Start == NULL) || (qVersion == NULL)) {
 		printf("ERROR: cannot load symbols. \n");
 		exit(2);
+	} else {
+		printf("symbols loaded\n");
 	}
 	//printf("exiting from TEST\n");
 	//return;
 
 	
 	//std::this_thread::sleep_for(100ms);
-	int test0 = q2Start();
+	printf("starting .. \n");
+	int test0 = q2StartD(10);//q2Start();
 	std::cout << "test 0 = " << test0 << std::endl;
 
 	char vi[256];

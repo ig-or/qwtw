@@ -20,6 +20,7 @@
 #include <QMap>
 #include <QWidget>
 #include <QDialog>
+//#include <QMainWindow>
 #include <QAbstractItemModel>
 #include <QStandardItemModel>
 
@@ -51,7 +52,7 @@ class PlotsInterfaceModel: public QStandardItemModel {
 };
 */
 
-class /*qqwtw_API*/ XQPlots: public QDialog {
+class /*qqwtw_API*/ XQPlots: public /*QMainWindow { //  */ QDialog {
 	Q_OBJECT
 
 public:

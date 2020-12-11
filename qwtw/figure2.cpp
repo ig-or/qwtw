@@ -594,7 +594,7 @@ void Figure2::setupUi()     {
 
     tb1 = new QToolButton(top_frame);
     tb1->setObjectName(QString::fromUtf8("tb1"));
-	ui_addTBIcon(tb1, ":/icons/img/arrow.png");
+	ui_addTBIcon(tb1, ":/icons/arrow.png");
 	tb1->setText("ARROW");
 	tb1->setToolTip("ARROW");
 	//icon1.addPixmap(QPixmap(QString::fromUtf8(":/icons/arrow.PNG")), QIcon::Normal, QIcon::Off);
@@ -609,7 +609,7 @@ void Figure2::setupUi()     {
 	tb2->setText("PAN");
 	tb2->setToolTip("PAN");
 
-	ui_addTBIcon(tb2, ":/icons/img/pan.png");
+	ui_addTBIcon(tb2, ":/icons/pan.png");
 	tb2->setCheckable(true);
     horizontalLayout->addWidget(tb2);
 
@@ -618,18 +618,18 @@ void Figure2::setupUi()     {
 	tb3->setText("ZOOM");
 	tb3->setToolTip("ZOOM");
 
-	ui_addTBIcon(tb3, ":/icons/img/zoom.png");
+	ui_addTBIcon(tb3, ":/icons/zoom.png");
 	tb3->setCheckable(true);
     horizontalLayout->addWidget(tb3);
 
 	tbSaveDataToTextFile = new QToolButton(top_frame);
 	tbSaveDataToTextFile->setToolTip("Save data to text file");
-	ui_addTBIcon(tbSaveDataToTextFile, ":/icons/img/floppy.png");
+	ui_addTBIcon(tbSaveDataToTextFile, ":/icons/floppy.png");
 	horizontalLayout->addWidget(tbSaveDataToTextFile);
 
 	tbSavePicture = new QToolButton(top_frame);
 	tbSavePicture->setToolTip("Save data  as image file");
-	ui_addTBIcon(tbSavePicture, ":/icons/img/savecontent.png");
+	ui_addTBIcon(tbSavePicture, ":/icons/savecontent.png");
 	horizontalLayout->addWidget(tbSavePicture);
 
 	tbFFT  = new QToolButton(top_frame);
@@ -646,14 +646,14 @@ void Figure2::setupUi()     {
 	tbClip = new QToolButton(top_frame);
 	tbClip->setToolTip("clip");
 	tbClip->setText("clip");
-	ui_addTBIcon(tbClip, ":/icons/img/wireframe.png");
+	ui_addTBIcon(tbClip, ":/icons/wireframe.png");
 	tbClip->setCheckable(true);
 	horizontalLayout->addWidget(tbClip);
 
 	tbResetLayout = new QToolButton(top_frame);
 	tbResetLayout->setToolTip("reset zooming");
 	tbResetLayout->setText("reset");
-	ui_addTBIcon(tbResetLayout, ":/icons/img/thunderstorm-icon.png");
+	ui_addTBIcon(tbResetLayout, ":/icons/thunderstorm-icon.png");
 	//tbResetLayout->setCheckable(true);
 	horizontalLayout->addWidget(tbResetLayout);
 

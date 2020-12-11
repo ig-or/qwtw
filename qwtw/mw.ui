@@ -78,7 +78,7 @@
         </property>
         <property name="icon">
          <iconset resource="plib1.qrc">
-          <normaloff>:/icons/img/cansel1.png</normaloff>:/icons/img/cansel1.png</iconset>
+          <normaloff>:/icons/cansel1.png</normaloff>:/icons/cansel1.png</iconset>
         </property>
         <property name="iconSize">
          <size>
@@ -101,7 +101,7 @@
         </property>
         <property name="icon">
          <iconset resource="plib1.qrc">
-          <normaloff>:/icons/img/binokl.png</normaloff>:/icons/img/binokl.png</iconset>
+          <normaloff>:/icons/binokl.png</normaloff>:/icons/binokl.png</iconset>
         </property>
         <property name="iconSize">
          <size>
@@ -124,7 +124,7 @@
         </property>
         <property name="icon">
          <iconset resource="plib1.qrc">
-          <normaloff>:/icons/img/thunderstorm-icon.png</normaloff>:/icons/img/thunderstorm-icon.png</iconset>
+          <normaloff>:/icons/thunderstorm-icon.png</normaloff>:/icons/thunderstorm-icon.png</iconset>
         </property>
         <property name="iconSize">
          <size>

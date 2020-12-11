@@ -34,13 +34,21 @@ int SHMTest::startProc() {
 #endif
 	//int ret = std::system(procName);
 	path pa;
+	std::string qwProcPath;
 	try {
 		pa = bp::search_path(procName);
-		xmprintf(2, "got qwproc in %s \n", pa.string().c_str());
+		qwProcPath = pa.string();
+		xmprintf(2, "got qwproc in [%s] \n", qwProcPath.c_str());
 	} catch  (std::exception& ex) {
 		xmprintf(0, "cannot find %s in PATH \n", procName);
 		return 2;
 	}
+	if (pa.string().empty()) {
+		xmprintf(0, "cannot find %s in PATH (2) \n", procName);
+		return 2;
+	}
+
+	//std::this_thread::sleep_for(10ms);
 	try {
 		bp::spawn(pa);
 		std::this_thread::sleep_for(275ms);
