@@ -40,6 +40,8 @@
 #include "sqwlinetree.h"
 #include <sstream>
 
+int xmprintf(int level, const char* _Format, ...);
+
 
 FSPicker::FSPicker(int xAxis, int yAxis, RubberBand rubberBand, 
 				   DisplayMode trackerMode, QWidget* canv):
@@ -844,7 +846,7 @@ void Figure2::onPickerSignal(int x, int y) {
     long long minIndex = 0, index = 0;
     double minDist = findDistance(mfi->info, xx, yy, minIndex);
     if (minIndex == 0xffffffff) { //  error?
-	    xm_printf("Figure2::onPickerSignal() failed\n");
+	    xmprintf(2, "Figure2::onPickerSignal() failed\n");
 	    return;
     }
     it++;

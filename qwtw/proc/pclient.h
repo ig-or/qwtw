@@ -42,6 +42,7 @@ private:
 
 	void sendCommand(CmdHeader::QWCmd cmd, const char* text = 0);
 	void sendCommand(CmdHeader::QWCmd cmd, int v);
+	void resize(long long size);
 
 	/**
 	 * \return 0 if all is OK
