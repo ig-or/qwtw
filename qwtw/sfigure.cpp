@@ -401,6 +401,9 @@ void XQPlots::onShowAllPlots(bool checked) {
 		h++;
 	}
 	mxat(w*h >= n);
+	// /workspace/srcdir/qwtw/qwtw/sfigure.cpp:404:54: warning: 
+	//‘const QRect QDesktopWidget::screenGeometry(int) const’ is deprecated: 
+	// Use QGuiApplication::screens() [-Wdeprecated-declarations]
 	QRect rec = QApplication::desktop()->screenGeometry();
 	int height = rec.height();
 	int width = rec.width() - 48;

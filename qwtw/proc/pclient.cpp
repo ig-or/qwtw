@@ -262,7 +262,6 @@ void SHMTest::resize(long long size) {
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	xmprintf(3, "\tSHMTest::resize();  locked ..\n");
 
-	xmprintf(3, "\tSHMTest::resize: inc seg size (1); current size = %lld \n", a);
 	pd.hdr->cmd = CmdHeader::changeSize;
 	pd.hdr->size = size;
 	pd.hdr->cmdWait.notify_all();
@@ -304,6 +303,7 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 	long long a = pd.hdr->segSize;
 	pd.hdr->mutex.unlock();
 	if (a < size) {
+		xmprintf(3, "\tSHMTest::qwtplot2: inc seg size (1); current size = %lld \n", a);
 		resize(size);
 	}
 	xmprintf(3, "SHMTest::qwtplot2(); size = %d  locking ..\n", size);
