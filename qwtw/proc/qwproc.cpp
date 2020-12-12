@@ -103,7 +103,7 @@ int checkProcRunning() {
 #ifdef WIN32
 		DWORD pid = strtoul(sp.c_str(), 0, 10);
 		xmprintf(2, "\tpid = %u\n", pid);
-		HANDLE ph = OpenProcess(SYNCHRONIZE, FALSE, pid);
+		HANDLE ph = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
 		if (ph != NULL) {   //  ok, we have something
 			DWORD status = STILL_ACTIVE;
 			BOOL test = GetExitCodeProcess(ph, &status);
