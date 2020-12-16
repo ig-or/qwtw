@@ -175,7 +175,7 @@ int xqversion(char* vstr, int bufSize, void* hModule) {
 #else
 	int ret = snprintf(vstr + bs, bufSize - bs, " loaded from %s", dllPath);
 #endif
-	return ret;
+	return ret + bs;
 }
 #endif
 #endif

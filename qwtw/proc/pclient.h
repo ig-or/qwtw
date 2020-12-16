@@ -22,7 +22,7 @@ struct SHMTest {
 	void qwtylabel(const char* s);
 	void qwtclear();
 	void qsetloglevel(int level);
-	void qwtsetimpstatus(int status);
+	void qwtsetimpstatus(int impStatus);
 	void qwtplot(double* x, double* y, int size, const char* name, const char* style, 
 	int lineWidth, int symSize);
 	void qwtplot2(double* x, double* y, int size, const char* name, const char* style, 

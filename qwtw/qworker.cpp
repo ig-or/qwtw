@@ -92,9 +92,9 @@ void QWorker::qwtDisableCoordBroadcast() {
 		std::cout << " cannot invoke qwtDisableCoordBroadcastImpl" << std::endl;
 	}
 }
-void QWorker::qwtsetimpstatus(int status) {
+void QWorker::qwtsetimpstatus(int impStatus) {
 	//int rv;
-	if (!QMetaObject::invokeMethod(this, "qwtsetimpstatusImpl", Qt::QueuedConnection, Q_ARG(int, status))) {
+	if (!QMetaObject::invokeMethod(this, "qwtsetimpstatusImpl", Qt::QueuedConnection, Q_ARG(int, impStatus))) {
 		std::cout << " cannot invoke qwtsetimpstatusImpl" << std::endl;
 	}
 }
@@ -171,8 +171,8 @@ Q_INVOKABLE void QWorker::qwtclearImpl() {
 	pf->clear();
 }
 
-Q_INVOKABLE void QWorker::qwtsetimpstatusImpl(int status) {
-	pf->setImportant(status != 0);
+Q_INVOKABLE void QWorker::qwtsetimpstatusImpl(int impStatus) {
+	pf->setImportant(impStatus != 0);
 }
 
 Q_INVOKABLE void QWorker::qwtxlabelImpl(const char* s) {

@@ -16,9 +16,9 @@ void SHMTest::qwtfigure(int n) {
 	if (status != 0) return;
 	sendCommand(CmdHeader::qFigure, n);
 }
-void SHMTest::qwtsetimpstatus(int status) {
+void SHMTest::qwtsetimpstatus(int impStatus) {
 	if (status != 0) return;
-	sendCommand(CmdHeader::qImpStatus, status);
+	sendCommand(CmdHeader::qImpStatus, impStatus);
 }
 
 int SHMTest::startProc() {
