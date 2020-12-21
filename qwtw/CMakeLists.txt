@@ -7,7 +7,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../buildsys/")
 include(ccmake)
 
 option(WITH_UDP_SYNC "use UDP port for marker position broadcast"  ON)
-option(USE_MARBLE "use marble-qt for 'top-view' data" OFF)
+option(USE_MARBLE "use marble-qt for 'top-view' data" ON)
 #option(WITH_QT3D "3D plotting support from QT" OFF)
 
 add_subdirectory(proc)

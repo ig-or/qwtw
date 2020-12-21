@@ -28,9 +28,16 @@ qwtwc_API 	int get42(int n);
 /** starting  QT proc, if not started yet.
  * 	return 0 if all is OK, 
  *  not 0 means nothing is working.
+ * 
+ * \param mdp path to the marble data files; If "0" than not used
  **/ 
+#ifdef USEMARBLE
+qwtwc_API	int qtstart(const char* mdp);
+qwtwc_API	int qtstart_debug(const char* mdp, int level);
+#else
 qwtwc_API	int qtstart();
 qwtwc_API	int qtstart_debug(int level);
+#endif
 
 /**  print version info string (with 'snprintf')
 	@param[out] vstr string with version info
@@ -52,7 +59,7 @@ qwtwc_API 	void qwtfigure(int n);
 /**  create (and draw) new map plot with ID 'n'.
 @param[in] n this plot ID
 */
-qwtwc_API 	void topview(int n);
+qwtwc_API 	void qwtmap(int n);
 #endif
 #ifdef USE_QT3D
 qwtwc_API 	void qwtfigure3d(int n);

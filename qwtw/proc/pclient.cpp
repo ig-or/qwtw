@@ -12,6 +12,14 @@ SHMTest::SHMTest(): status(5) {
 
 }
 
+#ifdef USEMARBLE
+void SHMTest::qwtmap(int n) {
+	if (status != 0) return;
+	sendCommand(CmdHeader::qMap, n);
+}
+#endif
+
+
 void SHMTest::qwtfigure(int n) {
 	if (status != 0) return;
 	sendCommand(CmdHeader::qFigure, n);
@@ -20,9 +28,12 @@ void SHMTest::qwtsetimpstatus(int impStatus) {
 	if (status != 0) return;
 	sendCommand(CmdHeader::qImpStatus, impStatus);
 }
-
+#ifdef USEMARBLE
+int SHMTest::startProc(const std::string& mdp) {
+#else
 int SHMTest::startProc() {
-	xmprintf(2, "starting proc.. \n");
+#endif
+	xmprintf(2, "\nstarting proc.. \n");
 	using namespace std::chrono_literals;
 	using namespace boost::filesystem;
 	namespace bp = boost::process;
@@ -35,33 +46,76 @@ int SHMTest::startProc() {
 	//int ret = std::system(procName);
 	path pa;
 	std::string qwProcPath;
+	qwProcPath.clear();
+
+	// current path?
 	try {
-		pa = bp::search_path(procName);
-		qwProcPath = pa.string();
-		xmprintf(2, "got qwproc in [%s] \n", qwProcPath.c_str());
-	} catch  (std::exception& ex) {
-		xmprintf(0, "cannot find %s in PATH \n", procName);
-		return 2;
+		pa = current_path() / procName;
+		xmprintf(2, "\tlooking at %s .. \n", pa.string().c_str());
+		if (exists(pa)) {
+			qwProcPath = pa.string();
+			xmprintf(2, "\tlocated!\n");
+		}
+	} catch (std::exception& ex) {
+		xmprintf(2, "exception: %s\n", ex.what());
+		qwProcPath.clear();
 	}
-	if (pa.string().empty()) {
+#ifdef WIN32
+
+#else
+	if (qwProcPath.empty()) { //   near current EXE?
+		char result[ PATH_MAX ];
+		ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+		pa = path(result).parent_path() / procName;
+		xmprintf(2, "\tlookigng at %s \n", pa.string().c_str());
+		if (exists(pa)) {
+			qwProcPath = pa.string();
+			xmprintf(2, "\tgot exe in %s\n", qwProcPath.c_str());
+		} else {
+			xmprintf(2, "\t\t ..  nothing found\n");
+		}
+	}
+#endif
+
+	if (qwProcPath.empty()) {
+		xmprintf(2, "\tnow lookign in PATH; \n");
+		try {
+			pa = bp::search_path(procName);
+			qwProcPath = pa.string();
+			xmprintf(2, "got qwproc in [%s] \n", qwProcPath.c_str());
+		} catch  (std::exception& ex) {
+			xmprintf(0, "cannot find %s in PATH (1) \n", procName);
+			return 2;
+		}
+	}
+
+	if (qwProcPath.empty()) {
 		xmprintf(0, "cannot find %s in PATH (2) \n", procName);
 		return 2;
 	}
 
 	//std::this_thread::sleep_for(10ms);
 	try {
-		bp::spawn(pa);
+		#ifdef USEMARBLE
+		xmprintf(2, "starting %s %s \n", qwProcPath.c_str(), mdp.c_str());
+		bp::spawn(qwProcPath, "--marble_data", mdp.c_str());
+		#else
+		bp::spawn(qwProcPath);
+		#endif
 		std::this_thread::sleep_for(275ms);
-		xmprintf(3, "qwproc supposed to start from  (%s) \n", pa.string().c_str());
+		xmprintf(3, "qwproc supposed to start from  (%s) \n", qwProcPath.c_str());
 	}	catch (std::exception& ex) {
-		xmprintf(0, "cannot start process %s from (%s) (%s) \n", procName, pa.string().c_str(), ex.what());
+		xmprintf(0, "cannot start process %s from (%s) (%s) \n", procName, qwProcPath.c_str(), ex.what());
 		return 1;
 	}
 	xmprintf(2, "SHMTest::startProc() exiting \n");
 	return 0;
 }
-
+#ifdef USEMARBLE
+int SHMTest::testInit(const std::string& mdp, int level) {
+#else
 int SHMTest::testInit(int level) {
+#endif
 	xmprintf(2, "starting SHMTest::testInit()\n");
 	if (status == 0) {
 		//return 0;
@@ -71,7 +125,12 @@ int SHMTest::testInit(int level) {
 	
 	int test = checkProcRunning();
 	if (test == 0) {  //  not running
+#ifdef USEMARBLE
+		startProc(mdp);
+#else
 		startProc();
+#endif
+		
 		//  try one more time
 		test = checkProcRunning();
 		if (test == 0) {  // still not running

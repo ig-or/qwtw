@@ -23,6 +23,9 @@ class QApplication;
 class QProcInterface {
 
 public:
+/**
+ *  \param mdPath path to the MArble data files
+ */
     QProcInterface(QWorker& worker_, QApplication& app_);
     ~QProcInterface();
 

@@ -12,11 +12,21 @@
 #ifdef WIN32
 #include "windows.h"
 #endif
+#ifdef USEMARBLE
+#include <marble/MarbleDirs.h>
+#endif
+
+#ifdef USEMARBLE
+QWorker::QWorker(const std::string& mdp): pf(nullptr) {
+	mdPath = mdp;
+}
+#else
 
 QWorker::QWorker(): pf(nullptr) {
+
 	/*hello();*/ 
 }
-
+#endif
 void QWorker::onQtAppClosing() {
 	if (pf != nullptr) {
 		xm_printf("QWorker::onQtAppClosing()! \n \tdeleting 'pf'... \n");
@@ -52,7 +62,7 @@ void QWorker::qwtshowmw() {
 	}
 }
 #ifdef USEMARBLE
-void QWorker::topview(int n) {
+void QWorker::mapview(int n) {
 	int rv;
 	QMetaObject::invokeMethod(this, "topviewImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n));
 }
@@ -204,7 +214,10 @@ Q_INVOKABLE int QWorker::qtstartImpl() {
     			icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
 				icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 			pf->setWindowIcon(icon);
-			
+
+			#ifdef USEMARBLE
+			Marble::MarbleDirs::setMarbleDataPath(mdPath.c_str());
+			#endif			
 		}
 	} 
 	return 25;

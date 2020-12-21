@@ -36,7 +36,11 @@ public:
 	//std::condition_variable appV; ///< for waiting on QT app 
 
 	void hello();
+	#ifdef USEMARBLE
+	QWorker(const std::string& mdp);
+	#else
 	QWorker(); //{  }
+	#endif
 	~QWorker();
 	int qVersion(char* vstr, int vstr_size);
 	int qtstart(bool wait);
@@ -54,7 +58,7 @@ public:
 	//void appMutexLock
 
 #ifdef USEMARBLE
-	void topview(int n);
+	void mapview(int n);
 #endif
 public slots:
 	void onQtAppClosing();
@@ -62,6 +66,9 @@ public slots:
 private:
 	
 	XQPlots* pf;
+	#ifdef USEMARBLE
+	std::string mdPath; ///< marble data path
+	#endif
     
 };
 

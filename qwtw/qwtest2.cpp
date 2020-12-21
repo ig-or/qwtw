@@ -183,8 +183,13 @@ void test(int n) {
 	typedef void(*pQSimple1)(int);
 	typedef void(*pQSimple2)(const char*);
 	typedef int(*pVersion)(char*, int);
+#ifdef USEMARBLE
+	typedef int(*pQ2Start)(const char*);
+	typedef int(*pQ2StartDebug)(const char*, int);
+#else
 	typedef int(*pQ2Start)();
 	typedef int(*pQ2StartDebug)(int);
+#endif	
 	typedef void (*pPlot)(double*, double*, int, const char*, const char*, int, int);
 	typedef void (*pPlot2)(double*, double*, int, const char*, const char*, int, int, double*);
 
@@ -198,7 +203,7 @@ void test(int n) {
 	pQ2StartDebug q2StartD = (pQ2StartDebug)GetProcAddress(hQWTW_DLL, "qtstart_debug");
 	pQSimple qSMW = (pQSimple)GetProcAddress(hQWTW_DLL, "qwtshowmw");
 	#ifdef USEMARBLE
-	pQSimple1 qTopView = (pQSimple1)GetProcAddress(hQWTW_DLL, "topview");
+	pQSimple1 qTopView = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtmap");
 	#endif
 	pQSimple1 qFigure = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtfigure");
 	pQSimple2 qTitle = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwttitle");
@@ -207,7 +212,7 @@ void test(int n) {
 	//void qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 #else
 	pQSimple qHello = (pQSimple)dlsym(lib_handle, "kyleHello");
-	pQSimple qClose = (pQSimple)dlsym(lib_handle, "qstop");
+	pQSimple qClose = (pQSimple)dlsym(lib_handle, "qwtclose");
 	pQSimple2 qXLabel = (pQSimple2)dlsym(lib_handle, "qwtxlabel");
 	pQSimple2 qYLabel = (pQSimple2)dlsym(lib_handle, "qwtylabel");
 	pVersion qVersion = (pVersion)dlsym(lib_handle, "qwtversion");
@@ -215,7 +220,7 @@ void test(int n) {
 	pQ2StartDebug q2StartD = (pQ2StartDebug)dlsym(lib_handle, "qtstart_debug");
 	pQSimple qSMW = (pQSimple)dlsym(lib_handle, "qwtshowmw");
 	#ifdef USEMARBLE
-	pQSimple1 qTopView = (pQSimple1)dlsym(lib_handle, "topview");
+	pQSimple1 qTopView = (pQSimple1)dlsym(lib_handle, "qwtmap");
 	#endif
 	pQSimple1 qFigure = (pQSimple1)dlsym(lib_handle, "qwtfigure");
 	pQSimple2 qTitle = (pQSimple2)dlsym(lib_handle, "qwttitle");
@@ -232,15 +237,21 @@ void test(int n) {
 	//printf("exiting from TEST\n");
 	//return;
 
-	
-	//std::this_thread::sleep_for(100ms);
-	printf("starting .. \n");
-	int test0 = q2StartD(10);//q2Start();
-	std::cout << "test 0 = " << test0 << std::endl;
-
 	char vi[256];
 	int test1 = qVersion(vi, 256);
 	std::cout << " version: " << vi << std::endl;
+
+
+	
+	//std::this_thread::sleep_for(100ms);
+	printf("starting .. \n");
+	#ifdef USEMARBLE
+	int test0 = q2StartD("/home/igor/space/marble/data", 10);
+	#else
+	int test0 = q2StartD(10);//q2Start();
+	#endif
+	std::cout << "test 0 = " << test0 << std::endl;
+
 
 	if (qHello == 0) {
 		std::cout << "qHello = 0 " << std::endl;

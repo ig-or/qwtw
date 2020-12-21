@@ -225,6 +225,10 @@ void QProcInterface::processCommand(int cmd) {
 			worker.qwtfigure(pd.hdr->test);
 			break;
 
+		case CmdHeader::qMap:
+			worker.mapview(pd.hdr->test);
+			break;
+
 		case CmdHeader::qTitle:
 			worker.qwttitle(pd.hdr->name);
 			break;

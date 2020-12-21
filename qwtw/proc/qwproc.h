@@ -13,6 +13,7 @@ struct CmdHeader {
 		changeSize,
 		qMW,
 		qFigure,
+		qMap, 
 		qPlot,
 		qPlot2, 
 		qTitle, 

@@ -36,7 +36,7 @@
 #include <sstream>
 
 #include "boost/filesystem.hpp"
-
+#include <boost/program_options.hpp>
 
 static QPointer<QWorker> q2worker(nullptr);
 static FILE* logFile = 0;
@@ -80,6 +80,36 @@ int lockHandle() {
 }
 
 int main(int argc, char** argv) {
+	boost::program_options::variables_map vm;
+	boost::program_options::options_description desc(" Valid arguments");
+	desc.add_options()
+		("help", "This help message")		
+		#ifdef USEMARBLE
+		("marble_data", boost::program_options::value< std::string >(), "path to the Marble data files")
+		#endif
+	;
+	try
+	{
+		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc, 
+			boost::program_options::command_line_style::unix_style ^
+			boost::program_options::command_line_style::allow_short
+			), vm);
+		//boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+		boost::program_options::notify(vm);
+	}
+	catch(...) 	{
+		std::cerr << "   : error: bad arguments" <<  std::endl << desc << std::endl << std::endl;
+		std::cerr << "argc = " << argc << "; argv: ";
+		for (int i = 0; i < argc; i++) {
+			std::cerr << " " << argv[i] << ";";
+		}
+		std::cerr << std::endl;
+		return 1;
+	}
+	//if(vm.count("marble_data"))  {
+//		xmprintf(0, "@@@@@@@@@@ marble_data  =  %s\n", vm["marble_data"].as< std::string >().c_str());
+	//}
+
 	bool test = QProcInterface::runningAlready();
 	if (test) {
 		xmprintf(2, "shm exists\n");
@@ -163,8 +193,12 @@ int main(int argc, char** argv) {
 				pid_t pid = getpid(); //  my PID
 #endif
 				xmprintf(0, "\n\n =========== %d =================\nlog started\n", pid);
-			}
-			else {
+				//xmprintf(0, "\tnumber of options: %d\n", argc);
+				//for (int i = 0; i < argc; i++) {
+				//	xmprintf(0, "\t%s\n", argv[i]);
+				//}
+				//xmprintf(0, "\n\n");
+			}	else {
 				return 3;
 			}
 
@@ -189,6 +223,35 @@ int main(int argc, char** argv) {
 
 	/* Open the log file */
 	//openlog ("firstdaemon", LOG_PID, LOG_DAEMON);
+
+	#ifdef USEMARBLE
+	std::string mdPath;
+	if(vm.count("marble_data"))  {
+		mdPath = vm["marble_data"].as< std::string >();
+		xmprintf(1, "qwproc main: marble data path will be [%s]\n", mdPath.c_str());
+	} else {
+		mdPath = "";
+		#ifdef WIN32
+		TCHAR szPath[MAX_PATH];
+		if(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_COMMON_APPDATA, 
+                             NULL, 
+                             0, 
+                             szPath))) 
+		{
+			mdPath = szPath;
+			mdPath.append("\\marble\\data");
+		} else {
+			xmprintf(0, "cannot get path of the program files folder .. \n");
+
+		}
+
+		#else
+		mdPath = "/usr/share/marble/data";
+		#endif
+		xmprintf(0, "Marble data path was not set; will try to  use %s \n", mdPath.c_str());
+	}
+
+	#endif
 
 	//setbuf(stdout, NULL);
 	//setvbuf(stdout, NULL, _IONBF, 0);
@@ -218,14 +281,17 @@ int main(int argc, char** argv) {
 	xmprintf(2, "qVersion() = %s \n", qv);
 	xmprintf(2, "QT_VERSION_STR = %s \n", QT_VERSION_STR);
 
-
 	QApplication app(argc, argv);
 	QString l5 = QCoreApplication::applicationDirPath();
 	std::string s5 = l5.toStdString();
 	xmprintf(2, "QT applicationDirPath = %s\n\n", s5.c_str());
 
 	app.setQuitOnLastWindowClosed(false);   
+	#ifdef USEMARBLE
+	QWorker qWorker(mdPath);
+	#else
 	QWorker qWorker;
+	#endif
 	qWorker.qtstart(false);
 	QProcInterface qpi(qWorker, app);
 	qpi.start();
@@ -276,6 +342,7 @@ int xm_printf(const char * _Format, ...) {
 	return 0;
 }
 
+static std::list<std::string> xmb1List;
 int xmprintf(int level, const char * _Format, ...) {
 	if (level > xmPrintLevel) {
 		return 1;
@@ -287,9 +354,19 @@ int xmprintf(int level, const char * _Format, ...) {
 	logBuf[logBufLen - 1] = 0;
 	if(ok > 0) { // we got the message
 		if(logFile != 0) {
+			if (xmb1List.size() > 0) {
+				for (auto const& a : xmb1List) {
+					fprintf(logFile, "%s", a.c_str());
+				}
+				xmb1List.clear();
+			}
 			//fwrite(logBuf, 1, strlen(logBuf), logFile);
 			fprintf(logFile, "%d-%d \t%s", xmPrintLevel, level, logBuf);
 			fflush(logFile);
+		} else {
+			if (xmb1List.size() < 10) {
+				xmb1List.push_back(std::string(logBuf));
+			}
 		}
 		//std::cout << logBuf;
 	}

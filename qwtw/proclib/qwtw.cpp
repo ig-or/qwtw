@@ -38,6 +38,28 @@ qwtwc_API void kyleHello() {
  *  not 0 means nothing is working.
  **/ 
 
+#ifdef USEMARBLE
+qwtwc_API	int qtstart(const char* mdp) {
+	std::string mdPath;
+	if (mdp == 0) {
+		mdPath.clear();
+	} else {
+		mdPath.assign(mdp);
+	}
+	return test.testInit(mdPath);  //  default level == 1 ?
+}
+
+qwtwc_API	int qtstart_debug(const char* mdp, int level) {
+	std::string mdPath;
+	if (mdp == 0) {
+		mdPath.clear();
+	} else {
+		mdPath.assign(mdp);
+	}
+	xmPrintLevel = level;
+	return test.testInit(mdPath, level);
+}
+#else
 qwtwc_API	int qtstart() {
 	return test.testInit();  //    default level == 1 ?
 }
@@ -46,7 +68,7 @@ qwtwc_API	int qtstart_debug(int level) {
 	xmPrintLevel = level;
 	return test.testInit(level);
 }
-
+#endif
 qwtwc_API	void qwtclose() {
 	test.stopQt();
 }
@@ -82,7 +104,9 @@ qwtwc_API 	void qwtfigure(int n) {
 /**  create (and draw) new map plot with ID 'n'.
 @param[in] n this plot ID
 */
-qwtwc_API 	void topview(int n);
+qwtwc_API 	void qwtmap(int n) {
+	test.qwtmap(n);
+}
 #endif
 #ifdef USE_QT3D
 qwtwc_API 	void qwtfigure3d(int n);

@@ -33,8 +33,8 @@
 #include <QToolButton>
 
 #include <QDebug>
-#include <QtNetwork/qssl.h>
-#include <QtNetwork/qsslsocket.h>
+//#include <QtNetwork/qssl.h>
+//#include <QtNetwork/qsslsocket.h>
 
 //#include <marble/global.h>
 
@@ -46,16 +46,12 @@
 using namespace Marble;
 
 static bool mpWasSet = false;
-
+/*
 int setMarbleDataPath(const char* p) {
-#ifdef WIN32
 	MarbleDirs::setMarbleDataPath(p);
-#else
-	MarbleDirs::setMarbleDataPath(p/*"/usr/share/marble/data"*/);
-#endif
 	return 0;
 }
-
+*/
 class MWPaintLayer: public LayerInterface {
 
 };
@@ -93,6 +89,7 @@ private:
 
 MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 	maxLat = 0; maxLon = 0; minLat = 0; minLon = 0;
+	/*
 	bool haveSSL = QSslSocket::supportsSsl();
 
 	if (!haveSSL) {
@@ -103,7 +100,7 @@ MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 			QSslSocket::sslLibraryVersionString().toUtf8().constData());
 
 	}
-
+*/
 }
 
 void MWidgetEx::addLine(LineItemInfo* line) {
@@ -318,10 +315,11 @@ void MWidgetEx::drawMarker(double t) {
 MarView::MarView(const std::string& key_, XQPlots* pf_, QWidget *parent) : JustAplot(key_, pf_, parent, 2) {
 	if (!mpWasSet) {
 		mpWasSet = true;
-#ifdef VCPKG_MARBLE_DATA_PATH
-		xm_printf("Trying to use marble data path1 %s \n ", XQX9STR(VCPKG_MARBLE_DATA_PATH));
-		setMarbleDataPath(XQX9STR(VCPKG_MARBLE_DATA_PATH));
-#else
+//#ifdef VCPKG_MARBLE_DATA_PATH
+		//xm_printf("Trying to use marble data path1 %s \n ", XQX9STR(VCPKG_MARBLE_DATA_PATH));
+		//Marble::MarbleDirs::setMarbleDataPath(XQX9STR(VCPKG_MARBLE_DATA_PATH));
+//#else
+/*
 	#ifdef WIN32
 			std::string cp = getCommonAppDataPath();
 			cp.append("\\qwtw\\marble-data");
@@ -330,7 +328,8 @@ MarView::MarView(const std::string& key_, XQPlots* pf_, QWidget *parent) : JustA
 	#else
 			setMarbleDataPath("/usr/share/marble/data");
 	#endif
-#endif
+	*/
+//#endif
 	}
 	mw = 0;
 	ctype = CoordType::ECEF;
