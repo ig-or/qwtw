@@ -184,8 +184,8 @@ void test(int n) {
 	typedef void(*pQSimple2)(const char*);
 	typedef int(*pVersion)(char*, int);
 #ifdef USEMARBLE
-	typedef int(*pQ2Start)(const char*);
-	typedef int(*pQ2StartDebug)(const char*, int);
+	typedef int(*pQ2Start)(const char*, const char*);
+	typedef int(*pQ2StartDebug)(const char*, const char*, int);
 #else
 	typedef int(*pQ2Start)();
 	typedef int(*pQ2StartDebug)(int);
@@ -240,15 +240,13 @@ void test(int n) {
 	char vi[256];
 	int test1 = qVersion(vi, 256);
 	std::cout << " version: " << vi << std::endl;
-
-
 	
 	//std::this_thread::sleep_for(100ms);
 	printf("starting .. \n");
 	#ifdef USEMARBLE
-	int test0 = q2StartD("/home/igor/space/marble/data", 10);
+	int test0 = q2StartD("/usr/share/marble/data", "/usr/local/plugins", 10);
 	#else
-	int test0 = q2StartD(10);//q2Start();
+	int test0 = q2StartD(10);
 	#endif
 	std::cout << "test 0 = " << test0 << std::endl;
 
@@ -273,6 +271,12 @@ void test(int n) {
 	qTopView(1);
 	qPlot2(east, north, mwn, "test mw", "-rb", 2, 8, t4);
 	qTitle("marble test");
+
+	double north1[] = {65.688713, 65.698713, 65.678713, 65.60}; // coords in degrees
+	double east1[] = {27.901073, 28.111073, 28.005073, 27.9}; // coords in degrees
+	qTopView(278);
+	qPlot2(east1, north1, mwn, "test mw1", "-rb", 2, 8, t4);
+	qTitle("marble test 1");
 #endif
 	
 	// ------------- create first plot: ---------------------

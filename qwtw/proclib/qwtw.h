@@ -30,10 +30,20 @@ qwtwc_API 	int get42(int n);
  *  not 0 means nothing is working.
  * 
  * \param mdp path to the marble data files; If "0" than not used
+ * \param mpp path to the marble plugin files; If "0" than not used
  **/ 
 #ifdef USEMARBLE
-qwtwc_API	int qtstart(const char* mdp);
-qwtwc_API	int qtstart_debug(const char* mdp, int level);
+qwtwc_API	int qtstart(const char* mdp, const char* mpp);
+
+/** starting  QT proc, if not started yet.
+ * 	return 0 if all is OK, 
+ *  not 0 means nothing is working.
+ * 
+ * \param mdp path to the marble data files; If "0" than not used
+ * \param mpp path to the marble plugin files; If "0" than not used
+ * \param level debug level from 0 to 10; 10 is the biggest.
+ **/ 
+qwtwc_API	int qtstart_debug(const char* mdp, const char* mpp, int level);
 #else
 qwtwc_API	int qtstart();
 qwtwc_API	int qtstart_debug(int level);

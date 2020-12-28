@@ -12,6 +12,8 @@
 #include <QMainWindow>
 #include <QLibraryInfo>
 #include <QVersionNumber>
+
+#include <QVBoxLayout>
 #include <QtGlobal>
 
 #include <stdlib.h>
@@ -26,14 +28,48 @@
 	#include <unistd.h>
 #endif
 
+#include <boost/program_options.hpp>
+
 #include <string>
 #include <iostream>
 #include <sstream>
+#ifdef USEMARBLE
+#include <marble/MarbleDebug.h>
+#include <marble/MarbleDirs.h>
+#endif
 
 #include "qttest.h"
 
 
-QTTest::QTTest(QWidget * parent1): QMainWindow(parent1, 
+
+#ifdef USEMARBLE
+MWidgetEx::MWidgetEx(QWidget *parent): Marble::MarbleWidget(parent) {
+	
+	/*
+	bool haveSSL = QSslSocket::supportsSsl();
+
+	if (!haveSSL) {
+		xm_printf("ERROR: looks like SSL not working; no maps will be downloaded\n");
+		xm_printf("MWidgetEx ssl info: build version = %s, supports = %s,  lib version =  %s\n",
+			QSslSocket::sslLibraryBuildVersionString().toUtf8().constData(),
+			haveSSL ? "yes" : "no",
+			QSslSocket::sslLibraryVersionString().toUtf8().constData());
+
+	}
+*/
+}
+
+void MWidgetEx::customPaint(Marble::GeoPainter* painter) {
+
+}
+void MWidgetEx::closeEvent(QCloseEvent * event) {
+
+}
+
+
+#endif
+
+QTTest::QTTest(QWidget * parent1): QDialog(parent1, 
 		Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowMinimizeButtonHint | 
 		Qt::WindowCloseButtonHint | Qt::WindowContextHelpButtonHint) {
 
@@ -46,11 +82,68 @@ QTTest::QTTest(QWidget * parent1): QMainWindow(parent1,
 
 	printf("main wnd icon: %s \n", icon.isNull() ? "null" : "OK");
     setWindowIcon(icon);
+
+	QVBoxLayout *layout = new QVBoxLayout;
+	layout->setSpacing(2); layout->setMargin(2);
+
+
+	#ifdef USEMARBLE
+	Marble::MarbleDirs::debug();
+	mw = new MWidgetEx(this);
+	mw->setMapThemeId("earth/openstreetmap/openstreetmap.dgml");
+	Marble::GeoDataDocument *document = new Marble::GeoDataDocument;
+	mw->model()->treeModel()->addDocument(document);
+	mw->setProjection(Marble::Mercator);
+	mw->setShowBorders(true);
+	mw->setShowGrid(true);
+	mw->showGrid();
+	mw->setShowCities(true);
+	mw->setShowOverviewMap(false);
+	mw->zoomView(DEFAULT_ZOOM_LEVEL);
+	Marble::GeoDataCoordinates home(-122.00505316189623, 37.282928174000936, 10.0, Marble::GeoDataCoordinates::Degree);
+	mw->centerOn(home);
+
+	layout->addWidget(mw);
+
+	#endif
+
+	setLayout(layout);
+	resize(400, 300);
+
+	show();
 }
 
 
 
 int main(int argc, char** argv) {
+
+	boost::program_options::variables_map vm;
+	boost::program_options::options_description desc(" Valid arguments");
+	desc.add_options()
+		("help", "This help message")		
+		#ifdef USEMARBLE
+		("marble_data", boost::program_options::value< std::string >(), "path to the Marble data files")
+		("marble_plugins", boost::program_options::value< std::string >(), "path to the Marble plugins")
+		#endif
+	;
+	try
+	{
+		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc, 
+			boost::program_options::command_line_style::unix_style ^
+			boost::program_options::command_line_style::allow_short
+			), vm);
+		//boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
+		boost::program_options::notify(vm);
+	}
+	catch(...) 	{
+		std::cerr << "   : error: bad arguments" <<  std::endl << desc << std::endl << std::endl;
+		std::cerr << "argc = " << argc << "; argv: ";
+		for (int i = 0; i < argc; i++) {
+			std::cerr << " " << argv[i] << ";";
+		}
+		std::cerr << std::endl;
+		return 1;
+	}
 
 	setbuf(stdout, NULL);
 	setvbuf(stdout, NULL, _IONBF, 0);
@@ -96,6 +189,26 @@ int main(int argc, char** argv) {
 	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 	app.setWindowIcon(icon);
 	app.setWindowIcon(QIcon(":/icons/binokl.png"));
+
+	#ifdef USEMARBLE
+	Marble::MarbleDebug::setEnabled( true );
+	if(vm.count("marble_data"))  {
+		std::string mdp = vm["marble_data"].as< std::string >();
+		printf("\tserring  marble_data to [%s] \n", mdp.c_str());
+		Marble::MarbleDirs::setMarbleDataPath(mdp.c_str());
+	} else {
+		printf("\tusing default marble_data \n");
+	}
+
+	if(vm.count("marble_plugins"))  {
+		std::string mpp = vm["marble_plugins"].as< std::string >();
+		printf("\tserring  marble_plugins to [%s] \n", mpp.c_str());
+		Marble::MarbleDirs::setMarblePluginPath(mpp.c_str());
+	} else {
+		printf("\tusing default marble_plugins \n");
+	}
+	Marble::MarbleDirs::debug();
+	#endif
 
 
 	QTTest test;

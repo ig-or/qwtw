@@ -35,6 +35,11 @@
 #include <iostream>
 #include <sstream>
 
+#ifdef USEMARBLE
+#include <marble/MarbleDebug.h>
+#include <marble/MarbleDirs.h>
+#endif
+
 #include "boost/filesystem.hpp"
 #include <boost/program_options.hpp>
 
@@ -86,7 +91,9 @@ int main(int argc, char** argv) {
 		("help", "This help message")		
 		#ifdef USEMARBLE
 		("marble_data", boost::program_options::value< std::string >(), "path to the Marble data files")
+		("marble_plugins", boost::program_options::value< std::string >(), "path to the Marble plugins")
 		#endif
+		("debug",  boost::program_options::value< int >(), "debug level, 0 - minimum, 10 - maximum")
 	;
 	try
 	{
@@ -112,8 +119,14 @@ int main(int argc, char** argv) {
 
 	bool test = QProcInterface::runningAlready();
 	if (test) {
-		xmprintf(2, "shm exists\n");
+		xmprintf(2, "BTW, shm already exists\n");
 		//return 2;
+	}
+	int debugLevel = 0;
+	if(vm.count("debug"))  {
+		debugLevel = vm["debug"].as< int >();
+		xmprintf(0, "using debug level from cmd: %d \n", debugLevel);
+		xmPrintLevel = debugLevel;
 	}
 
 #ifdef WIN32	// make it a windows service could be a better way, though.. 
@@ -123,48 +136,50 @@ int main(int argc, char** argv) {
 #else
 	//  code partially from https://github.com/pasce/daemon-skeleton-linux-c:
 	pid_t pid;
-	// Fork off the parent process 
-	pid = fork();
-	// An error occurred 
-	if (pid < 0) {
-		exit(EXIT_FAILURE);
-	}
-	
-	// Success: Let the parent terminate 
-	if (pid > 0) {
-		exit(EXIT_SUCCESS);
-	}
-	
-	// On success: The child process becomes session leader 
-	if (setsid() < 0) {
-		exit(EXIT_FAILURE);
-	}
-	
-	//Catch, ignore and handle signals 
-	//TODO: Implement a working signal handler 
-	//signal(SIGCHLD, SIG_IGN);
-	//signal(SIGHUP, SIG_IGN);
-	
-	// Fork off for the second time
-	pid = fork();
-	
-	// An error occurred 
-	if (pid < 0) {
-		exit(EXIT_FAILURE);
-	}
-	
-	// Success: Let the parent terminate 
-	if (pid > 0) {
-		exit(EXIT_SUCCESS);
-	}
-	
-	// Set new file permissions 
-	umask(0);
+	if (debugLevel == 0) {
+		// Fork off the parent process 
+		pid = fork();
+		// An error occurred 
+		if (pid < 0) {
+			exit(EXIT_FAILURE);
+		}
+		
+		// Success: Let the parent terminate 
+		if (pid > 0) {
+			exit(EXIT_SUCCESS);
+		}
+		
+		// On success: The child process becomes session leader 
+		if (setsid() < 0) {
+			exit(EXIT_FAILURE);
+		}
+		
+		//Catch, ignore and handle signals 
+		//TODO: Implement a working signal handler 
+		//signal(SIGCHLD, SIG_IGN);
+		//signal(SIGHUP, SIG_IGN);
+		
+		// Fork off for the second time
+		pid = fork();
+		
+		// An error occurred 
+		if (pid < 0) {
+			exit(EXIT_FAILURE);
+		}
+		
+		// Success: Let the parent terminate 
+		if (pid > 0) {
+			exit(EXIT_SUCCESS);
+		}
+		
+		// Set new file permissions 
+		umask(0);
 
-	// Close all open file descriptors 
-	int x3;
-	for (x3 = sysconf(_SC_OPEN_MAX); x3>=0; x3--)	{
-		close (x3);
+		// Close all open file descriptors 
+		int x3;
+		for (x3 = sysconf(_SC_OPEN_MAX); x3>=0; x3--)	{
+			close (x3);
+		}
 	}
 #endif
 
@@ -193,11 +208,6 @@ int main(int argc, char** argv) {
 				pid_t pid = getpid(); //  my PID
 #endif
 				xmprintf(0, "\n\n =========== %d =================\nlog started\n", pid);
-				//xmprintf(0, "\tnumber of options: %d\n", argc);
-				//for (int i = 0; i < argc; i++) {
-				//	xmprintf(0, "\t%s\n", argv[i]);
-				//}
-				//xmprintf(0, "\n\n");
 			}	else {
 				return 3;
 			}
@@ -224,34 +234,33 @@ int main(int argc, char** argv) {
 	/* Open the log file */
 	//openlog ("firstdaemon", LOG_PID, LOG_DAEMON);
 
-	#ifdef USEMARBLE
-	std::string mdPath;
+#ifdef USEMARBLE
+	std::string mdp;
+	std::string mpp;
+	Marble::MarbleDebug::setEnabled( true );
 	if(vm.count("marble_data"))  {
-		mdPath = vm["marble_data"].as< std::string >();
-		xmprintf(1, "qwproc main: marble data path will be [%s]\n", mdPath.c_str());
+		mdp = vm["marble_data"].as< std::string >();
+		printf("\tserring  marble_data to [%s] \n", mdp.c_str());
+		Marble::MarbleDirs::setMarbleDataPath(mdp.c_str());
 	} else {
-		mdPath = "";
-		#ifdef WIN32
-		TCHAR szPath[MAX_PATH];
-		if(SUCCEEDED(SHGetFolderPath(NULL, CSIDL_COMMON_APPDATA, 
-                             NULL, 
-                             0, 
-                             szPath))) 
-		{
-			mdPath = szPath;
-			mdPath.append("\\marble\\data");
-		} else {
-			xmprintf(0, "cannot get path of the program files folder .. \n");
-
-		}
-
-		#else
-		mdPath = "/usr/share/marble/data";
-		#endif
-		xmprintf(0, "Marble data path was not set; will try to  use %s \n", mdPath.c_str());
+		printf("\tusing default marble_data \n");
 	}
 
-	#endif
+	if(vm.count("marble_plugins"))  {
+		mpp = vm["marble_plugins"].as< std::string >();
+		printf("\tserring  marble_plugins to [%s] \n", mpp.c_str());
+		Marble::MarbleDirs::setMarblePluginPath(mpp.c_str());
+	} else {
+		printf("\tusing default marble_plugins \n");
+	}
+	Marble::MarbleDirs::debug();
+	if (debugLevel > 2) {
+		Marble::MarbleDebug::setEnabled( true );
+	} else {
+		Marble::MarbleDebug::setEnabled( false );
+	}
+
+#endif
 
 	//setbuf(stdout, NULL);
 	//setvbuf(stdout, NULL, _IONBF, 0);
@@ -288,7 +297,7 @@ int main(int argc, char** argv) {
 
 	app.setQuitOnLastWindowClosed(false);   
 	#ifdef USEMARBLE
-	QWorker qWorker(mdPath);
+	QWorker qWorker(mdp, mpp);
 	#else
 	QWorker qWorker;
 	#endif

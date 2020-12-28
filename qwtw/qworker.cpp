@@ -17,8 +17,9 @@
 #endif
 
 #ifdef USEMARBLE
-QWorker::QWorker(const std::string& mdp): pf(nullptr) {
+QWorker::QWorker(const std::string& mdp, const std::string& mpp): pf(nullptr) {
 	mdPath = mdp;
+	mpPath = mpp;
 }
 #else
 
@@ -217,6 +218,7 @@ Q_INVOKABLE int QWorker::qtstartImpl() {
 
 			#ifdef USEMARBLE
 			Marble::MarbleDirs::setMarbleDataPath(mdPath.c_str());
+			Marble::MarbleDirs::setMarblePluginPath(mpPath.c_str());
 			#endif			
 		}
 	} 

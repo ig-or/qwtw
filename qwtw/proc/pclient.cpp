@@ -29,9 +29,9 @@ void SHMTest::qwtsetimpstatus(int impStatus) {
 	sendCommand(CmdHeader::qImpStatus, impStatus);
 }
 #ifdef USEMARBLE
-int SHMTest::startProc(const std::string& mdp) {
+int SHMTest::startProc(const std::string& mdp, const std::string& mpp, int level) {
 #else
-int SHMTest::startProc() {
+int SHMTest::startProc(int level) {
 #endif
 	xmprintf(2, "\nstarting proc.. \n");
 	using namespace std::chrono_literals;
@@ -96,12 +96,25 @@ int SHMTest::startProc() {
 
 	//std::this_thread::sleep_for(10ms);
 	try {
-		#ifdef USEMARBLE
+		std::string sLevel = std::to_string(level);
+#ifdef USEMARBLE
 		xmprintf(2, "starting %s %s \n", qwProcPath.c_str(), mdp.c_str());
-		bp::spawn(qwProcPath, "--marble_data", mdp.c_str());
-		#else
-		bp::spawn(qwProcPath);
-		#endif
+		if (mdp.empty()) {
+			if (mpp.empty()) {
+				bp::spawn(qwProcPath, "--debug", sLevel.c_str());
+			} else {
+				bp::spawn(qwProcPath, "--marble_plugins", mpp.c_str(), "--debug", sLevel.c_str());
+			}
+		} else {
+			if (mpp.empty()) {
+				bp::spawn(qwProcPath, "--marble_data", mdp.c_str(), "--debug", sLevel.c_str());
+			}else {
+				bp::spawn(qwProcPath, "--marble_data", mdp.c_str(), "--marble_plugins", mpp.c_str(), "--debug", sLevel.c_str());
+			}
+		}
+#else
+		bp::spawn(qwProcPath, "--debug", sLevel.c_str());
+#endif
 		std::this_thread::sleep_for(275ms);
 		xmprintf(3, "qwproc supposed to start from  (%s) \n", qwProcPath.c_str());
 	}	catch (std::exception& ex) {
@@ -112,7 +125,7 @@ int SHMTest::startProc() {
 	return 0;
 }
 #ifdef USEMARBLE
-int SHMTest::testInit(const std::string& mdp, int level) {
+int SHMTest::testInit(const std::string& mdp, const std::string& mpp, int level) {
 #else
 int SHMTest::testInit(int level) {
 #endif
@@ -126,9 +139,9 @@ int SHMTest::testInit(int level) {
 	int test = checkProcRunning();
 	if (test == 0) {  //  not running
 #ifdef USEMARBLE
-		startProc(mdp);
+		startProc(mdp, mpp, level);
 #else
-		startProc();
+		startProc(level);
 #endif
 		
 		//  try one more time

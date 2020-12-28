@@ -37,7 +37,7 @@ public:
 
 	void hello();
 	#ifdef USEMARBLE
-	QWorker(const std::string& mdp);
+	QWorker(const std::string& mdp, const std::string& mpp);
 	#else
 	QWorker(); //{  }
 	#endif
@@ -68,6 +68,7 @@ private:
 	XQPlots* pf;
 	#ifdef USEMARBLE
 	std::string mdPath; ///< marble data path
+	std::string mpPath; ///< marble plugin path
 	#endif
     
 };

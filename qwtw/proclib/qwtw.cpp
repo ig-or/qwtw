@@ -39,25 +39,38 @@ qwtwc_API void kyleHello() {
  **/ 
 
 #ifdef USEMARBLE
-qwtwc_API	int qtstart(const char* mdp) {
+qwtwc_API	int qtstart(const char* mdp, const char* mpp) {
 	std::string mdPath;
+	std::string mpPath;
 	if (mdp == 0) {
 		mdPath.clear();
 	} else {
 		mdPath.assign(mdp);
 	}
-	return test.testInit(mdPath);  //  default level == 1 ?
+	if (mpp == 0) {
+		mpPath.clear();
+	} else {
+		mpPath.assign(mpp);
+	}
+
+	return test.testInit(mdPath, mpPath);  //  default level == 1 ?
 }
 
-qwtwc_API	int qtstart_debug(const char* mdp, int level) {
+qwtwc_API	int qtstart_debug(const char* mdp, const char* mpp, int level) {
 	std::string mdPath;
+	std::string mpPath;
 	if (mdp == 0) {
 		mdPath.clear();
 	} else {
 		mdPath.assign(mdp);
 	}
+	if (mpp == 0) {
+		mpPath.clear();
+	} else {
+		mpPath.assign(mpp);
+	}
 	xmPrintLevel = level;
-	return test.testInit(mdPath, level);
+	return test.testInit(mdPath, mpPath, level);
 }
 #else
 qwtwc_API	int qtstart() {

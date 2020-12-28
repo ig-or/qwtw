@@ -14,9 +14,9 @@ struct SHMTest {
 	 * 	\return 0 if all is OK. 
 	**/
 #ifdef USEMARBLE
-	int testInit(const std::string& mdp, int level = 1);
+	int testInit(const std::string& mdp, const std::string& mpp, int level = 0);
 #else
-	int testInit(int level = 1);
+	int testInit(int level = 0);
 #endif
 	void qwtfigure(int n);
 
@@ -57,9 +57,9 @@ private:
 	 * 
 	**/
 #ifdef USEMARBLE
-	int startProc(const std::string& mdp);
+	int startProc(const std::string& mdp, const std::string& mpp, int level);
 #else
-	int startProc();
+	int startProc(int level);
 #endif
 
 	boost::interprocess::shared_memory_object shmCommand;
