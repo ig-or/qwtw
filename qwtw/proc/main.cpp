@@ -240,7 +240,7 @@ int main(int argc, char** argv) {
 	Marble::MarbleDebug::setEnabled( true );
 	if(vm.count("marble_data"))  {
 		mdp = vm["marble_data"].as< std::string >();
-		printf("\tserring  marble_data to [%s] \n", mdp.c_str());
+		printf("\tsetting  marble_data to [%s] \n", mdp.c_str());
 		Marble::MarbleDirs::setMarbleDataPath(mdp.c_str());
 	} else {
 		printf("\tusing default marble_data \n");
@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
 
 	if(vm.count("marble_plugins"))  {
 		mpp = vm["marble_plugins"].as< std::string >();
-		printf("\tserring  marble_plugins to [%s] \n", mpp.c_str());
+		printf("\tsetting  marble_plugins to [%s] \n", mpp.c_str());
 		Marble::MarbleDirs::setMarblePluginPath(mpp.c_str());
 	} else {
 		printf("\tusing default marble_plugins \n");

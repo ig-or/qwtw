@@ -33,8 +33,8 @@
 #include <QToolButton>
 
 #include <QDebug>
-//#include <QtNetwork/qssl.h>
-//#include <QtNetwork/qsslsocket.h>
+#include <QtNetwork/QSsl>
+#include <QtNetwork/QSslSocket>
 
 //#include <marble/global.h>
 
@@ -44,6 +44,7 @@
 #define DEFAULT_ZOOM_LEVEL 2800
 
 using namespace Marble;
+int xmprintf(int level, const char * _Format, ...);
 
 static bool mpWasSet = false;
 /*
@@ -89,18 +90,19 @@ private:
 
 MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 	maxLat = 0; maxLon = 0; minLat = 0; minLon = 0;
-	/*
+	
 	bool haveSSL = QSslSocket::supportsSsl();
 
 	if (!haveSSL) {
-		xm_printf("ERROR: looks like SSL not working; no maps will be downloaded\n");
-		xm_printf("MWidgetEx ssl info: build version = %s, supports = %s,  lib version =  %s\n",
+		xmprintf(0, "ERROR: looks like SSL not working; no maps will be downloaded\n");
+		xmprintf(0, "MWidgetEx ssl info: build version = %s, supports = %s,  lib version =  %s\n",
 			QSslSocket::sslLibraryBuildVersionString().toUtf8().constData(),
 			haveSSL ? "yes" : "no",
 			QSslSocket::sslLibraryVersionString().toUtf8().constData());
+		xmprintf(0, "RT version version %d\n\n", QSslSocket::sslLibraryVersionNumber());
 
 	}
-*/
+
 }
 
 void MWidgetEx::addLine(LineItemInfo* line) {

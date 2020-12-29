@@ -148,14 +148,27 @@ int checkProcRunning() {
 			std::string pName;
 			std::ifstream pFile(proc.string());
 			std::getline(pFile, pName);
-			pFile.close();
 			xmprintf(2, "lockHandle: %s is running\n", pName.c_str());
 			if (pName.find("qwproc") == std::string::npos) {
 				xmprintf(2, "\tbut looks like this is different program with same pid\n");
-			} else { // its me
-				xmprintf(2, "\tit's me\n");
-				return 1;
+			} else { // its me ?
+				//  lets check the status:
+				std::string line;
+				for (line; std::getline(pFile, line); ) {
+					if (line.find("State:") != std::string::npos) {
+						if (line.find('Z')  != std::string::npos) {
+							xmprintf(3, "\tprocess (%s) zombie? (%s)\n", sp.c_str(), line.c_str());
+						} else {
+							xmprintf(2, "\tit's me; [%s]\n", line.c_str());
+							pFile.close();
+							return 1;
+						}
+						break;
+					}
+				}
+
 			}
+			pFile.close();
 		} else {
 			xmprintf(2, "checkProcRunning: no %s file detected \n", proc.string().c_str());
 		}
