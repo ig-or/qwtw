@@ -214,6 +214,11 @@ macro (addQT)
 		set (QT5_LIBRARIES_MINE YES)
 	endif()
 	list(APPEND ${L_LIST} Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL) # Qt5::NetworkAuth Qt5::NetworkAuthPrivate)
+
+	find_package(Qt5 COMPONENTS Network REQUIRED)
+	list(APPEND ${L_LIST} Qt5::Network)
+
+
 	set(AUTOGEN_TARGETS_FOLDER automoc)
 	
 	set(now_using_QT YES)

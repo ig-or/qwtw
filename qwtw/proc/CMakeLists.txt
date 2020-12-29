@@ -109,12 +109,12 @@ else()
 	addOtherLib("dl")
 
 	find_package(OpenSSL REQUIRED)
-	message("OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
-    message("OpenSSL libraries: ${OPENSSL_LIBRARIES}")
+	message("STATUS OpenSSL include dir: ${OPENSSL_INCLUDE_DIR}")
+    message("STATUS OpenSSL libraries: ${OPENSSL_LIBRARIES}")
 	addOtherLib(${OPENSSL_LIBRARIES})
 	list(APPEND INC_DIR_LIST ${OPENSSL_INCLUDE_DIR}) 
 
-	message("LIB_LIST: "  ${${L_LIST}})
+	message("STATUS LIB_LIST: "  ${${L_LIST}})
 endif()
 
 
