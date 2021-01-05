@@ -98,22 +98,32 @@ int SHMTest::startProc(int level) {
 	try {
 		std::string sLevel = std::to_string(level);
 #ifdef USEMARBLE
-		xmprintf(2, "starting %s %s \n", qwProcPath.c_str(), mdp.c_str());
+		xmprintf(2, "starting %s %s %s\n", qwProcPath.c_str(), mdp.c_str(), mpp.c_str());
 		if (mdp.empty()) {
 			if (mpp.empty()) {
 				bp::spawn(qwProcPath, "--debug", sLevel.c_str());
+				xmprintf(2, "@starting %s --debug %s\n", qwProcPath.c_str(), sLevel.c_str());
 			} else {
 				bp::spawn(qwProcPath, "--marble_plugins", mpp.c_str(), "--debug", sLevel.c_str());
+				xmprintf(2, "@starting %s --marble_plugins %s --debug %s\n", 
+					qwProcPath.c_str(), mpp.c_str(), sLevel.c_str());
 			}
 		} else {
 			if (mpp.empty()) {
 				bp::spawn(qwProcPath, "--marble_data", mdp.c_str(), "--debug", sLevel.c_str());
+				xmprintf(2, "@starting %s --marble_data %s  --debug %s\n", 
+					qwProcPath.c_str(), mdp.c_str(), sLevel.c_str());
+
 			}else {
 				bp::spawn(qwProcPath, "--marble_data", mdp.c_str(), "--marble_plugins", mpp.c_str(), "--debug", sLevel.c_str());
+				xmprintf(2, "@starting %s --marble_data %s --marble_plugins %s --debug %s\n", 
+					qwProcPath.c_str(), mdp.c_str(), mpp.c_str(), sLevel.c_str());
 			}
 		}
 #else
 		bp::spawn(qwProcPath, "--debug", sLevel.c_str());
+		xmprintf(2, "@starting %s --debug %s\n", qwProcPath.c_str(), sLevel.c_str());
+
 #endif
 		std::this_thread::sleep_for(275ms);
 		xmprintf(3, "qwproc supposed to start from  (%s) \n", qwProcPath.c_str());
