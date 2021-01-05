@@ -115,7 +115,7 @@ int SHMTest::startProc(int level) {
 #else
 		bp::spawn(qwProcPath, "--debug", sLevel.c_str());
 #endif
-		std::this_thread::sleep_for(275ms);
+		std::this_thread::sleep_for(475ms);
 		xmprintf(3, "qwproc supposed to start from  (%s) \n", qwProcPath.c_str());
 	}	catch (std::exception& ex) {
 		xmprintf(0, "cannot start process %s from (%s) (%s) \n", procName, qwProcPath.c_str(), ex.what());
@@ -129,6 +129,7 @@ int SHMTest::testInit(const std::string& mdp, const std::string& mpp, int level)
 #else
 int SHMTest::testInit(int level) {
 #endif
+	using namespace std::chrono_literals;	
 	xmprintf(2, "starting SHMTest::testInit()\n");
 	if (status == 0) {
 		//return 0;
@@ -145,22 +146,43 @@ int SHMTest::testInit(int level) {
 #endif
 		
 		//  try one more time
-		test = checkProcRunning();
+		for (int a = 0; a < 5; a++) {
+			test = checkProcRunning();
+			if (test == 0) {  // still not running
+				std::this_thread::sleep_for(375ms);
+			} else {
+				xmprintf(3, "\tSHMTest::testInit() checkProcRunning() test = %d \n", test);
+				break;
+			}
+		}
 		if (test == 0) {  // still not running
 			status = 1;
-			xmprintf(1, "ERROR: cannot start qwproc\n");
+			xmprintf(0, "ERROR: cannot start qwproc\n");
 			return 1; //  cannot start the program  (not installed?)
 		}
 	}
 
-	xmprintf(3, "SHMTest::testInit() setting up memory\n");
-	try {
-		shared_memory_object shmCommand_(open_only, ProcData::shmNames[0], read_write);
-		shmCommand.swap(shmCommand_);
-	} catch(interprocess_exception &ex) { // proc not started?  something is not OK
-		xmprintf(0, "SHMTest::testInit():  proc not started? cannot connect to the SHM \n");
-		status = 2;
-		return 2;
+	xmprintf(3, "\tSHMTest::testInit() setting up memory\n");
+	int attemptCount = 10;
+	bool shmConnected = false;
+	std::string exPlanation;
+	while (attemptCount > 0) {
+		try {
+			shared_memory_object shmCommand_(open_only, ProcData::shmNames[0], read_write);
+			shmCommand.swap(shmCommand_);
+			shmConnected = true;
+			xmprintf(3, "\tSHMTest::testInit() connected to SHM\n");
+			break;
+		} catch(interprocess_exception &ex) { // proc not started?  something is not OK
+			exPlanation.assign(ex.what());
+			std::this_thread::sleep_for(275ms);
+		}
+		attemptCount -= 1;
+	}
+	if (!shmConnected) {
+			xmprintf(0, "SHMTest::testInit():  proc not started? cannot connect to the SHM (%s) \n", exPlanation.c_str());
+			status = 2;
+			return 2;
 	}
 
 	shared_memory_object shmX_(open_only, ProcData::shmNames[1], read_write);
