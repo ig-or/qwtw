@@ -129,6 +129,18 @@ int main(int argc, char** argv) {
 		xmPrintLevel = debugLevel;
 	}
 
+	try {
+		std::ostringstream s;
+		s << "MAIN argc = " << argc << "; argv: " << std::endl;	;
+		for (int i = 0; i < argc; i++) {
+			s << " [" << argv[i] << "] ";
+		}
+		s << std::endl;	
+		xmprintf(0, "params: %s\n", s.str().c_str());
+	} catch(...) {
+
+	}
+
 #ifdef WIN32	// make it a windows service could be a better way, though.. 
 				//  probably this also works:
 
@@ -240,22 +252,23 @@ int main(int argc, char** argv) {
 	Marble::MarbleDebug::setEnabled( true );
 	if(vm.count("marble_data"))  {
 		mdp = vm["marble_data"].as< std::string >();
-		printf("\tsetting  marble_data to [%s] \n", mdp.c_str());
+		xmprintf(0, "\tsetting  marble_data to [%s] \n", mdp.c_str());
 		Marble::MarbleDirs::setMarbleDataPath(mdp.c_str());
 	} else {
-		printf("\tusing default marble_data \n");
+		xmprintf(0, "\tusing default marble_data \n");
 	}
 
 	if(vm.count("marble_plugins"))  {
 		mpp = vm["marble_plugins"].as< std::string >();
-		printf("\tsetting  marble_plugins to [%s] \n", mpp.c_str());
+		xmprintf(0, "\tsetting  marble_plugins to [%s] \n", mpp.c_str());
 		Marble::MarbleDirs::setMarblePluginPath(mpp.c_str());
 	} else {
-		printf("\tusing default marble_plugins \n");
+		xmprintf(0, "\tusing default marble_plugins \n");
 	}
 	Marble::MarbleDirs::debug();
 	if (debugLevel > 2) {
 		Marble::MarbleDebug::setEnabled( true );
+		xmprintf(0, "Marble debug enabled\n");
 	} else {
 		Marble::MarbleDebug::setEnabled( false );
 	}
