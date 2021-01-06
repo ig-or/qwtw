@@ -2,18 +2,27 @@
 
 //#include <mgl2/qmathgl.h>
 
-#include <QLayout>
-#include <QFrame>
+//
+//#include <QFrame>
+#include <QGLWidget>
 
-class QMathGL;
+//class QMathGL;
+class mglGraph;
 
-class QMGL : public QWidget {
+class QMGL : public QGLWidget {
     Q_OBJECT
 
-    public:
+public:
     QMGL(QWidget *parent = 0);
+    ~QMGL();
 
-    private:
-    QMathGL* mgl;
+protected:
 
+    void resizeGL(int nWidth, int nHeight);   // Method called after each window resize
+    void paintGL();       // Method to display the image on the screen
+    void initializeGL();  // Method to initialize OpenGL
+
+private:
+    //QMathGL* mgl;
+    mglGraph* gr;
 };

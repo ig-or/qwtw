@@ -32,6 +32,7 @@ if(UNIX)
 	add_definitions(-DLIN_UX)
 	addOtherLib("rt")
 	addOtherLib("dl")
+	addOtherLib("GL")
 
 	message("STATUS LIB_LIST: "  ${${L_LIST}})
 endif()

@@ -213,10 +213,13 @@ macro (addQT)
 		#find_package(Qt5NetworkAuth  REQUIRED)
 		set (QT5_LIBRARIES_MINE YES)
 	endif()
-	list(APPEND ${L_LIST} Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL) # Qt5::NetworkAuth Qt5::NetworkAuthPrivate)
+	list(APPEND ${L_LIST} Qt5::Core Qt5::Widgets Qt5::Gui) # Qt5::NetworkAuth Qt5::NetworkAuthPrivate)
 
 	find_package(Qt5 COMPONENTS Network REQUIRED)
 	list(APPEND ${L_LIST} Qt5::Network)
+
+	find_package(Qt5 COMPONENTS OpenGL REQUIRED)
+	list(APPEND ${L_LIST} Qt5::OpenGL)
 
 
 	set(AUTOGEN_TARGETS_FOLDER automoc)
