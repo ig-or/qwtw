@@ -9,6 +9,11 @@
 
 class QMathGL;
 class mglGraph;
+class QSpinBox;
+class QFrame;
+class QMenu;
+class QMenuBar;
+class QBoxLayout;
 
 class QMGL1 : public QWidget {
     Q_OBJECT
@@ -18,9 +23,18 @@ public:
     ~QMGL1();
 
 protected:
+    void ensurePolished();
 
 private:
     QMathGL* mgl;
+    QSpinBox* phi;
+    QSpinBox* teta;
+    //QMenu* pMenu;
+    QMenuBar* menu_bar;
+    QFrame* tool_frame;
+    QBoxLayout* toolLayout;
+
+    void addMenu();
 };
 
 class QMGL2 : public QGLWidget {

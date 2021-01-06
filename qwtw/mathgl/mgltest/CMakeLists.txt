@@ -4,6 +4,7 @@
 
 cmake_minimum_required (VERSION 3.1)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../../buildsys/ccmake.cmake")
+set (NO_VERSION_INFO 1)
 
 #set (NO_VERSION_INFO 1)
 set(PROJECT_NAME mgltest)
@@ -25,6 +26,7 @@ add_definitions(-DQT_DLL)
 
 find_package(MathGL2 REQUIRED Qt)
 list(APPEND INC_DIR_LIST ${MATHGL2_INCLUDE_DIRS})
+list(APPEND INC_DIR_LIST "${CMAKE_CURRENT_SOURCE_DIR}/../../../") 
 addOtherLib(${MATHGL2_LIBRARIES})
 message(STATUS "got MATHGL2_VERSION_STRING ${MATHGL2_VERSION_STRING}")
 
