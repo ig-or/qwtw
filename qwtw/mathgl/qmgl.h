@@ -4,17 +4,31 @@
 
 //
 //#include <QFrame>
+#include <QWidget>
 #include <QGLWidget>
 
-//class QMathGL;
+class QMathGL;
 class mglGraph;
 
-class QMGL : public QGLWidget {
+class QMGL1 : public QWidget {
     Q_OBJECT
 
 public:
-    QMGL(QWidget *parent = 0);
-    ~QMGL();
+    QMGL1(QWidget *parent = 0);
+    ~QMGL1();
+
+protected:
+
+private:
+    QMathGL* mgl;
+};
+
+class QMGL2 : public QGLWidget {
+    Q_OBJECT
+
+public:
+    QMGL2(QWidget *parent = 0);
+    ~QMGL2();
 
 protected:
 

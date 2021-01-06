@@ -1,41 +1,56 @@
 
 //#include <QLayout>
 #include <QtOpenGL>
-#include <QWidget>
+
 
 #include <mgl2/qmathgl.h>
 #include "qmgl.h"
 
-/*
+
 int sample(mglGraph *gr)
 {
   gr->Rotate(60,40);
   gr->Box();
   return 0;
 }
-*/
-QMGL::QMGL(QWidget *parent) : QGLWidget(parent), gr(0)  {
-    //mgl = new QMathGL(this);
-    //mgl->setDraw(sample);
-   // mgl->update();
+
+
+QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
+    mgl = new QMathGL(this);
+    mgl->setDraw(sample);
+
+    mgl->setZoom(true);
+    mgl->setRotate(true);
+
+    mgl->update();
 }
-QMGL::~QMGL() {
+QMGL1::~QMGL1() {
+    if (mgl) {
+        delete mgl;
+    }
+}
+
+
+QMGL2::QMGL2(QWidget *parent) : QGLWidget(parent), gr(0)  {
+
+}
+QMGL2::~QMGL2() {
     if(gr)	{
         delete gr;
     }
 }
 
-void QMGL::initializeGL()	{// recreate instance of MathGL core
+void QMGL2::initializeGL()	{// recreate instance of MathGL core
 	if(gr)	delete gr;
 	gr = new mglGraph(1);	// use '1' for argument to force OpenGL output in MathGL
 }
 
-void QMGL::resizeGL(int w, int h) {// standard resize replace
+void QMGL2::resizeGL(int w, int h) {// standard resize replace
 	QGLWidget::resizeGL(w, h);
 	glViewport (0, 0, w, h);
 }
 
-void QMGL::paintGL()  {	// main drawing function
+void QMGL2::paintGL()  {	// main drawing function
 	gr->Clf();	// clear previous OpenGL primitives
 	gr->SubPlot(1,1,0);
 	gr->Rotate(40,60);

@@ -57,8 +57,10 @@ MGLTest::MGLTest(QWidget * parent1): QDialog(parent1,
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->setSpacing(2); layout->setMargin(2);
 
-	test = new QMGL(this);
-	layout->addWidget(test);
+	test1 = new QMGL1(this);
+	test2 = new QMGL2(this);
+	layout->addWidget(test1);
+	layout->addWidget(test2);
 	setLayout(layout);
 	resize(400, 300);
 
