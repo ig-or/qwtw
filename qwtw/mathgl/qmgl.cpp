@@ -7,6 +7,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QScrollArea>
+#include <QTimer>
 
 #include <mgl2/qmathgl.h>
 #include "qmgl.h"
@@ -40,12 +41,135 @@
 #include "xpm/stop.xpm"
 #include "xpm/pause.xpm"
 
+#include <float.h>
 
-int sample(mglGraph *gr)
+OurMathGL::OurMathGL(QWidget *parent, Qt::WindowFlags f) : QMathGL(parent, f) {
+
+}
+
+OurMathGL::~OurMathGL() {
+	timer->stop();	timerRefr->stop();
+	if(gr && mgl_use_graph(gr,-1)<1)	mgl_delete_graph(gr);
+	//  private if(grBuf)	delete []grBuf;
+	//  ???? if(draw)	delete draw;
+	gr = 0;
+	draw = 0;// !!!!
+}
+
+
+
+int sample(mglGraph* gr)
 {
-  gr->Rotate(60,40);
-  gr->Box();
-  return 0;
+	const int N = 100;
+	double x[N];
+	double y[N];
+	double z[N];
+	double t;
+	double R = 10.0;
+
+	for (int i = 0; i < N; i++) {
+		t = (double(i) / double(N)) * 2. * 3.14159 * 3.5;
+		x[i] = R * sin(t);
+		y[i] = R * cos(t);
+		z[i] = t;
+	}
+
+	mglData mx(N, x);
+	mglData my(N, y);
+	mglData mz(N, z);
+
+	//gr->SetTickRotate(false);
+	//gr->SetAxisStl("k", 1, 2);
+	gr->SubPlot(1, 1, 0);
+	gr->Rotate(50,60);
+
+	//gr->SetOrigin(0., 0., 0.);
+	//gr->SetPlotFactor(0);
+	gr->SetRanges(-R, R, -R, R, -0.0, 2.*3.14 * 3.5);
+	gr->Axis("xyz AKDTVISO a 4 : E"); 
+	gr->Grid();
+	gr->Box();
+	//gr->Adjust();
+
+
+	//gr->Title("THE TITLE");
+	
+	//gr->Rotate(60,40);
+
+	gr->Plot(mx, my, mz,"rs");
+	gr->Label('x',"X",1);
+	gr->Label('y',"Y",1);
+	gr->Label('z',"Z",1);
+	//gr->Box();
+	
+  	return 0;
+}
+
+void QMGL1::addLine(int size, double* x, double* y, double* z) {
+	mx = mglData(size, x);
+	my = mglData(size, y);
+	mz = mglData(size, z);
+
+	double xMin1 = DBL_MAX, xMax1 = -DBL_MAX;
+	double yMin1 = DBL_MAX, yMax1 = -DBL_MAX, zMin1 = DBL_MAX, zMax1 = -DBL_MAX;
+	for (int i = 0; i < size; i++) {
+		if (x[i] > xMax1) { xMax1 = x[i]; }
+		if (x[i] < xMin1) { xMin1 = x[i]; }
+
+		if (y[i] > yMax1) { yMax1 = y[i]; }
+		if (y[i] < yMin1) { yMin1 = y[i]; }
+
+		if (z[i] > zMax1) { zMax1 = z[i]; }
+		if (z[i] < zMin1) { zMin1 = z[i]; }
+	}
+
+	if (linesCount == 0) {
+		//gr->SubPlot(1, 1, 0);
+		//gr->Rotate(50,60);
+		//gr->SetOrigin(0., 0., 0.);
+		xMin = xMin1; xMax = xMax1; 
+		yMin = yMin1; yMax = yMax1; 
+		zMin = zMin1; zMax = zMax1; 
+		
+		//gr->SetRanges(xMin1, xMax1, yMin1, yMax1, zMin1, zMax1);
+
+		//gr->Axis("xyz AKDTVISO a 4 : E"); 
+
+		//gr->Grid();
+		//gr->Box();
+
+		//gr->Adjust();
+		//gr->Title("THE TITLE");
+	} else {
+		bool rangeChanged = false;
+		if (xMax1 > xMax) { rangeChanged = true; }
+		if (xMin1 > xMin) { rangeChanged = true; }
+
+		if (yMax1 > yMax) { rangeChanged = true; }
+		if (yMin1 > yMin) { rangeChanged = true; }
+
+		if (zMax1 > zMax) { rangeChanged = true; }
+		if (zMin1 > zMin) { rangeChanged = true; }
+
+		if (rangeChanged) {		
+			xMin = xMin1; xMax = xMax1; 
+			yMin = yMin1; yMax = yMax1; 
+			zMin = zMin1; zMax = zMax1; 
+			
+			//gr->SetRanges(xMin1, xMax1, yMin1, yMax1, zMin1, zMax1);
+		}
+		
+	}
+
+	//gr->Plot(mx, my, mz,"rs");
+	//gr->Label('x',"X",1);
+	//gr->Label('y',"Y",1);
+	//gr->Label('z',"Z",1);
+	linesCount += 1;
+
+
+	mgl->update();
+	
 }
 
 
@@ -76,11 +200,21 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	horizontalLayout->setMargin(2);
 
 	menu_bar = new QMenuBar();
-	mgl = new QMathGL(this);
-	mgl->setDraw(sample);
+	// mgl = new QMathGL(this);
+	mgl = new OurMathGL(0);
+	linesCount = 0;
+	//mgl->setDraw(sample);
+
+	//mgl->get
+	//gr = (mglGraph*)mgl->getGraph();
+	//gr = new mglGraph();
+	
+	mgl->setDraw(this);
 
 	mgl->setZoom(true);
 	mgl->setRotate(true);
+	mgl->autoResize = true;
+	drawCounter = 0;
 	//mgl->set
 
 	QSpacerItem* horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -88,9 +222,9 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 
 	QScrollArea* scroll = new QScrollArea(this);
 	scroll->setWidget(mgl);
-	printf("adding menu ...\n");
+	//printf("adding menu ...\n");
 	addMenu();
-	printf("menu added \n");
+	//printf("menu added \n");
 
 	layout->addWidget(menu_bar);
 	layout->addWidget(tool_frame);
@@ -100,17 +234,75 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 
 	//mgl->adjust();
 	mgl->update();	
+	resizeTimer = new QTimer(this);
+	connect(resizeTimer, &QTimer::timeout, this, &QMGL1::endOfResize);
+
+	QTimer::singleShot(250, this, &QMGL1::polish);
+	//printf("creating QMGL1 widget end .. \n");
+}
+
+int QMGL1::Draw(mglGraph * gr) {
+	drawCounter += 1;
+	printf("Draw. line Count = %d; drawCounter = %d \n", linesCount, drawCounter);
+
+	if (linesCount == 0) {
+		return 0;
+	}
+	//return 0;
+
+	gr->SubPlot(1, 1, 0);
+	gr->Rotate(50,60);
+	//gr->SetOrigin(0., 0., 0.);
 	
-	printf("creating QMGL1 widget end .. \n");
+	gr->SetRanges(xMin, xMax, yMin, yMax, zMin, zMax);
+
+	gr->Axis("xyz AKDTVISO a 4 : E"); 
+
+	//gr->Grid();
+	//gr->Box();
+
+	gr->Adjust();
+
+	gr->Plot(mx, my, mz,"rs");
+	//printf("eod\n");
+	return 0;
+}
+
+void QMGL1::polish() {
+
+	mgl->setZoom(true);
+	mgl->setRotate(true);
+	mgl->autoResize = true;
+
+	mgl->adjust();
+	//mgl->update();
+	//printf("polish\n");
+}
+
+void QMGL1::endOfResize() {
+	mgl->adjust();
+	//mgl->update();
+	printf("endOfResize\n");
+	resizeTimer->stop();
+}
+
+void QMGL1::resizeEvent(QResizeEvent *event) {
+	//printf("resizeEvent\n");
+	if (resizeTimer->isActive()) {
+		resizeTimer->stop();
+	}
+	resizeTimer->start(400);
 }
 
 QMGL1::~QMGL1() {
 
 }
+
 void QMGL1::ensurePolished() {
 //	mgl->update();
 	mgl->adjust();
 	mgl->update();
+	//printf("ensurePolished\n");
 }
 
 void QMGL1::addMenu() {
@@ -171,7 +363,7 @@ void QMGL1::addMenu() {
 		a->setToolTip(("Switch on/off transparency for the graphics (Alt+T)."));
 		o->addAction(a);		bb->addAction(a);
 
-printf(" 10 ");
+//printf(" 10 ");
 		a = new QAction(QPixmap(light_xpm), ("Light"), this);
 		a->setShortcut(Qt::ALT+Qt::Key_L);	a->setCheckable(true);
 		connect(a, SIGNAL(toggled(bool)), mgl, SLOT(setLight(bool)));
@@ -179,7 +371,7 @@ printf(" 10 ");
 		a->setToolTip(("Switch on/off lightning for the graphics (Alt+L)."));
 		o->addAction(a);		bb->addAction(a);
 
-printf(" 11 ");
+//printf(" 11 ");
 		a = new QAction(QPixmap(rotate_xpm), ("Rotate by mouse"), this);
 		a->setCheckable(true);
 		connect(a, SIGNAL(toggled(bool)), mgl, SLOT(setRotate(bool)));
@@ -187,7 +379,7 @@ printf(" 11 ");
 		a->setToolTip(("Switch on/off mouse handling of the graphics\n(rotation, shifting, zooming and perspective)."));
 		bb->addAction(a);
 
-printf(" 12 ");
+//printf(" 12 ");
 		a = new QAction(QPixmap(zoom_in_xpm), ("Zoom by mouse"), this);
 		a->setCheckable(true);
 		connect(a, SIGNAL(toggled(bool)), mgl, SLOT(setZoom(bool)));
@@ -196,7 +388,7 @@ printf(" 12 ");
 		bb->addAction(a);
 		o->addSeparator();
 
-printf(" 13 ");
+//printf(" 13 ");
 		a = new QAction(QPixmap(zoom_out_xpm), ("Restore"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(restore()));
 		a->setToolTip(("Restore default graphics rotation, zoom and perspective (Alt+Space)."));
@@ -206,26 +398,26 @@ printf(" 13 ");
 
 		o->addAction(a);	bb->addAction(a);	popup->addAction(a);
 
-printf(" 14 ");
+//printf(" 14 ");
 		a = new QAction(QPixmap(ok_xpm), ("Redraw"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(update()));
 		a->setToolTip(("redraw graphics (F5)."));
 		a->setShortcut(Qt::Key_F5);
 		o->addAction(a);	bb->addAction(a);	popup->addAction(a);
 
-printf(" 15 ");
+//printf(" 15 ");
 		a = new QAction(QPixmap(stop_xpm), ("Stop"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(stop()));
 		a->setToolTip(("Ask to stop plot drawing (F7)."));
 		a->setShortcut(Qt::Key_F7);
 
-printf(" 16 ");
+//printf(" 16 ");
 		a = new QAction(("Adjust size"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(adjust()));
 		a->setToolTip(("Change canvas size to fill whole region (F6)."));
 		a->setShortcut(Qt::Key_F6);		o->addAction(a);
 
-printf(" 17 ");
+//printf(" 17 ");
 		a = new QAction(QPixmap(copy_xpm), ("Copy plot"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(copy()));
 		a->setToolTip(("Copy graphics to clipboard (Ctrl+Shift+G)."));
@@ -233,7 +425,7 @@ printf(" 17 ");
 		o->addAction(a);		bb->addAction(a);	popup->addAction(a);
 		bb->addSeparator();
 
-printf(" 18 ");
+//printf(" 18 ");
 		teta = new QSpinBox(tool_frame);	teta->setWrapping(true);
 		bb->addWidget(teta);	teta->setRange(-180, 180);	teta->setSingleStep(10);
 		connect(teta, SIGNAL(valueChanged(int)), mgl, SLOT(setTet(int)));
@@ -241,68 +433,68 @@ printf(" 18 ");
 		teta->setToolTip(("Set value of \\theta angle."));
 		bb->addSeparator();
 
-printf(" 19 ");
+//printf(" 19 ");
 		phi = new QSpinBox(tool_frame);	phi->setWrapping(true);
 		bb->addWidget(phi);	phi->setRange(-180, 180);	phi->setSingleStep(10);
 		connect(phi, SIGNAL(valueChanged(int)), mgl, SLOT(setPhi(int)));
 		connect(mgl, SIGNAL(phiChanged(int)), phi, SLOT(setValue(int)));
 		phi->setToolTip(("Set value of \\phi angle."));
-printf(" 100 ");
+//printf(" 100 ");
 	bb->addSeparator();
 	}
 
 	
 
 
-	printf("\nadding zooming menu \n");
+	//printf("\nadding zooming menu \n");
 	// zooming menu
 	{
 		oo = o->addMenu(("Zoom/move"));
 		bb = new QToolBar(("Zoom graphics"),this);
 		toolLayout->addWidget(bb, Qt::AlignTrailing);
 
-printf(" 10 ");
+//printf(" 10 ");
 		a = new QAction(QPixmap(left_1_xpm), ("Move left"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(shiftLeft()));
 		a->setToolTip(("Move graphics left by 1/3 of its width."));
 		bb->addAction(a);		oo->addAction(a);
 
-		printf(" 11 ");
+		//printf(" 11 ");
 
 		a = new QAction(QPixmap(up_1_xpm), ("Move up"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(shiftUp()));
 		a->setToolTip(("Move graphics up by 1/3 of its height."));
 		bb->addAction(a);		oo->addAction(a);
 
-		printf(" 12 ");
+		//printf(" 12 ");
 
 		a = new QAction(QPixmap(zoom_1_xpm), ("Zoom in"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(zoomIn()));
 		a->setToolTip(("Zoom in graphics."));
 		bb->addAction(a);		oo->addAction(a);
 
-		printf(" 13 ");
+		//printf(" 13 ");
 
 		a = new QAction(QPixmap(norm_1_xpm), ("Zoom out"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(zoomOut()));
 		a->setToolTip(("Zoom out graphics."));
 		bb->addAction(a);		oo->addAction(a);
 
-		printf(" 14 ");
+		//printf(" 14 ");
 
 		a = new QAction(QPixmap(down_1_xpm), ("Move down"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(shiftDown()));
 		a->setToolTip(("Move graphics down 1/3 of its height."));
 		bb->addAction(a);		oo->addAction(a);
 
-		printf(" 15 ");
+		//printf(" 15 ");
 
 		a = new QAction(QPixmap(right_1_xpm), ("Move right"), this);
 		connect(a, SIGNAL(triggered()), mgl, SLOT(shiftRight()));
 		a->setToolTip(("Move graphics right by 1/3 of its width."));
 		bb->addAction(a);		oo->addAction(a);
 
-		printf(" 100 \n");
+		//printf(" 100 \n");
 	}
 
 	
@@ -329,10 +521,10 @@ printf(" 10 ");
 	}
 	*/
 
-	//menu_bar->addSeparator();
-	//o = menu_bar->addMenu(("Help"));
-	//o->addAction(("About"), mgl, SLOT(about()));
-	//o->addAction(("About Qt"), mgl, SLOT(aboutQt()));
+	menu_bar->addSeparator();
+	o = menu_bar->addMenu(("Help"));
+	o->addAction(("About"), mgl, SLOT(about()));
+	o->addAction(("About Qt"), mgl, SLOT(aboutQt()));
 	
 	//return popup;
 }

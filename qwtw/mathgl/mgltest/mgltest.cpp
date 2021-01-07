@@ -6,6 +6,7 @@
 #include <QPointer>
 #include <QApplication>
 #include <QIcon>
+#include <QTimer>
 #include <QPixmap>
 #include <QString>
 
@@ -58,13 +59,39 @@ MGLTest::MGLTest(QWidget * parent1): QDialog(parent1,
 	layout->setSpacing(2); layout->setMargin(2);
 
 	test1 = new QMGL1(this);
-	test2 = new QMGL2(this);
+	test12 = new QMGL1(this);
+	//test2 = new QMGL2(this);
 	layout->addWidget(test1);
-	layout->addWidget(test2);
+	layout->addWidget(test12);
 	setLayout(layout);
-	resize(400, 300);
+	resize(800, 600);
+
+	QTimer::singleShot(500, this, &MGLTest::test);
 
 	show();
+}
+
+void MGLTest::test() {
+	printf("test\n");
+
+	const int N = 100;
+	double x[N];
+	double y[N];
+	double z[N];
+	double t;
+	double R = 10.0;
+
+	for (int i = 0; i < N; i++) {
+		t = (double(i) / double(N)) * 2. * 3.14159 * 3.5;
+		x[i] = R * sin(t);
+		y[i] = R * cos(t);
+		z[i] = t;
+	}
+
+	test1->addLine(N, x, y, z);
+
+	test12->addLine(N, x, y, z);
+
 }
 
 
