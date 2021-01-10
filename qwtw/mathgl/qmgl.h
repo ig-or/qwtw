@@ -58,6 +58,7 @@ private:
 	mglData my;
 	mglData mz;
     int drawCounter;
+    int endOfResizeFlag;
 
 
     void addMenu();

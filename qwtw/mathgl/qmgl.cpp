@@ -184,6 +184,7 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	top_frame->setFrameShape(QFrame::NoFrame);
 	//top_frame->setFrameShadow(QFrame::Raised);
 	top_frame->setLineWidth(1);
+	endOfResizeFlag = 0;
 
 	tool_frame = new QFrame(this);
 	tool_frame->setFrameShape(QFrame::NoFrame);
@@ -242,6 +243,10 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 }
 
 int QMGL1::Draw(mglGraph * gr) {
+	if (endOfResizeFlag != 0) {
+		endOfResizeFlag -= 1;
+		return 0;
+	}
 	drawCounter += 1;
 	printf("Draw. line Count = %d; drawCounter = %d \n", linesCount, drawCounter);
 
@@ -280,9 +285,11 @@ void QMGL1::polish() {
 }
 
 void QMGL1::endOfResize() {
+	printf("endOfResize start\n");
+	endOfResizeFlag = 1;
 	mgl->adjust();
 	//mgl->update();
-	printf("endOfResize\n");
+	printf("endOfResize stop\n");
 	resizeTimer->stop();
 }
 
