@@ -27,29 +27,7 @@ class OurMathGL : public QMathGL {
 	virtual ~OurMathGL();
 };
 
-
-class QMGL1 : public QWidget, public mglDraw {
-    Q_OBJECT
-
-public:
-    QMGL1(QWidget *parent = 0);
-    ~QMGL1();
-    int Draw(mglGraph *);
-
-    void addLine(int size, double* x, double* y, double* z);
-
-protected:
-    void ensurePolished();
-
-private:
-    OurMathGL* mgl;
-    QSpinBox* phi;
-    QSpinBox* teta;
-    //QMenu* pMenu;
-    QMenuBar* menu_bar;
-    QFrame* tool_frame;
-    QBoxLayout* toolLayout;
-    QTimer* resizeTimer;
+class AnotherDraw : public mglDraw {
     int linesCount;
     double xMin, xMax, yMin, yMax, zMin, zMax;
     //mglGraph *gr;
@@ -59,6 +37,41 @@ private:
 	mglData mz;
     int drawCounter;
     int endOfResizeFlag;
+    void updateRange(int size, double* x, double* y, double* z);
+
+public:
+    void onResize();
+    AnotherDraw();
+    ~AnotherDraw();
+    int Draw(mglGraph *);
+    void addLine(int size, double* x, double* y, double* z);
+};
+
+
+class QMGL1 : public QWidget {
+    Q_OBJECT
+
+public:
+    QMGL1(QWidget *parent = 0);
+    ~QMGL1();
+    void addLine(int size, double* x, double* y, double* z);
+
+protected:
+    void ensurePolished();
+
+private:
+    QMathGL* mgl;
+    AnotherDraw* draw;
+    QSpinBox* phi;
+    QSpinBox* teta;
+    //QMenu* pMenu;
+    QMenuBar* menu_bar;
+    QFrame* tool_frame;
+    QBoxLayout* toolLayout;
+    QTimer* resizeTimer;
+
+
+    
 
 
     void addMenu();

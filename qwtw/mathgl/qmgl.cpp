@@ -55,7 +55,100 @@ OurMathGL::~OurMathGL() {
 	gr = 0;
 	draw = 0;// !!!!
 }
+AnotherDraw::AnotherDraw() {
+	endOfResizeFlag = 0;
+	linesCount = 0;
+	drawCounter = 0;
+}
 
+AnotherDraw::~AnotherDraw() {
+
+}
+
+void AnotherDraw::onResize() {
+	endOfResizeFlag = 1;
+}
+
+int AnotherDraw::Draw(mglGraph * gr) {
+	if (endOfResizeFlag != 0) {
+		endOfResizeFlag -= 1;
+		return 0;
+	}
+	drawCounter += 1;
+	printf("Draw. line Count = %d; drawCounter = %d \n", linesCount, drawCounter);
+
+	if (linesCount == 0) {
+		return 0;
+	}
+	//return 0;
+
+	gr->SubPlot(1, 1, 0);
+	gr->Rotate(50,60);
+	//gr->SetOrigin(0., 0., 0.);
+	
+	gr->SetRanges(xMin, xMax, yMin, yMax, zMin, zMax);
+
+	gr->Axis("xyz AKDTVISO a 4 : E"); 
+
+	//gr->Grid();
+	//gr->Box();
+	//gr->Adjust();
+	//gr->Title("THE TITLE");
+	//gr->Label('x',"X",1);
+	//gr->Label('y',"Y",1);
+	//gr->Label('z',"Z",1);
+
+	gr->Adjust();
+
+	gr->Plot(mx, my, mz,"rs");
+	//printf("eod\n");
+	return 0;
+}
+
+void AnotherDraw::updateRange(int size, double* x, double* y, double* z) {
+	double xMin1 = DBL_MAX, xMax1 = -DBL_MAX;
+	double yMin1 = DBL_MAX, yMax1 = -DBL_MAX, zMin1 = DBL_MAX, zMax1 = -DBL_MAX;
+	for (int i = 0; i < size; i++) {
+		if (x[i] > xMax1) { xMax1 = x[i]; }
+		if (x[i] < xMin1) { xMin1 = x[i]; }
+
+		if (y[i] > yMax1) { yMax1 = y[i]; }
+		if (y[i] < yMin1) { yMin1 = y[i]; }
+
+		if (z[i] > zMax1) { zMax1 = z[i]; }
+		if (z[i] < zMin1) { zMin1 = z[i]; }
+	}
+
+	if (linesCount == 0) {
+		xMin = xMin1; xMax = xMax1; 
+		yMin = yMin1; yMax = yMax1; 
+		zMin = zMin1; zMax = zMax1; 
+	} else {
+		bool rangeChanged = false;
+		if (xMax1 > xMax) { rangeChanged = true; }
+		if (xMin1 < xMin) { rangeChanged = true; }
+
+		if (yMax1 > yMax) { rangeChanged = true; }
+		if (yMin1 < yMin) { rangeChanged = true; }
+
+		if (zMax1 > zMax) { rangeChanged = true; }
+		if (zMin1 < zMin) { rangeChanged = true; }
+
+		if (rangeChanged) {		
+			xMin = xMin1; xMax = xMax1; 
+			yMin = yMin1; yMax = yMax1; 
+			zMin = zMin1; zMax = zMax1; 
+		}
+	}
+}
+
+void AnotherDraw::addLine(int size, double* x, double* y, double* z) {
+	updateRange(size, x, y, z);
+	mx = mglData(size, x);
+	my = mglData(size, y);
+	mz = mglData(size, z);
+	linesCount += 1;
+}
 
 
 int sample(mglGraph* gr)
@@ -106,72 +199,9 @@ int sample(mglGraph* gr)
 }
 
 void QMGL1::addLine(int size, double* x, double* y, double* z) {
-	mx = mglData(size, x);
-	my = mglData(size, y);
-	mz = mglData(size, z);
-
-	double xMin1 = DBL_MAX, xMax1 = -DBL_MAX;
-	double yMin1 = DBL_MAX, yMax1 = -DBL_MAX, zMin1 = DBL_MAX, zMax1 = -DBL_MAX;
-	for (int i = 0; i < size; i++) {
-		if (x[i] > xMax1) { xMax1 = x[i]; }
-		if (x[i] < xMin1) { xMin1 = x[i]; }
-
-		if (y[i] > yMax1) { yMax1 = y[i]; }
-		if (y[i] < yMin1) { yMin1 = y[i]; }
-
-		if (z[i] > zMax1) { zMax1 = z[i]; }
-		if (z[i] < zMin1) { zMin1 = z[i]; }
-	}
-
-	if (linesCount == 0) {
-		//gr->SubPlot(1, 1, 0);
-		//gr->Rotate(50,60);
-		//gr->SetOrigin(0., 0., 0.);
-		xMin = xMin1; xMax = xMax1; 
-		yMin = yMin1; yMax = yMax1; 
-		zMin = zMin1; zMax = zMax1; 
-		
-		//gr->SetRanges(xMin1, xMax1, yMin1, yMax1, zMin1, zMax1);
-
-		//gr->Axis("xyz AKDTVISO a 4 : E"); 
-
-		//gr->Grid();
-		//gr->Box();
-
-		//gr->Adjust();
-		//gr->Title("THE TITLE");
-	} else {
-		bool rangeChanged = false;
-		if (xMax1 > xMax) { rangeChanged = true; }
-		if (xMin1 > xMin) { rangeChanged = true; }
-
-		if (yMax1 > yMax) { rangeChanged = true; }
-		if (yMin1 > yMin) { rangeChanged = true; }
-
-		if (zMax1 > zMax) { rangeChanged = true; }
-		if (zMin1 > zMin) { rangeChanged = true; }
-
-		if (rangeChanged) {		
-			xMin = xMin1; xMax = xMax1; 
-			yMin = yMin1; yMax = yMax1; 
-			zMin = zMin1; zMax = zMax1; 
-			
-			//gr->SetRanges(xMin1, xMax1, yMin1, yMax1, zMin1, zMax1);
-		}
-		
-	}
-
-	//gr->Plot(mx, my, mz,"rs");
-	//gr->Label('x',"X",1);
-	//gr->Label('y',"Y",1);
-	//gr->Label('z',"Z",1);
-	linesCount += 1;
-
-
+	draw->addLine(size, x, y, z);
 	mgl->update();
-	
 }
-
 
 QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	printf("creating QMGL1 widget start .. \n");
@@ -184,7 +214,6 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	top_frame->setFrameShape(QFrame::NoFrame);
 	//top_frame->setFrameShadow(QFrame::Raised);
 	top_frame->setLineWidth(1);
-	endOfResizeFlag = 0;
 
 	tool_frame = new QFrame(this);
 	tool_frame->setFrameShape(QFrame::NoFrame);
@@ -194,29 +223,27 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 
 	toolLayout = new QBoxLayout(QBoxLayout::LeftToRight, tool_frame);
 	//set margins to zero so the toolbar touches the widget's edges
-    toolLayout->setContentsMargins(0, 0, 0, 0);
+	toolLayout->setContentsMargins(0, 0, 0, 0);
 
 	QHBoxLayout* horizontalLayout = new QHBoxLayout(top_frame);
 	horizontalLayout->setSpacing(2);
 	horizontalLayout->setMargin(2);
 
 	menu_bar = new QMenuBar();
-	// mgl = new QMathGL(this);
-	mgl = new OurMathGL(0);
-	linesCount = 0;
+	draw = new AnotherDraw();
+	mgl = new QMathGL(this);
+	//mgl = new OurMathGL(0);
 	//mgl->setDraw(sample);
 
 	//mgl->get
 	//gr = (mglGraph*)mgl->getGraph();
 	//gr = new mglGraph();
 	
-	mgl->setDraw(this);
+	mgl->setDraw(draw);
 
 	mgl->setZoom(true);
 	mgl->setRotate(true);
 	mgl->autoResize = true;
-	drawCounter = 0;
-	//mgl->set
 
 	QSpacerItem* horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 	horizontalLayout->addItem(horizontalSpacer);
@@ -242,37 +269,6 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	//printf("creating QMGL1 widget end .. \n");
 }
 
-int QMGL1::Draw(mglGraph * gr) {
-	if (endOfResizeFlag != 0) {
-		endOfResizeFlag -= 1;
-		return 0;
-	}
-	drawCounter += 1;
-	printf("Draw. line Count = %d; drawCounter = %d \n", linesCount, drawCounter);
-
-	if (linesCount == 0) {
-		return 0;
-	}
-	//return 0;
-
-	gr->SubPlot(1, 1, 0);
-	gr->Rotate(50,60);
-	//gr->SetOrigin(0., 0., 0.);
-	
-	gr->SetRanges(xMin, xMax, yMin, yMax, zMin, zMax);
-
-	gr->Axis("xyz AKDTVISO a 4 : E"); 
-
-	//gr->Grid();
-	//gr->Box();
-
-	gr->Adjust();
-
-	gr->Plot(mx, my, mz,"rs");
-	//printf("eod\n");
-	return 0;
-}
-
 void QMGL1::polish() {
 
 	mgl->setZoom(true);
@@ -286,7 +282,7 @@ void QMGL1::polish() {
 
 void QMGL1::endOfResize() {
 	printf("endOfResize start\n");
-	endOfResizeFlag = 1;
+	draw->onResize();
 	mgl->adjust();
 	//mgl->update();
 	printf("endOfResize stop\n");
@@ -298,7 +294,7 @@ void QMGL1::resizeEvent(QResizeEvent *event) {
 	if (resizeTimer->isActive()) {
 		resizeTimer->stop();
 	}
-	resizeTimer->start(400);
+	resizeTimer->start(350);
 }
 
 QMGL1::~QMGL1() {
