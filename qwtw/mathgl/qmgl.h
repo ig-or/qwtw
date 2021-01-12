@@ -41,9 +41,14 @@ struct ThreeDline {
 };
 
 struct SurfData {
+	enum SurfDataType {
+		sdSurf,
+		sdMesh
+	};
 	mglData f;
 	ARange range;
 	std::string style;
+	SurfDataType sdType;
 
 	/** 
 	 * \param data double array [xSize x ySize]; point M(x[i], y[j]) have data[i + xSize*j]
@@ -60,6 +65,7 @@ class AnotherDraw : public mglDraw {
 	int drawCounter;
 	int endOfResizeFlag;
 	int plotsCount;
+	SurfData::SurfDataType sdType;
 
 public:
 	std::string xLabel, yLabel, zLabel;
@@ -105,6 +111,7 @@ private:
 	QTimer* resizeTimer;
 	QTimer* linesAddTimer;
 	bool squareAxis;
+	bool dotsPreview;
 
 	void addMenu();
 	void resizeEvent(QResizeEvent *event);
@@ -113,6 +120,7 @@ signals:
 	void squareChanged(bool);
 	void gridChanged(bool);
 	void boxChanged(bool);
+	void dotsPreviewChanged(bool);
 
 private slots:    
 	//void polish();
@@ -121,6 +129,7 @@ private slots:
 	void setBox(bool);
 	void setGrid(bool);
 	void setSquare(bool);
+	void setDotsPreview(bool);
 };
 
 class QMGL2 : public QGLWidget {

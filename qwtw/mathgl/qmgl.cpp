@@ -19,6 +19,7 @@
 #include "xpm/comment.xpm"
 #include "xpm/box.xpm"
 #include "xpm/down_1.xpm"
+#include "xpm/dash_m.xpm"
 #include "xpm/fileprint.xpm"
 #include "xpm/left_1.xpm"
 #include "xpm/light.xpm"
@@ -56,6 +57,7 @@ ThreeDline::ThreeDline(int size, double* x, double* y, double* z, const std::str
 
 SurfData::SurfData(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_) {
 	int i, j;
+	sdType = sdMesh;
 	if ((xSize < 1) || (ySize < 1)) {
 		return;
 	}
@@ -91,6 +93,7 @@ AnotherDraw::AnotherDraw() {
 	useGrid = false;
 	xLabel = "X";
 	yLabel = "Y";
+	sdType = SurfData::sdMesh;
 	zLabel = "Z";
 	plotsCount = 0;
 }
@@ -142,11 +145,21 @@ int AnotherDraw::Draw(mglGraph * gr) {
 	//gr->Plot(mx, my, mz,"rs");
 	for (auto s : surfs) {
 		if (s->style.empty()) {
-			gr->Surf(s->f);
+			switch (s->sdType) {
+				case SurfData::sdMesh:  gr->Mesh(s->f);   break;
+				case SurfData::sdSurf:  gr->Surf(s->f);   break;
+			};
 		} else {
-			gr->Surf(s->f, s->style.c_str());
+			switch (s->sdType) {
+				case SurfData::sdMesh:  gr->Mesh(s->f, s->style.c_str());   break;
+				case SurfData::sdSurf:  gr->Surf(s->f, s->style.c_str());   break;
+			};
 		}
 	}
+	if (surfs.size() != 0) {
+		gr->Colorbar(">");
+	}
+
 
 	for (auto a : lines) {
 		if (a.style.empty()) {
@@ -225,6 +238,7 @@ void AnotherDraw::addSurf(int xSize, int ySize, double xMin, double xMax, double
 	} else {
 		range.update(s->range);
 	}
+	s->sdType = sdType;
 	surfs.push_back(s);
 	plotsCount += 1;
 }
@@ -340,6 +354,8 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	mgl->setZoom(true);
 	mgl->setRotate(true);
 	mgl->autoResize = true;
+	dotsPreview = false;
+	mgl->setDotsPreview(false);
 
 	QSpacerItem* horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 	horizontalLayout->addItem(horizontalSpacer);
@@ -431,6 +447,12 @@ void QMGL1::linesAdded() {
 	linesAddTimer->stop();
 	printf("QMGL1::linesAdded() \n");
 	mgl->update();
+}
+
+void QMGL1::setDotsPreview(bool dp) {
+	dotsPreview = dp;
+	mgl->setDotsPreview(dp);
+	emit dotsPreviewChanged(dp);
 }
 
 void QMGL1::xLabel(const std::string& label) {
@@ -685,6 +707,13 @@ void QMGL1::addMenu() {
 		connect(a, SIGNAL(toggled(bool)), this, SLOT(setSquare(bool)));
 		connect(this, SIGNAL(squareChanged(bool)), a, SLOT(setChecked(bool)));
 		a->setToolTip(("try to make square axis"));
+		o->addAction(a);		bb->addAction(a);
+
+		a = new QAction(QPixmap(dash_m_xpm), ("dotsPreview"), this);
+		a->setCheckable(true);
+		connect(a, SIGNAL(toggled(bool)), this, SLOT(setDotsPreview(bool)));
+		connect(this, SIGNAL(dotsPreviewChanged(bool)), a, SLOT(setChecked(bool)));
+		a->setToolTip(("use dots for image preview/rotation"));
 		o->addAction(a);		bb->addAction(a);
 
 		//printf(" 100 \n");
