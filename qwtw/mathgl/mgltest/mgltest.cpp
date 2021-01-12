@@ -59,10 +59,10 @@ MGLTest::MGLTest(QWidget * parent1): QDialog(parent1,
 	layout->setSpacing(2); layout->setMargin(2);
 
 	test1 = new QMGL1(this);
-	test12 = new QMGL1(this);
+	//test12 = new QMGL1(this);
 	//test2 = new QMGL2(this);
 	layout->addWidget(test1);
-	layout->addWidget(test12);
+	//layout->addWidget(test12);
 	setLayout(layout);
 	resize(800, 600);
 
@@ -80,17 +80,41 @@ void MGLTest::test() {
 	double z[N];
 	double t;
 	double R = 10.0;
+	double x1[N];
+	double y1[N];
+	double z1[N];
+
 
 	for (int i = 0; i < N; i++) {
 		t = (double(i) / double(N)) * 2. * 3.14159 * 3.5;
 		x[i] = R * sin(t);
 		y[i] = R * cos(t);
 		z[i] = t;
+
+		x1[i] = R * sin(t);
+		y1[i] = R * cos(t);
+		z1[i] = x1[i] + y1[i];
 	}
 
-	test1->addLine(N, x, y, z);
+	test1->addLine(N, x, y, z, "-sb");
+	test1->addLine(N, x1, y1, z1, "-or");
 
-	test12->addLine(N, x, y, z);
+	constexpr int xSize = 20;
+	constexpr int ySize = 20;
+	double xMin = -10., xMax = 10.0, yMin = -10.0, yMax = 10.0;
+	double f[xSize * ySize];
+	double ax, ay;
+	for (int i = 0; i < xSize; i++) {
+		ax = xMin + i;
+		for (int j = 0; j < ySize; j++) {
+			ay = yMin + j;
+			f[i + xSize * j] = sin(ax / 5.0) * sin(ay / 7.0) * 10.0;
+		}
+	}
+	test1->addSurf(xSize, ySize, xMin, xMax, yMin, yMax, f, "");
+
+
+	//test12->addLine(N, x, y, z, "-om");
 
 }
 

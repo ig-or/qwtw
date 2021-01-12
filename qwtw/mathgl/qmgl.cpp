@@ -16,6 +16,8 @@
 #include "xpm/arc.xpm"
 #include "xpm/copy.xpm"
 #include "xpm/curve.xpm"
+#include "xpm/comment.xpm"
+#include "xpm/box.xpm"
 #include "xpm/down_1.xpm"
 #include "xpm/fileprint.xpm"
 #include "xpm/left_1.xpm"
@@ -39,26 +41,58 @@
 #include "xpm/zoom_out.xpm"
 #include "xpm/up_1.xpm"
 #include "xpm/stop.xpm"
+#include "xpm/squize.xpm"
 #include "xpm/pause.xpm"
 
 #include <float.h>
 
-OurMathGL::OurMathGL(QWidget *parent, Qt::WindowFlags f) : QMathGL(parent, f) {
-
+ThreeDline::ThreeDline(int size, double* x, double* y, double* z, const std::string& style_) : range(size, x, y, z) {
+	style = style_;
+	mx = mglData(size, x);
+	my = mglData(size, y);
+	mz = mglData(size, z);
+	printf("ThreeDline::ThreeDline: z range = [%.2f  %.2f]\n", range.zMin, range.zMax);
 }
 
-OurMathGL::~OurMathGL() {
-	timer->stop();	timerRefr->stop();
-	if(gr && mgl_use_graph(gr,-1)<1)	mgl_delete_graph(gr);
-	//  private if(grBuf)	delete []grBuf;
-	//  ???? if(draw)	delete draw;
-	gr = 0;
-	draw = 0;// !!!!
+SurfData::SurfData(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_) {
+	int i, j;
+	if ((xSize < 1) || (ySize < 1)) {
+		return;
+	}
+	if ((xMin > xMax) || (yMin > yMax)) {
+		return;
+	}
+	style = style_;
+	range.xMax = xMax; range.yMax = yMax;
+	range.xMin = xMin; range.yMin = yMin;
+	range.zMax = -DBL_MAX; range.zMin = DBL_MAX;
+	double d;
+	for (i = 0; i < xSize; i++) {
+		for (j = 0; j < ySize; j++) {
+			d = data[i + xSize*j];
+			if (d > range.zMax) {
+				range.zMax = d;
+			}
+			if (d < range.zMin) {
+				range.zMin = d;
+			}
+		}
+	}
+
+	//f.Create(xSize, ySize);
+	f.Set(data, xSize, ySize);
 }
+
 AnotherDraw::AnotherDraw() {
 	endOfResizeFlag = 0;
-	linesCount = 0;
 	drawCounter = 0;
+
+	useBox = false;
+	useGrid = false;
+	xLabel = "X";
+	yLabel = "Y";
+	zLabel = "Z";
+	plotsCount = 0;
 }
 
 AnotherDraw::~AnotherDraw() {
@@ -75,7 +109,8 @@ int AnotherDraw::Draw(mglGraph * gr) {
 		return 0;
 	}
 	drawCounter += 1;
-	printf("Draw. line Count = %d; drawCounter = %d \n", linesCount, drawCounter);
+	int linesCount = lines.size();
+	//printf("Draw. line Count = %d; drawCounter = %d \n", linesCount, drawCounter);
 
 	if (linesCount == 0) {
 		return 0;
@@ -86,68 +121,112 @@ int AnotherDraw::Draw(mglGraph * gr) {
 	gr->Rotate(50,60);
 	//gr->SetOrigin(0., 0., 0.);
 	
-	gr->SetRanges(xMin, xMax, yMin, yMax, zMin, zMax);
+	gr->SetRanges(range.xMin, range.xMax, range.yMin, range.yMax, range.zMin, range.zMax);
 
 	gr->Axis("xyz AKDTVISO a 4 : E"); 
 
-	//gr->Grid();
-	//gr->Box();
+	if (useGrid) {
+		gr->Grid();
+	}
+	if (useBox) {
+		gr->Box();
+	}
 	//gr->Adjust();
 	//gr->Title("THE TITLE");
-	//gr->Label('x',"X",1);
-	//gr->Label('y',"Y",1);
-	//gr->Label('z',"Z",1);
+	gr->Label('x',xLabel.c_str(),1);
+	gr->Label('y',yLabel.c_str(),1);
+	gr->Label('z',zLabel.c_str(),1);
 
 	gr->Adjust();
 
-	gr->Plot(mx, my, mz,"rs");
-	//printf("eod\n");
+	//gr->Plot(mx, my, mz,"rs");
+	for (auto s : surfs) {
+		if (s->style.empty()) {
+			gr->Surf(s->f);
+		} else {
+			gr->Surf(s->f, s->style.c_str());
+		}
+	}
+
+	for (auto a : lines) {
+		if (a.style.empty()) {
+			gr->Plot(a.mx, a.my, a.mz);
+		} else {
+			gr->Plot(a.mx, a.my, a.mz, a.style.c_str());
+		}
+	}
+	//printf("eod; range z = [%.2f %.2f]\n", range.zMin, range.zMax);
 	return 0;
 }
 
-void AnotherDraw::updateRange(int size, double* x, double* y, double* z) {
-	double xMin1 = DBL_MAX, xMax1 = -DBL_MAX;
-	double yMin1 = DBL_MAX, yMax1 = -DBL_MAX, zMin1 = DBL_MAX, zMax1 = -DBL_MAX;
-	for (int i = 0; i < size; i++) {
-		if (x[i] > xMax1) { xMax1 = x[i]; }
-		if (x[i] < xMin1) { xMin1 = x[i]; }
-
-		if (y[i] > yMax1) { yMax1 = y[i]; }
-		if (y[i] < yMin1) { yMin1 = y[i]; }
-
-		if (z[i] > zMax1) { zMax1 = z[i]; }
-		if (z[i] < zMin1) { zMin1 = z[i]; }
-	}
-
-	if (linesCount == 0) {
-		xMin = xMin1; xMax = xMax1; 
-		yMin = yMin1; yMax = yMax1; 
-		zMin = zMin1; zMax = zMax1; 
-	} else {
-		bool rangeChanged = false;
-		if (xMax1 > xMax) { rangeChanged = true; }
-		if (xMin1 < xMin) { rangeChanged = true; }
-
-		if (yMax1 > yMax) { rangeChanged = true; }
-		if (yMin1 < yMin) { rangeChanged = true; }
-
-		if (zMax1 > zMax) { rangeChanged = true; }
-		if (zMin1 < zMin) { rangeChanged = true; }
-
-		if (rangeChanged) {		
-			xMin = xMin1; xMax = xMax1; 
-			yMin = yMin1; yMax = yMax1; 
-			zMin = zMin1; zMax = zMax1; 
-		}
-	}
+ARange::ARange() {
+	xMin = DBL_MAX; xMax = -DBL_MAX;
+	yMin = DBL_MAX; yMax = -DBL_MAX; zMin = DBL_MAX; zMax = -DBL_MAX;
 }
 
-void AnotherDraw::addLine(int size, double* x, double* y, double* z) {
-	updateRange(size, x, y, z);
-	mx = mglData(size, x);
-	my = mglData(size, y);
-	mz = mglData(size, z);
-	linesCount += 1;
+ARange::ARange(int size, double* x, double* y, double* z) {
+	xMin = DBL_MAX;
+	xMax = -DBL_MAX;
+	yMin = DBL_MAX; yMax = -DBL_MAX; zMin = DBL_MAX;
+	zMax = -DBL_MAX;
+	for (int i = 0; i < size; i++) {
+		if (x[i] > xMax) { xMax = x[i]; }
+		if (x[i] < xMin) { xMin = x[i]; }
+
+		if (y[i] > yMax) { yMax = y[i]; }
+		if (y[i] < yMin) { yMin = y[i]; }
+
+		if (z[i] > zMax) { zMax = z[i]; }
+		if (z[i] < zMin) { zMin = z[i]; }
+	}
+	//printf("range created; z = [%.2f  %.2f]\n", zMin, zMax);
+}
+ bool ARange::update(const ARange& r){
+	 bool yes = false;
+	 if (r.xMax > xMax) { xMax = r.xMax;  	yes = true; }
+	 if (r.yMax > yMax) { yMax = r.yMax; 	yes = true; }
+	 if (r.zMax > zMax) { zMax = r.zMax; 	yes = true; }
+
+	 if (r.xMin < xMin) { xMin = r.xMin;  	yes = true; }
+	 if (r.yMin < yMin) { yMin = r.yMin; 	yes = true; }
+	 if (r.zMin < zMin) { zMin = r.zMin; 	yes = true; }
+	 return yes;
+ } 	
+
+
+void AnotherDraw::addLine(int size, double* x, double* y, double* z, const std::string& style_) {
+	if (size < 1) {
+		return;
+	}
+
+	ThreeDline line(size, x, y, z, style_);
+	if (plotsCount == 0) {
+		range = line.range;
+	} else {
+		range.update(line.range);
+	}
+	lines.push_back(line);
+	plotsCount += 1;
+	//printf("AnotherDraw::addLine: N = %d z range = [%.2f %.2f]\n", size, range.zMin, range.zMax);
+}
+
+void AnotherDraw::addSurf(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_) {
+	if ((xSize < 1) || (ySize < 1)) {
+		return;
+	}
+	if ((xMin > xMax) || (yMin > yMax)) {
+		return;
+	}
+	std::shared_ptr<SurfData> s = std::make_shared<SurfData>(xSize, ySize, xMin, xMax, yMin, yMax, data, style_);
+	if (plotsCount == 0) {
+		range = s->range;
+		//printf("\tAnotherDraw::addLine_1: N = %d z range = [%.2f %.2f]\n", size, range.zMin, range.zMax);
+		//printf("\tAnotherDraw::addLine_2: N = %d z line.range = [%.2f %.2f]\n", size, line.range.zMin, line.range.zMax);
+	} else {
+		range.update(s->range);
+	}
+	surfs.push_back(s);
+	plotsCount += 1;
 }
 
 
@@ -199,14 +278,31 @@ int sample(mglGraph* gr)
 }
 
 void QMGL1::addLine(int size, double* x, double* y, double* z) {
-	draw->addLine(size, x, y, z);
-	mgl->update();
+	addLine(size, x, y, z, "");
+}
+
+void QMGL1::addLine(int size, double* x, double* y, double* z, const std::string& style_) {
+	//printf("QMGL1::addLine; size = %d\n", size);
+	draw->addLine(size, x, y, z, style_);
+	//mgl->update();
+	if (linesAddTimer->isActive()) {
+		linesAddTimer->stop();
+	}
+	linesAddTimer->start(150);
+}
+void QMGL1::addSurf(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_) {
+	if (linesAddTimer->isActive()) {
+		linesAddTimer->stop();
+	}
+	linesAddTimer->start(150);
+	draw->addSurf(xSize, ySize, xMin, xMax, yMin, yMax, data, style_);
 }
 
 QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	printf("creating QMGL1 widget start .. \n");
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->setSpacing(2); layout->setMargin(2);
+	squareAxis = false;
 
 	QFrame* top_frame = new QFrame(this);
 	top_frame->setMinimumSize(QSize(0, 32));
@@ -248,7 +344,7 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	QSpacerItem* horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 	horizontalLayout->addItem(horizontalSpacer);
 
-	QScrollArea* scroll = new QScrollArea(this);
+	scroll = new QScrollArea(this);
 	scroll->setWidget(mgl);
 	//printf("adding menu ...\n");
 	addMenu();
@@ -257,18 +353,21 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	layout->addWidget(menu_bar);
 	layout->addWidget(tool_frame);
 	//layout->addWidget(top_frame);
-	layout->addWidget(scroll);
+	layout->addWidget(scroll, Qt::AlignCenter);
 	setLayout(layout);
 
 	//mgl->adjust();
 	mgl->update();	
 	resizeTimer = new QTimer(this);
 	connect(resizeTimer, &QTimer::timeout, this, &QMGL1::endOfResize);
+	linesAddTimer = new QTimer(this);
+	connect(linesAddTimer, &QTimer::timeout, this, &QMGL1::linesAdded);
 
-	QTimer::singleShot(250, this, &QMGL1::polish);
+	//QTimer::singleShot(250, this, &QMGL1::polish);
 	//printf("creating QMGL1 widget end .. \n");
 }
 
+/*
 void QMGL1::polish() {
 
 	mgl->setZoom(true);
@@ -279,14 +378,70 @@ void QMGL1::polish() {
 	//mgl->update();
 	//printf("polish\n");
 }
-
+*/
 void QMGL1::endOfResize() {
-	printf("endOfResize start\n");
-	draw->onResize();
-	mgl->adjust();
-	//mgl->update();
-	printf("endOfResize stop\n");
 	resizeTimer->stop();
+	printf("endOfResize start (square = %s)\n", squareAxis ? "yes" : "no");
+	draw->onResize();
+	if (squareAxis) {
+		int w = size().width();
+		int h = size().height();
+		int a = std::min(w, h);
+		a -= 32;
+		if (a < 32) {
+			a = 32;
+		}
+
+		mgl->setSize(a, a);
+
+		mgl_set_size(mgl->gr, a+5, a+5);
+		mgl->setSize(a, a);
+		mgl->refresh();	
+
+		printf("QMGL1::endOfResize (squareAxis) size = %d (h = %d;  w = %d)\n", a, h, w);
+	} else {
+		mgl->adjust();
+	}
+	//mgl->update();
+	//printf("endOfResize stop\n");
+	
+}
+
+void QMGL1::setSquare(bool s) {
+	squareAxis = s;
+	if (s) {
+		
+		int w = scroll->width();
+		int h = scroll->height();
+		int a = std::min(w, h);
+		a -= 32;
+		if (a < 32) {
+			a = 32;
+		}
+		mgl->setSize(a, a);
+		printf("QMGL1::setSquare TRUE; size = %d (h = %d;  w = %d)\n", a, h, w);
+	} else {
+		printf("QMGL1::setSquare FALSE \n");
+		mgl->adjust();
+	}
+	emit squareChanged(s);
+}
+
+void QMGL1::linesAdded() {
+	linesAddTimer->stop();
+	printf("QMGL1::linesAdded() \n");
+	mgl->update();
+}
+
+void QMGL1::xLabel(const std::string& label) {
+	draw->xLabel = label;
+}
+
+void QMGL1::yLabel(const std::string& label) {
+	draw->yLabel = label;
+}
+void QMGL1::zLabel(const std::string& label) {
+	draw->zLabel = label;
 }
 
 void QMGL1::resizeEvent(QResizeEvent *event) {
@@ -300,6 +455,18 @@ void QMGL1::resizeEvent(QResizeEvent *event) {
 QMGL1::~QMGL1() {
 
 }
+
+void QMGL1::setBox(bool box){ 
+	draw->useBox = box;
+	mgl->update();
+	emit boxChanged(box);
+}
+void QMGL1::setGrid(bool grid) {
+	draw->useGrid = grid;
+	emit gridChanged(grid);
+	mgl->update();
+}
+
 
 void QMGL1::ensurePolished() {
 //	mgl->update();
@@ -443,6 +610,7 @@ void QMGL1::addMenu() {
 		connect(mgl, SIGNAL(phiChanged(int)), phi, SLOT(setValue(int)));
 		phi->setToolTip(("Set value of \\phi angle."));
 //printf(" 100 ");
+
 	bb->addSeparator();
 	}
 
@@ -496,6 +664,28 @@ void QMGL1::addMenu() {
 		connect(a, SIGNAL(triggered()), mgl, SLOT(shiftRight()));
 		a->setToolTip(("Move graphics right by 1/3 of its width."));
 		bb->addAction(a);		oo->addAction(a);
+
+		a = new QAction(QPixmap(comment_xpm), ("Grid"), this);
+		//a->setShortcut(Qt::ALT+Qt::Key_L);	
+		a->setCheckable(true);
+		connect(a, SIGNAL(toggled(bool)), this, SLOT(setGrid(bool)));
+		connect(this, SIGNAL(gridChanged(bool)), a, SLOT(setChecked(bool)));
+		a->setToolTip(("Switch on/off grid for the graphics"));
+		o->addAction(a);		bb->addAction(a);
+
+		a = new QAction(QPixmap(box_xpm), ("Box"), this);
+		a->setCheckable(true);
+		connect(a, SIGNAL(toggled(bool)), this, SLOT(setBox(bool)));
+		connect(this, SIGNAL(boxChanged(bool)), a, SLOT(setChecked(bool)));
+		a->setToolTip(("Switch on/off box for the graphics"));
+		o->addAction(a);		bb->addAction(a);
+
+		a = new QAction(QPixmap(squize_xpm), ("square"), this);
+		a->setCheckable(true);
+		connect(a, SIGNAL(toggled(bool)), this, SLOT(setSquare(bool)));
+		connect(this, SIGNAL(squareChanged(bool)), a, SLOT(setChecked(bool)));
+		a->setToolTip(("try to make square axis"));
+		o->addAction(a);		bb->addAction(a);
 
 		//printf(" 100 \n");
 	}
