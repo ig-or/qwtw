@@ -14,7 +14,7 @@ addQT()
 set(INC_DIR_LIST "../" "../c_lib"  "../../../common" "../../../xmatrix2" )
 	
 addSourceFiles("source" "." qwproc qwproto main)	
-addSourceFiles("qwtw" "../" qworker  sfigure figure2 justaplot )
+addSourceFiles("qwtw" "../" qworker  sfigure figure2 justaplot qwtypes)
 addSourceFiles("qrc" "../../img" plib1.qrc)	
 addSourceFiles("common" "../../common"
 	xstdef xqbytebuffer xmutils queue_block  xmroundbuf
@@ -29,6 +29,19 @@ if (WITH_UDP_SYNC)
 endif()
 
 add_definitions(-DXMPRINTF_TO_FILE)
+
+if (USE_MGL)
+	add_definitions(-DUSEMATHGL)
+	addSourceFiles("mgl" "../mathgl" qmgl qmglplot)
+	find_package(MathGL2 REQUIRED Qt)
+	list(APPEND INC_DIR_LIST ${MATHGL2_INCLUDE_DIRS}) 
+	list(APPEND INC_DIR_LIST ../../)
+	addOtherLib(${MATHGL2_LIBRARIES})
+	message(STATUS "got MATHGL2_VERSION_STRING ${MATHGL2_VERSION_STRING}")
+	if(UNIX)
+		addOtherLib("GL")
+	endif()
+endif()
 
 if (USE_MARBLE)	
 	add_definitions(-DUSEMARBLE)

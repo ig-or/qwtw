@@ -4,9 +4,11 @@
 #include "xstdef.h"
 #include "xmutils.h"
 #include "sfigure.h"
+#include "justaplot.h"
 #include "qwproc.h"
 
 #include "qworker.h"
+#include "qwtypes.h"
 
 #include <iostream>
 #ifdef WIN32
@@ -68,6 +70,70 @@ void QWorker::mapview(int n) {
 	QMetaObject::invokeMethod(this, "topviewImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n));
 }
 #endif
+
+#ifdef USEMATHGL
+void QWorker::mglPlot(int n) {
+	int rv;
+	QMetaObject::invokeMethod(this, "mglPlotImpl", Qt::BlockingQueuedConnection, 
+		Q_RETURN_ARG(int, rv), Q_ARG(int, n));
+}
+
+void QWorker::mgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {
+	int rv;
+	if (!QMetaObject::invokeMethod(this, "mgl_lineImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
+		Q_ARG(int, size),
+		Q_ARG(double*, x), Q_ARG(double*, y), Q_ARG(double*, z), 
+		Q_ARG(const char*, name), Q_ARG(const char*, style)
+		)) {
+
+		std::cout << " cannot invoke mgl_lineImpl" << std::endl;
+	}
+}
+
+void QWorker::mgl_mesh(int xSize, int ySize, 
+		double xMin, double xMax, double yMin, double yMax, 
+		double* data, const char* name,
+		const char* style,
+		int type) {
+
+	int rv;
+	if (!QMetaObject::invokeMethod(this, "mgl_meshImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
+		Q_ARG(int, xSize), Q_ARG(int, ySize),
+		Q_ARG(double, xMin),  Q_ARG(double, xMax), Q_ARG(double, yMin),  Q_ARG(double, yMax), 
+		Q_ARG(double*, data),
+		Q_ARG(const char*, name), Q_ARG(const char*, style),
+		Q_ARG(int, type))) 		{
+
+		std::cout << " cannot invoke mgl_meshImpl" << std::endl;
+	}
+	
+}
+
+Q_INVOKABLE int QWorker::mglPlotImpl(int n) {
+	JustAplot* test = pf->figure(n, jMathGL);
+	return (test == 0) ? 1 : 0;	
+	return 0;
+}
+
+Q_INVOKABLE int QWorker::mgl_lineImpl(int size, double* x, double* y, double* z, const char* name, const char* style) {
+	pf->setmode(3);
+	pf->plot(x, y, z, size, name, style, 1, 1, 0);
+	return 0;	
+}
+
+Q_INVOKABLE int QWorker::mgl_meshImpl(int xSize, int ySize, 
+		double xMin, double xMax, double yMin, double yMax, 
+		double* data, const char* name,
+		const char* style,
+		int type) {
+
+	SurfDataType sd = static_cast<SurfDataType>(type);
+	pf->mesh(MeshInfo{xSize, ySize, xMin, xMax, yMin, yMax, data, name, style, sd});
+	
+	return 0;
+}
+#endif
+
 int QWorker::qVersion(char* vstr, int vstr_size) {
 #ifdef WIN32
 #ifdef qwtwcEXPORTS
@@ -194,7 +260,7 @@ Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 }
 
 Q_INVOKABLE int QWorker::qwtfigureImpl(int n) {
-	JustAplot*  test = pf->figure(n, 1);
+	JustAplot*  test = pf->figure(n, jQWT);
 	return (test == 0) ? 1 : 0;
 }
 Q_INVOKABLE void QWorker::qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize) {
@@ -231,7 +297,7 @@ Q_INVOKABLE void QWorker::qwtshowmwImpl() {
 }
 #ifdef USEMARBLE
 Q_INVOKABLE int QWorker::topviewImpl(int n) {
-	JustAplot* test = pf->figure(n, 2);
+	JustAplot* test = pf->figure(n, jMarble);
 	return (test == 0) ? 1 : 0;
 }
 #endif

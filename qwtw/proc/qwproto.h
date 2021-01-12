@@ -45,12 +45,14 @@ private:
     boost::interprocess::shared_memory_object* shmDataY;
     boost::interprocess::shared_memory_object* shmDataZ;
     boost::interprocess::shared_memory_object* shmDataT;
+    boost::interprocess::shared_memory_object* shmDataData;
 
     boost::interprocess::mapped_region* commandReg;
     boost::interprocess::mapped_region* xDataReg;
     boost::interprocess::mapped_region* yDataReg;
     boost::interprocess::mapped_region* zDataReg;
     boost::interprocess::mapped_region* tDataReg;
+    boost::interprocess::mapped_region* dataDataReg;
     bool started;
     bool needStopThread;
     //std::thread  wThread;
@@ -67,6 +69,7 @@ private:
 
     //  change size of the memory segments
     void changeSize(long long newSize);
+    void changeDataSize(long long newSize);
     void removeSHM();
     void plot();
 };

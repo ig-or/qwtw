@@ -11,6 +11,7 @@ struct CmdHeader {
 		nothing = 0,
 		exit = 1,
 		changeSize,
+		changeDataSize,
 		qMW,
 		qFigure,
 		qMap, 
@@ -24,6 +25,10 @@ struct CmdHeader {
 		qEnableBC,
 		qDisableBC,
 		qSetLogLevel,
+		qMglPlot,
+		qMglLine,
+		qMglMesh,
+
 		qwcmdSize
 	};
 	enum {
@@ -31,13 +36,17 @@ struct CmdHeader {
 	};
 	int cmd; ///< QWCmd
 	int segSize; ///< size of each memory segment in 8th (how many numbers maximum..)
+	int dataSize;
 
 	long long size;
 	int lineWidth;
 	long long symSize;
 	int test;
-	char style[8];
+	char style[32];
 	char name[nameSize];
+
+	int xSize, ySize, type;
+	double xMin, xMax, yMin, yMax;
 
 	boost::interprocess::interprocess_mutex      mutex;
 	boost::interprocess::interprocess_condition  cmdWait;
@@ -47,12 +56,14 @@ struct CmdHeader {
 
 
 struct ProcData {
-	static constexpr const char* shmNames[] = {"QWTWCommand", "QWTW_x", "QWTW_y", "QWTW_z", "QWTW_t"};
+	static constexpr const char* shmNames[] = {"QWTWCommand", "QWTW_x", "QWTW_y", "QWTW_z", "QWTW_t", "QWTW_data"};
 	CmdHeader* hdr;
 	double*	x;
 	double* y;
 	double* z;
 	double* t;
+
+	double* data;
 };
 
 #pragma pack()

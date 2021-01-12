@@ -37,6 +37,7 @@
 
 #include "qmgl.h"
 #include "mgltest.h"
+#include "qwtypes.h"
 
 
 
@@ -111,7 +112,8 @@ void MGLTest::test() {
 			f[i + xSize * j] = sin(ax / 5.0) * sin(ay / 7.0) * 10.0;
 		}
 	}
-	test1->addSurf(xSize, ySize, xMin, xMax, yMin, yMax, f, "");
+	
+	test1->addSurf(MeshInfo{xSize, ySize, xMin, xMax, yMin, yMax, f, "", "", sdMesh});
 
 
 	//test12->addLine(N, x, y, z, "-om");

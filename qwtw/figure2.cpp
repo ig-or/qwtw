@@ -172,7 +172,7 @@ void  TestScaleEngine::autoScale( int maxNumSteps, double &x1, double &x2, doubl
 
 
 
-Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : JustAplot(key_, pf_, parent, 1) {
+Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : JustAplot(key_, pf_, parent, jQWT) {
 	mode = 0;
 	//cf = 0;
 	tbModeChanging = false;
@@ -759,9 +759,6 @@ void Figure2::onTbFFT() {
 		std::string ke = info->legend; ke.append("_fft_");
         pf->plot(psd.frequencies, psd.psd, psd.size, ke.c_str(), info->style.c_str(), 1, 1);
 	}
-
-
-
 }
 
 void Figure2::onSaveImage() {

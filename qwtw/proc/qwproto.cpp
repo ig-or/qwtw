@@ -16,6 +16,7 @@ QProcInterface::QProcInterface(QWorker& worker_, QApplication& app_):
 	shmDataY = 0;
 	shmDataZ = 0;
 	shmDataT = 0;
+	shmDataData = 0;
 	started = false;
 }
 
@@ -41,6 +42,7 @@ void QProcInterface::removeSHM() {
 	shared_memory_object::remove(ProcData::shmNames[2]);
 	shared_memory_object::remove(ProcData::shmNames[3]);
 	shared_memory_object::remove(ProcData::shmNames[4]);
+	shared_memory_object::remove(ProcData::shmNames[5]);
 }
 
 /*
@@ -81,6 +83,8 @@ void QProcInterface::start() {
 		shmDataY =  new shared_memory_object(create_only, ProcData::shmNames[2], read_write);
 		shmDataZ =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
 		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
+
+		shmDataData =  new shared_memory_object(create_only, ProcData::shmNames[5], read_write);
 	} catch (interprocess_exception &ex){
 		xmprintf(0, "QProcInterface::start()  cannot create shared memory: %s \n", ex.what());
 		return;
@@ -90,12 +94,14 @@ void QProcInterface::start() {
 	shmDataY->truncate(sizeof(double) * startSegSize);
 	shmDataZ->truncate(sizeof(double) * startSegSize);
 	shmDataT->truncate(sizeof(double) * startSegSize);
+	shmDataData->truncate(sizeof(double) * startSegSize);
 
 	commandReg = new mapped_region(*shmCommand, read_write);
 	xDataReg   = new mapped_region(*shmDataX, read_write);
 	yDataReg   = new mapped_region(*shmDataY, read_write);
 	zDataReg   = new mapped_region(*shmDataZ, read_write);
 	tDataReg   = new mapped_region(*shmDataT, read_write);
+	dataDataReg   = new mapped_region(*shmDataData, read_write);
 
 	//pd.hdr = (CmdHeader*)commandReg->get_address();
 	pd.hdr = new (commandReg->get_address()) CmdHeader;
@@ -104,14 +110,15 @@ void QProcInterface::start() {
 	xmprintf(3, "/tQProcInterface::start() locked.\n");
 	pd.hdr->cmd = 100; //    just started
 	pd.hdr->segSize = startSegSize;
+	pd.hdr->dataSize = startSegSize;
 
 	pd.x = static_cast<double*>(xDataReg->get_address());
 	pd.y = static_cast<double*>(yDataReg->get_address());
 	pd.z = static_cast<double*>(zDataReg->get_address());
 	pd.t = static_cast<double*>(tDataReg->get_address());
+	pd.data = static_cast<double*>(dataDataReg->get_address());
 
 	needStopThread = false;
-
 
 	//std::thread ttmp(&QProcInterface::run, this);
 	//ttmp.swap(wThread);
@@ -161,6 +168,20 @@ void QProcInterface::run() {
 		xmprintf(6, "\tQProcInterface::run() after notify_all\n");
 	}
 	xmprintf(2, "QProcInterface::run() exiting \n");
+}
+
+void QProcInterface::changeDataSize(long long newSize) {
+	using namespace boost::interprocess;
+	if (newSize <= pd.hdr->dataSize) {
+		return;
+	}
+	newSize <<= 1;
+	long long s1 = newSize * sizeof(double);
+	shmDataData->truncate(s1);
+	delete dataDataReg;
+	dataDataReg = new mapped_region(*shmDataData, read_write); 
+	pd.data =  static_cast<double*>(dataDataReg->get_address());
+	pd.hdr->dataSize = newSize;
 }
 
 void QProcInterface::changeSize(long long newSize) {
@@ -217,6 +238,10 @@ void QProcInterface::processCommand(int cmd) {
 			changeSize(pd.hdr->size);
 			break;
 
+		case CmdHeader::changeDataSize:
+			changeDataSize(pd.hdr->size);
+			break;
+
 		case CmdHeader::qMW:
 			worker.qwtshowmw();
 			break;
@@ -228,6 +253,27 @@ void QProcInterface::processCommand(int cmd) {
 		case CmdHeader::qMap:
 			worker.mapview(pd.hdr->test);
 			break;
+
+#ifdef USEMATHGL
+		case CmdHeader::qMglPlot:
+			worker.mglPlot(pd.hdr->test);
+			break;
+		case CmdHeader::qMglLine:
+			if (pd.hdr->size <= pd.hdr->segSize) {
+				worker.mgl_line(pd.hdr->size,  pd.x, pd.y, pd.z, pd.hdr->name, pd.hdr->style);
+			}
+			break;
+		case CmdHeader::qMglMesh:
+			if ((pd.hdr->xSize * pd.hdr->ySize) <= pd.hdr->dataSize) {
+				worker.mgl_mesh(pd.hdr->xSize, pd.hdr->ySize, 
+					pd.hdr->xMin, pd.hdr->xMax, pd.hdr->yMin, pd.hdr->yMax,
+					pd.data, pd.hdr->name, pd.hdr->style, pd.hdr->type);
+			} else {
+				xmprintf(0, "CmdHeader::qMglMesh: data size error; xSize = %d; ySize = %d; dataSize = %d\n",
+					pd.hdr->xSize, pd.hdr->ySize, pd.hdr->dataSize);
+			}
+			break;
+#endif
 
 		case CmdHeader::qTitle:
 			worker.qwttitle(pd.hdr->name);
@@ -281,4 +327,5 @@ void QProcInterface::processCommand(int cmd) {
 	xmprintf(2, "QProcInterface::processCommand  cmd = %d finished\n", cmd);
 
 }
+
 

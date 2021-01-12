@@ -18,6 +18,7 @@ set (NEED_BOOST  thread system filesystem date_time chrono regex)
 addSourceFiles("source" "." qwtw )	
 addSourceFiles("lib" "../proc" qwproc pclient )	
 addSourceFiles("qrc" "../../img" plib1.qrc)	
+addSourceFiles("qrc" "../" qwtypes)	
 
 addSourceFiles("common" "../../common"
 	xstdef xmutils
@@ -32,6 +33,10 @@ endif()
 
 if (USE_MARBLE)	
 	add_definitions(-DUSEMARBLE)
+endif()
+
+if (USE_MGL)
+	add_definitions(-DUSEMATHGL)
 endif()
 
 #if (WITH_QT3D)

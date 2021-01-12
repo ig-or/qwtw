@@ -7,6 +7,7 @@
 #include "build_number.h"
 
 #include "pclient.h"
+#include "qwtypes.h"
 
 #ifdef WIN32
 #include <windows.h>
@@ -123,6 +124,26 @@ qwtwc_API 	void qwtmap(int n) {
 #endif
 #ifdef USE_QT3D
 qwtwc_API 	void qwtfigure3d(int n);
+#endif
+
+#ifdef USEMATHGL
+
+qwtwc_API 	void qwtmgl(int n){
+	test.qwtmgl(n);
+}
+
+qwtwc_API 	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {
+	test.qwtmgl_line(size, x, y, z, name, style);
+}
+
+qwtwc_API 	void qwtmgl_mesh(int xSize, int ySize, 
+		double xMin, double xMax, double yMin, double yMax, 
+		double* data, const char* name,
+		const char* style,
+		int type) {
+			SurfDataType sd = (type == 0) ? sdMesh : sdSurf;
+			test.qwtmgl_mesh(MeshInfo{xSize, ySize, xMin, xMax, yMin, yMax, data, name, style, sd});
+		}
 #endif
 
 /** put a title on currently 'active' plot.

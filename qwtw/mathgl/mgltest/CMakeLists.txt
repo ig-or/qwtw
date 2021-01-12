@@ -16,7 +16,8 @@ addQT(USE_CMD YES)
 set(INC_DIR_LIST   "../../../common" )
 	
 addSourceFiles("source" "." mgltest)	
-addSourceFiles("source" "../" qmgl)
+addSourceFiles("mgl" "../" qmgl)
+addSourceFiles("base" "../../" qwtypes)
 addSourceFiles("qrc" "../../../img" plib1.qrc)	
 addSourceFiles("common" "../../../common"
 	xstdef xmutils

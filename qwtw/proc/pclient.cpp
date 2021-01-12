@@ -1,6 +1,9 @@
 
 #include "xstdef.h"
 #include "pclient.h"
+
+#include "qwtypes.h"
+
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/process/spawn.hpp>
 #include <boost/process/search_path.hpp>
@@ -194,16 +197,19 @@ int SHMTest::testInit(int level) {
 			status = 2;
 			return 2;
 	}
+	std::this_thread::sleep_for(27ms);
 
 	shared_memory_object shmX_(open_only, ProcData::shmNames[1], read_write);
 	shared_memory_object shmY_(open_only, ProcData::shmNames[2], read_write);
 	shared_memory_object shmZ_(open_only, ProcData::shmNames[3], read_write);
 	shared_memory_object shmT_(open_only, ProcData::shmNames[4], read_write);
+	shared_memory_object shmData_(open_only, ProcData::shmNames[5], read_write);
 	
 	shmX.swap(shmX_);
 	shmY.swap(shmY_);
 	shmZ.swap(shmZ_);
 	shmT.swap(shmT_);
+	shmData.swap(shmData_);
 
 	shmCommand.truncate(sizeof(CmdHeader));
 	mapped_region commandReg_ = mapped_region(shmCommand, read_write);
@@ -212,26 +218,31 @@ int SHMTest::testInit(int level) {
 	{
 		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		long long segSize = pd.hdr->segSize;
+		long long dataSize = pd.hdr->dataSize;
 		shmX.truncate(segSize * sizeof(double));
 		shmY.truncate(segSize * sizeof(double));
 		shmZ.truncate(segSize * sizeof(double));
 		shmT.truncate(segSize * sizeof(double));
+		shmData.truncate(dataSize * sizeof(double));
 	}
 
 	mapped_region xReg_ = mapped_region(shmX, read_write);
 	mapped_region yReg_ = mapped_region(shmY, read_write);
 	mapped_region zReg_ = mapped_region(shmZ, read_write);
 	mapped_region tReg_ = mapped_region(shmT, read_write);
+	mapped_region dataReg_ = mapped_region(shmData, read_write);
 
 	xReg.swap(xReg_);
 	yReg.swap(yReg_);
 	zReg.swap(zReg_);
 	tReg.swap(tReg_);
+	dataReg.swap(dataReg_);
 
 	pd.x = static_cast<double*>(xReg.get_address());
 	pd.y = static_cast<double*>(yReg.get_address());
 	pd.z = static_cast<double*>(zReg.get_address());
 	pd.t = static_cast<double*>(tReg.get_address());
+	pd.data = static_cast<double*>(dataReg.get_address());
 
 	status = 0;   ///  checked inside qsetloglevel
 	xmprintf(2, "starting SHMTest::testInit() making qsetloglevel..\n");
@@ -360,6 +371,35 @@ void SHMTest::qwtplot(double* x, double* y, int size, const char* name, const ch
 	qwtplot2(x, y, size, name, style, lineWidth, symSize, 0);
 }
 
+void SHMTest::resizeData(long long size) {
+	using namespace boost::interprocess;
+	xmprintf(3, "SHMTest::resizeData(); size = %d  locking ..\n", size);
+	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(3, "\tSHMTest::resizeData();  locked ..\n");
+
+	pd.hdr->cmd = CmdHeader::changeDataSize;
+	pd.hdr->size = size;
+	pd.hdr->cmdWait.notify_all();
+	xmprintf(4, "\tSHMTest::resizeData: inc seg size, locking.. \n");
+	pd.hdr->workDone.wait(lock);
+	xmprintf(4, "\tSHMTest::resizeData: inc seg size, locked. \n");
+
+	//  now we have to adjust our memory somehow..
+	long long dataSize = pd.hdr->dataSize;
+	xmprintf(3, "\tSHMTest::resizeData: new size is %lld \n", dataSize);
+
+	// truncate our part to the new size
+	shmData.truncate(dataSize * sizeof(double));
+
+	//  reassign the mapping regions
+	dataReg = mapped_region(shmData, read_write);
+
+	//  update addresses
+	pd.data = static_cast<double*>(dataReg.get_address());
+
+	xmprintf(6, "\tSHMTest::resizeData: new size end \n");
+}
+
 void SHMTest::resize(long long size) {
 	using namespace boost::interprocess;
 	xmprintf(3, "SHMTest::resize(); size = %d  locking ..\n", size);
@@ -394,7 +434,7 @@ void SHMTest::resize(long long size) {
 	pd.y = static_cast<double*>(yReg.get_address());
 	pd.z = static_cast<double*>(zReg.get_address());
 	pd.t = static_cast<double*>(tReg.get_address());
-	xmprintf(6, "\tSHMTest::qwtplot2: new size end \n");
+	xmprintf(6, "\tSHMTest::resize: new size end \n");
 }
 
 void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
@@ -439,3 +479,98 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 }
 
 
+#ifdef USEMATHGL
+void SHMTest::qwtmgl(int n) {
+	if (status != 0) return;
+	sendCommand(CmdHeader::qMglPlot, n);
+}
+
+void SHMTest::qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {
+	if (status != 0) return;
+	using namespace boost::interprocess;
+	
+	//   check max size on the other side:
+	pd.hdr->mutex.lock();
+	long long a = pd.hdr->segSize;
+	pd.hdr->mutex.unlock();
+	if (a < size) {
+		xmprintf(3, "\tSHMTest::qwtmgl_line: inc seg size (1); current size = %lld \n", a);
+		resize(size);
+	}
+	xmprintf(3, "SHMTest::qwtmgl_line(); size = %d  locking ..\n", size);
+	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(3, "\tSHMTest::qwtmgl_line();  locked ..\n");
+
+	//  now lets plot
+	xmprintf(6, "\tSHMTest::qwtmgl_line: copying .. \n");
+	strncpy(pd.hdr->style, style, 32);
+	pd.hdr->size = size;
+	strncpy(pd.hdr->name, name, CmdHeader::nameSize);
+
+	memcpy(pd.x, x, sizeof(double) * size);
+	memcpy(pd.y, y, sizeof(double) * size);
+	memcpy(pd.z, z, sizeof(double) * size);
+
+/*
+	if (time != 0) {
+		pd.hdr->cmd = CmdHeader::qPlot2;
+		memcpy(pd.t, time, sizeof(double) * size);
+	} else {
+		pd.hdr->cmd = CmdHeader::qPlot;
+	}
+	*/
+	pd.hdr->cmd = CmdHeader::qMglLine;
+
+	xmprintf(3, "\tSHMTest::qwtmgl_line(); notifying..\n");
+	pd.hdr->cmdWait.notify_all();
+	xmprintf(3, "\tSHMTest::qwtmgl_line();  waiting ..\n");
+	pd.hdr->workDone.wait(lock);
+	xmprintf(3, "\tSHMTest::qwtmgl_line();  done\n");
+}
+
+void SHMTest::qwtmgl_mesh(const MeshInfo& info)  {
+
+				if (status != 0) return;
+	using namespace boost::interprocess;
+	
+	//   check max size on the other side:
+	pd.hdr->mutex.lock();
+
+	long long a = pd.hdr->dataSize;
+	pd.hdr->mutex.unlock();
+	long long size = info.xSize * info.ySize;
+	if (a < size) {
+		xmprintf(3, "\tSHMTest::qwtmgl_mesh: inc seg size (1); current size = %lld \n", a);
+		resizeData(size);
+	}
+	xmprintf(3, "SHMTest::qwtmgl_mesh(); size = %d  locking ..\n", size);
+	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(3, "\tSHMTest::qwtmgl_mesh();  locked ..\n");
+
+	//  now lets plot
+	xmprintf(6, "\tSHMTest::qwtmgl_mesh: copying .. \n");
+	strncpy(pd.hdr->style, info.style.c_str(), 32);
+	strncpy(pd.hdr->name, info.name.c_str(), CmdHeader::nameSize);
+
+	pd.hdr->size = size;
+	pd.hdr->xSize = info.xSize;
+	pd.hdr->ySize = info.ySize;
+	pd.hdr->xMin = info.xMin;
+	pd.hdr->xMax = info.xMax;
+	pd.hdr->yMin = info.yMin;
+	pd.hdr->yMax = info.yMax;
+	pd.hdr->type = static_cast<int>(info.sd);
+	
+	memcpy(pd.data, info.data, sizeof(double) * size);
+	
+
+	pd.hdr->cmd = CmdHeader::qMglMesh;
+
+	xmprintf(3, "\tSHMTest::qwtmgl_mesh(); notifying..\n");
+	pd.hdr->cmdWait.notify_all();
+	xmprintf(3, "\tSHMTest::qwtmgl_mesh();  waiting ..\n");
+	pd.hdr->workDone.wait(lock);
+	xmprintf(3, "\tSHMTest::qwtmgl_mesh();  done\n");
+}
+
+#endif

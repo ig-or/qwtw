@@ -23,6 +23,7 @@
 //#include <QMainWindow>
 #include <QAbstractItemModel>
 #include <QStandardItemModel>
+#include "qwtypes.h"
 
 #ifdef WIN32
 #ifdef qqwtwEXPORTS	
@@ -64,8 +65,8 @@ public:
 		@param[in] n a plot number. There can be only one plot with this number in PlotFactory.
 		@param[in] type plot type; '1' - QWT plot; '2' - map (top view); '3' - 3D plot
 	*/
-	JustAplot* figure(int n, int type = 1);
-	JustAplot* figure(std::string name_, int type = 1);
+	JustAplot* figure(int n, JPType type = jQWT);
+	JustAplot* figure(std::string name_, JPType type = jQWT);
 	void title(const std::string& s);
 	void footer(const std::string& s);
 	void xlabel(const std::string& s);
@@ -93,6 +94,8 @@ public:
 
 	void plot(double* x, double* y, double* z, int size, const char* name, const char* style, int lineWidth, int symSize,
 		double* time = 0);
+
+	void mesh(const MeshInfo& info);
 
 #ifdef ENABLE_UDP_SYNC
 	void enableCoordBroadcast(double* x, double* y, double* z, double* time, int size); 

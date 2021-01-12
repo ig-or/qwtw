@@ -2,6 +2,7 @@
 #pragma once
 
 #include "qwproc.h"
+#include "qwtypes.h"
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
 
@@ -29,6 +30,11 @@ struct SHMTest {
 	#ifdef USEMARBLE
 	void qwtmap(int n);
 	#endif
+	#ifdef USEMATHGL
+	void qwtmgl(int n);
+	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style);
+	void qwtmgl_mesh(const MeshInfo& info);
+	#endif
 	void qsetloglevel(int level);
 	void qwtsetimpstatus(int impStatus);
 	void qwtplot(double* x, double* y, int size, const char* name, const char* style, 
@@ -51,6 +57,7 @@ private:
 	void sendCommand(CmdHeader::QWCmd cmd, const char* text = 0);
 	void sendCommand(CmdHeader::QWCmd cmd, int v);
 	void resize(long long size);
+	void resizeData(long long size);
 
 	/**\param params proc parameters
 	 * \return 0 if all is OK
@@ -67,12 +74,14 @@ private:
 	boost::interprocess::shared_memory_object shmY;
 	boost::interprocess::shared_memory_object shmZ;
 	boost::interprocess::shared_memory_object shmT;
+	boost::interprocess::shared_memory_object shmData;
 
 	boost::interprocess::mapped_region commandReg;
 	boost::interprocess::mapped_region xReg;
 	boost::interprocess::mapped_region yReg;
 	boost::interprocess::mapped_region zReg;
 	boost::interprocess::mapped_region tReg;
+	boost::interprocess::mapped_region dataReg;
 
 	ProcData pd;
 	int status;

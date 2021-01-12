@@ -314,7 +314,7 @@ void MWidgetEx::drawMarker(double t) {
 	update();
 }
 
-MarView::MarView(const std::string& key_, XQPlots* pf_, QWidget *parent) : JustAplot(key_, pf_, parent, 2) {
+MarView::MarView(const std::string& key_, XQPlots* pf_, QWidget *parent) : JustAplot(key_, pf_, parent, jMarble) {
 	if (!mpWasSet) {
 		mpWasSet = true;
 //#ifdef VCPKG_MARBLE_DATA_PATH

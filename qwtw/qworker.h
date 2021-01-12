@@ -31,6 +31,16 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 	Q_INVOKABLE void qwtclearImpl();
 
+#ifdef USEMATHGL
+	Q_INVOKABLE int mglPlotImpl(int n);
+	Q_INVOKABLE int mgl_lineImpl(int size, double* x, double* y, double* z, const char* name, const char* style);
+	Q_INVOKABLE int mgl_meshImpl(int xSize, int ySize, 
+		double xMin, double xMax, double yMin, double yMax, 
+		double* data, const char* name,
+		const char* style,
+		int type);
+#endif
+
 public:
 	//std::mutex appMutex;///< for waiting on QT app 
 	//std::condition_variable appV; ///< for waiting on QT app 
@@ -59,6 +69,15 @@ public:
 
 #ifdef USEMARBLE
 	void mapview(int n);
+#endif
+#ifdef USEMATHGL
+	void mglPlot(int n);
+	void mgl_line(int size, double* x, double* y, double* z, const char* name, const char* style);
+	void mgl_mesh(int xSize, int ySize, 
+		double xMin, double xMax, double yMin, double yMax, 
+		double* data, const char* name,
+		const char* style,
+		int type);
 #endif
 public slots:
 	void onQtAppClosing();

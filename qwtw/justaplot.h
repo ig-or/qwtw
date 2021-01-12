@@ -5,6 +5,7 @@
 
 #include <QDialog>
 #include <list>
+#include "qwtypes.h"
 
 class XQPlots;
 class SQWLine;
@@ -60,9 +61,9 @@ class JustAplot: public QDialog {
 public:
 	std::string key;
 	std::string name;
-	int type;
+	JPType type;
 
-	JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, int type_);
+	JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, JPType type_);
 	/**   it will 'delete' all the lines itself  
 	*/
 	virtual ~JustAplot();
@@ -70,6 +71,7 @@ public:
 	virtual void footer(const std::string& s);
 	virtual void xlabel(const std::string&  s) = 0;
 	virtual void ylabel(const std::string&  s) = 0;
+	virtual void zlabel(const std::string&  s) {}
 	virtual void drawMarker(double X, double Y, int type = 1) = 0;
 	virtual void drawMarker(double t);
 	virtual void onClip(double t1, double t2);
@@ -79,6 +81,7 @@ public:
 
 	*/
 	virtual void addLine(LineItemInfo* line);
+	virtual void addMesh(const MeshInfo& info) {}
 	virtual void makeMarkersVisible(bool visible);
 	virtual void replot() {}
 

@@ -55,23 +55,23 @@ ThreeDline::ThreeDline(int size, double* x, double* y, double* z, const std::str
 	printf("ThreeDline::ThreeDline: z range = [%.2f  %.2f]\n", range.zMin, range.zMax);
 }
 
-SurfData::SurfData(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_) {
+SurfData::SurfData(const MeshInfo& info) {
 	int i, j;
-	sdType = sdMesh;
-	if ((xSize < 1) || (ySize < 1)) {
+	sdType = info.sd;
+	if ((info.xSize < 1) || (info.ySize < 1)) {
 		return;
 	}
-	if ((xMin > xMax) || (yMin > yMax)) {
+	if ((info.xMin > info.xMax) || (info.yMin > info.yMax)) {
 		return;
 	}
-	style = style_;
-	range.xMax = xMax; range.yMax = yMax;
-	range.xMin = xMin; range.yMin = yMin;
+	style = info.style;
+	range.xMax = info.xMax; range.yMax = info.yMax;
+	range.xMin = info.xMin; range.yMin = info.yMin;
 	range.zMax = -DBL_MAX; range.zMin = DBL_MAX;
 	double d;
-	for (i = 0; i < xSize; i++) {
-		for (j = 0; j < ySize; j++) {
-			d = data[i + xSize*j];
+	for (i = 0; i < info.xSize; i++) {
+		for (j = 0; j < info.ySize; j++) {
+			d = info.data[i + info.xSize*j];
 			if (d > range.zMax) {
 				range.zMax = d;
 			}
@@ -82,7 +82,7 @@ SurfData::SurfData(int xSize, int ySize, double xMin, double xMax, double yMin, 
 	}
 
 	//f.Create(xSize, ySize);
-	f.Set(data, xSize, ySize);
+	f.Set(info.data, info.xSize, info.ySize);
 }
 
 AnotherDraw::AnotherDraw() {
@@ -93,7 +93,7 @@ AnotherDraw::AnotherDraw() {
 	useGrid = false;
 	xLabel = "X";
 	yLabel = "Y";
-	sdType = SurfData::sdMesh;
+	//sdType = sdMesh;
 	zLabel = "Z";
 	plotsCount = 0;
 }
@@ -146,20 +146,19 @@ int AnotherDraw::Draw(mglGraph * gr) {
 	for (auto s : surfs) {
 		if (s->style.empty()) {
 			switch (s->sdType) {
-				case SurfData::sdMesh:  gr->Mesh(s->f);   break;
-				case SurfData::sdSurf:  gr->Surf(s->f);   break;
+				case sdMesh:  gr->Mesh(s->f);   break;
+				case sdSurf:  gr->Surf(s->f);   break;
 			};
 		} else {
 			switch (s->sdType) {
-				case SurfData::sdMesh:  gr->Mesh(s->f, s->style.c_str());   break;
-				case SurfData::sdSurf:  gr->Surf(s->f, s->style.c_str());   break;
+				case sdMesh:  gr->Mesh(s->f, s->style.c_str());   break;
+				case sdSurf:  gr->Surf(s->f, s->style.c_str());   break;
 			};
 		}
 	}
 	if (surfs.size() != 0) {
 		gr->Colorbar(">");
 	}
-
 
 	for (auto a : lines) {
 		if (a.style.empty()) {
@@ -223,14 +222,14 @@ void AnotherDraw::addLine(int size, double* x, double* y, double* z, const std::
 	//printf("AnotherDraw::addLine: N = %d z range = [%.2f %.2f]\n", size, range.zMin, range.zMax);
 }
 
-void AnotherDraw::addSurf(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_) {
-	if ((xSize < 1) || (ySize < 1)) {
+void AnotherDraw::addSurf(const MeshInfo& info) {
+	if ((info.xSize < 1) || (info.ySize < 1)) {
 		return;
 	}
-	if ((xMin > xMax) || (yMin > yMax)) {
+	if ((info.xMin > info.xMax) || (info.yMin > info.yMax)) {
 		return;
 	}
-	std::shared_ptr<SurfData> s = std::make_shared<SurfData>(xSize, ySize, xMin, xMax, yMin, yMax, data, style_);
+	std::shared_ptr<SurfData> s = std::make_shared<SurfData>(info);
 	if (plotsCount == 0) {
 		range = s->range;
 		//printf("\tAnotherDraw::addLine_1: N = %d z range = [%.2f %.2f]\n", size, range.zMin, range.zMax);
@@ -238,7 +237,6 @@ void AnotherDraw::addSurf(int xSize, int ySize, double xMin, double xMax, double
 	} else {
 		range.update(s->range);
 	}
-	s->sdType = sdType;
 	surfs.push_back(s);
 	plotsCount += 1;
 }
@@ -304,12 +302,13 @@ void QMGL1::addLine(int size, double* x, double* y, double* z, const std::string
 	}
 	linesAddTimer->start(150);
 }
-void QMGL1::addSurf(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_) {
+void QMGL1::addSurf(const MeshInfo& info) {
 	if (linesAddTimer->isActive()) {
 		linesAddTimer->stop();
 	}
 	linesAddTimer->start(150);
-	draw->addSurf(xSize, ySize, xMin, xMax, yMin, yMax, data, style_);
+	//draw->sdType = sd;
+	draw->addSurf(info);
 }
 
 QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {

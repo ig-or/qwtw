@@ -95,7 +95,6 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std
 		std::cout << "LineItemInfo(): smallCoordIndex.size() = " << smallCoordIndex.size() << std::endl;
 	}
 
-
 	style = std::string();
 	lineWidth = 0; // default value ?????
 	symSize = 8;
@@ -139,7 +138,7 @@ double findDistance(LineItemInfo* i, double x, double y, long long& index) {
 	return ret;
 }
 
-JustAplot::JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, int type_) : QDialog(parent,
+JustAplot::JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, JPType type_) : QDialog(parent,
                                 Qt::Window | Qt::WindowTitleHint | Qt::WindowSystemMenuHint |
 				Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint) {
 	key = key_;

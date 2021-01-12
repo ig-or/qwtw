@@ -75,6 +75,30 @@ qwtwc_API 	void qwtmap(int n);
 qwtwc_API 	void qwtfigure3d(int n);
 #endif
 
+#ifdef USEMATHGL
+/** add new MathGL plot.
+ * \param n plot ID
+ * */
+qwtwc_API 	void qwtmgl(int n);
+
+/**  Add 3D line.
+ * \param style if 0, then use something default
+ * */
+qwtwc_API 	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style);
+
+/** Add 3D mesh.
+ *  \param data double array [xSize x ySize]; point M(x[i], y[j]) have data[i + xSize*j]
+ * 
+ *  \param type 0 - use 'mesh'; 1 - use 'surf'
+ * */
+qwtwc_API 	void qwtmgl_mesh(int xSize, int ySize, 
+		double xMin, double xMax, double yMin, double yMax, 
+		double* data, 
+        const char* name,
+		const char* style,
+		int type);
+#endif
+
 /** put a title on currently 'active' plot.
 	@param[in] s the title
 */

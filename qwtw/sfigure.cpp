@@ -16,6 +16,7 @@
 #include "sfigure.h"
 #include "figure2.h"
 #include <sstream>
+
 #include "justaplot.h"
 #include "xstdef.h"
 //#include <QApplication>
@@ -26,6 +27,7 @@
 #include "qdesktopwidget.h"
 #include "xmatrixplatform.h"
 #include "xmatrix2.h"
+#include "qwtypes.h"
 //#include "topviewplot.h"
 
 #ifdef USEMARBLE
@@ -33,6 +35,9 @@
 #endif
 #ifdef USE_QT3D
 #include "qt-3d.h"
+#endif
+#ifdef USEMATHGL
+#include "qmglplot.h"
 #endif
 
 #ifdef ENABLE_UDP_SYNC
@@ -282,7 +287,7 @@ void XQPlots::showMainWindow() {
 	showNormal();
 }
 
-JustAplot* XQPlots::figure(std::string name_, int type) {
+JustAplot* XQPlots::figure(std::string name_, JPType type){
 	std::map<std::string,  JustAplot*>::iterator it = figures.find(name_);
 
 	if (it != figures.end()) {
@@ -295,11 +300,11 @@ JustAplot* XQPlots::figure(std::string name_, int type) {
 	}   else  {
 
 		switch(type) {
-		case 1:
+		case jQWT:
 			cf	= new Figure2(name_, this, parent);
 			break;
 #ifdef USEMARBLE
-		case 2: {
+		case jMarble: {
 			MarView* tvp = new MarView(name_, this, parent);
 			tvp->mvInit();
 			cf = tvp;
@@ -307,14 +312,21 @@ JustAplot* XQPlots::figure(std::string name_, int type) {
 			break;
 #endif
 #ifdef USE_QT3D
-		case 3: {
+		case jQT3D: {
 			Q3DView* q3 = new Q3DView(name_, this, parent);
 			q3->q3Init();
 			cf = q3;
 		}
 			break;
 #endif
+#ifdef USEMATHGL
+		case jMathGL: {
+			QMglPlot* q4 = new QMglPlot(name_, this, parent);
+			q4->qInit();
+			cf = q4;
 		}
+#endif
+		};
 		bool test = true;
 		test = connect(cf, SIGNAL(exiting (const std::string&)), this, SLOT(onFigureClosed(const std::string&)));
 		test = connect(cf, SIGNAL(onSelection(const std::string&)), this, SLOT(onSelection(const std::string&)));
@@ -530,7 +542,7 @@ void XQPlots::clipAll(double t1, double t2) {
 	}
 }
 
-JustAplot* XQPlots::figure(int n, int type) {
+JustAplot* XQPlots::figure(int n, JPType type) {
 	char buf[32];
 	std::string fName;
 	if (n == 0) { //  this means 'create new'
@@ -614,17 +626,34 @@ void  XQPlots::plot(double* x, double* y, int size, const char* name,
 	cf->addLine(i);
 }
 
+void XQPlots::mesh(const MeshInfo& info) {
+	if (cf == 0) {
+		figure(0, jMathGL);
+	} else {
+		if (cf->type != jMathGL) {
+			figure(0, jMathGL);
+		}
+	}
+	if (cf->type != jMathGL) {
+		return;
+	}
+
+	cf->addMesh(info);
+}
+
 void  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
 	const char* style, int lineWidth, int symSize,
 	double* time) {
 	mxassert((x != 0) && (y != 0) && (z != 0) && (size > 0) && (name != 0) && (style != 0), "");
 	if (cf == 0) {
-		figure(0, 3);
+		figure(0, jMathGL);
 	} else { ///  check:
-		mxat(cf->type == 3);
-		if (cf->type != 3) {
-			return;
+		if (cf->type != jMathGL) {
+			figure(0, jMathGL);
 		}
+	}
+	if (cf->type != jMathGL) {
+		return;
 	}
 
 	//it will be deleted in 'cf' destructor

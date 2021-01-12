@@ -4,6 +4,7 @@
 #include <mgl2/wnd.h>
 #include <mgl2/canvas.h>
 #include <mgl2/qmathgl.h>
+#include "qwtypes.h"
 
 
 //
@@ -11,6 +12,9 @@
 #include <QWidget>
 #include <QGLWidget>
 #include <memory>
+
+
+
 
 class QMathGL;
 class mglGraph;
@@ -41,10 +45,7 @@ struct ThreeDline {
 };
 
 struct SurfData {
-	enum SurfDataType {
-		sdSurf,
-		sdMesh
-	};
+
 	mglData f;
 	ARange range;
 	std::string style;
@@ -53,7 +54,7 @@ struct SurfData {
 	/** 
 	 * \param data double array [xSize x ySize]; point M(x[i], y[j]) have data[i + xSize*j]
 	 * */
-	SurfData(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_);
+	SurfData(const MeshInfo& info);
 };
 
 class AnotherDraw : public mglDraw {
@@ -65,12 +66,13 @@ class AnotherDraw : public mglDraw {
 	int drawCounter;
 	int endOfResizeFlag;
 	int plotsCount;
-	SurfData::SurfDataType sdType;
+	
 
 public:
 	std::string xLabel, yLabel, zLabel;
 	//std::string title;
 	bool useBox, useGrid;
+	//SurfDataType sdType;
 
 	void onResize();
 	AnotherDraw();
@@ -78,7 +80,7 @@ public:
 	int Draw(mglGraph *);
 	void addLine(int size, double* x, double* y, double* z, const std::string& style_);
 	void addLine(int size, double* x, double* y, double* z);
-	void addSurf(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_);
+	void addSurf(const MeshInfo& info);
 };
 
 
@@ -90,7 +92,7 @@ public:
 	~QMGL1();
 	void addLine(int size, double* x, double* y, double* z, const std::string& style_);
 	void addLine(int size, double* x, double* y, double* z);
-	void addSurf(int xSize, int ySize, double xMin, double xMax, double yMin, double yMax, double* data, const std::string& style_);
+	void addSurf(const MeshInfo& info);
 	void xLabel(const std::string& label);
 	void yLabel(const std::string& label);
 	void zLabel(const std::string& label);
