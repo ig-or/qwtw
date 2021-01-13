@@ -21,6 +21,7 @@
 #include "xstdef.h"
 //#include <QApplication>
 #include <QDialog>
+#include <QTimer>
 //#include <QWindow>
 //#include <QtPlatformHeaders/QWindowsWindowFunctions>
 
@@ -38,6 +39,8 @@
 #endif
 #ifdef USEMATHGL
 #include "qmglplot.h"
+#include "qmgl.h"
+#include <mgl2/qmathgl.h>
 #endif
 
 #ifdef ENABLE_UDP_SYNC
@@ -260,6 +263,7 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 	bc = 0;
 	bServer = 0;
 #endif
+	QTimer::singleShot(500, this, &XQPlots::onTest);
 }
 
 XQPlots::~XQPlots() {
@@ -278,6 +282,16 @@ void XQPlots::setImportant(bool i) {
 
 void XQPlots::clear() {
 	clearFigures();
+}
+
+void XQPlots::onTest() {
+	//xmprintf(0, "XQPlots::onTest() 123\n");
+	//printf("XQPlots::onTest() 123\n");
+
+	//QMGL1* qmgl = new QMGL1(this);
+	//QMathGL* mgl = new QMathGL(this);
+	//xmprintf(0, "XQPlots::onTest() OK\n");
+	//printf(0, "XQPlots::onTest() OK\n");
 }
 
 void XQPlots::showMainWindow() {

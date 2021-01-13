@@ -96,6 +96,8 @@ int main(int argc, char** argv) {
 		#endif
 		("debug",  boost::program_options::value< int >(), "debug level, 0 - minimum, 10 - maximum")
 		("print",  boost::program_options::value< int >(), "print level, 0 - minimum, 10 - maximum")
+		("second",  boost::program_options::value< int >(), "second")
+		
 	;
 	try
 	{
@@ -154,49 +156,71 @@ int main(int argc, char** argv) {
 #else
 	//  code partially from https://github.com/pasce/daemon-skeleton-linux-c:
 	pid_t pid;
-	if (debugLevel == 0) {
-		// Fork off the parent process 
-		pid = fork();
-		// An error occurred 
-		if (pid < 0) {
-			exit(EXIT_FAILURE);
-		}
-		
-		// Success: Let the parent terminate 
-		if (pid > 0) {
-			exit(EXIT_SUCCESS);
-		}
-		
-		// On success: The child process becomes session leader 
-		if (setsid() < 0) {
-			exit(EXIT_FAILURE);
-		}
-		
-		//Catch, ignore and handle signals 
-		//TODO: Implement a working signal handler 
-		//signal(SIGCHLD, SIG_IGN);
-		//signal(SIGHUP, SIG_IGN);
-		
-		// Fork off for the second time
-		pid = fork();
-		
-		// An error occurred 
-		if (pid < 0) {
-			exit(EXIT_FAILURE);
-		}
-		
-		// Success: Let the parent terminate 
-		if (pid > 0) {
-			exit(EXIT_SUCCESS);
-		}
-		
-		// Set new file permissions 
-		umask(0);
+	if(vm.count("second"))  {
 
-		// Close all open file descriptors 
-		int x3;
-		for (x3 = sysconf(_SC_OPEN_MAX); x3>=0; x3--)	{
-			close (x3);
+	} else {
+		if (debugLevel == 0) {
+			// Fork off the parent process 
+			
+			pid = fork();
+			// An error occurred 
+			if (pid < 0) {
+				exit(EXIT_FAILURE);
+			}
+			
+			// Success: Let the parent terminate 
+			if (pid > 0) {
+				exit(EXIT_SUCCESS);
+			}
+			
+			// On success: The child process becomes session leader 
+			if (setsid() < 0) {
+				exit(EXIT_FAILURE);
+			}
+
+			//std::list<std::string> args2;
+			char** a = new char*[argc + 3]; 
+			for (int i = 0; i < argc; i++) {
+			//	args2.push_back(argv[i]);
+				a[i] = argv[i];
+			}
+
+			//args2.push_back("--second");
+			//args2.push_back("1");
+			a[argc] = "--second";
+			a[argc+1] = "1";
+			a[argc+2] = NULL;
+			execvp(a[0], a);
+						
+
+			//Catch, ignore and handle signals 
+			//TODO: Implement a working signal handler 
+			//signal(SIGCHLD, SIG_IGN);
+			//signal(SIGHUP, SIG_IGN);
+			
+			// Fork off for the second time
+			/*
+			pid = fork();
+			
+			// An error occurred 
+			if (pid < 0) {
+				exit(EXIT_FAILURE);
+			}
+			
+			// Success: Let the parent terminate 
+			if (pid > 0) {
+				exit(EXIT_SUCCESS);
+			}
+			
+			// Set new file permissions 
+			umask(0);
+
+			// Close all open file descriptors 
+			int x3;
+			for (x3 = sysconf(_SC_OPEN_MAX); x3>=0; x3--)	{
+				close (x3);
+			}
+			*/
 		}
 	}
 #endif

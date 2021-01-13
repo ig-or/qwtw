@@ -161,6 +161,8 @@ private slots:
 	void onCloseAllPlots(bool checked);
 	void onShowAllPlots(bool checked);
 	void onShowAllSimple(bool checked);
+
+	void onTest();
 };
 
 
