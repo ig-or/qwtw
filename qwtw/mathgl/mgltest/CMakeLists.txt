@@ -41,6 +41,7 @@ if(UNIX)
 endif()
 if(WIN32)
 	addOtherLib("ws2_32")
+	addOtherLib("opengl32")
 endif()
 
 programEnd()
