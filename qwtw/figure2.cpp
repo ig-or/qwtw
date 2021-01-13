@@ -268,7 +268,7 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : Just
 
 Figure2::~Figure2() {
 	removeLines();
-	emit exiting(key);
+	//emit exiting(key);
 
 	//if (panner != 0) { delete panner; panner = 0; }
 	//if (picker != 0) { delete picker; picker = 0; }

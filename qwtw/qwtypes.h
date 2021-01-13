@@ -4,8 +4,8 @@
 #include <string>
 
 enum SurfDataType {
-	sdSurf,
-	sdMesh
+	sdMesh,
+	sdSurf
 };
 
 enum JPType {

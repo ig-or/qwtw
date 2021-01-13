@@ -163,6 +163,8 @@ void JustAplot::addLine(LineItemInfo* line) {
 }
 
 JustAplot::~JustAplot() {
+	emit exiting(key);
+	
 	std::list<LineItemInfo*>::iterator it;
 	for (it = linesInfo.begin(); it != linesInfo.end(); it++) {
 		LineItemInfo* i = *it;

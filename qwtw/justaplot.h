@@ -64,6 +64,7 @@ public:
 	JPType type;
 
 	JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, JPType type_);
+	
 	/**   it will 'delete' all the lines itself  
 	*/
 	virtual ~JustAplot();

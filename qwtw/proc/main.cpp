@@ -46,6 +46,7 @@
 static QPointer<QWorker> q2worker(nullptr);
 static FILE* logFile = 0;
 int xmPrintLevel = 1; // will printf messages with level <= then this
+int debugLevel = 0;
 
 int lockHandle() {
 	using namespace boost::filesystem;
@@ -94,6 +95,7 @@ int main(int argc, char** argv) {
 		("marble_plugins", boost::program_options::value< std::string >(), "path to the Marble plugins")
 		#endif
 		("debug",  boost::program_options::value< int >(), "debug level, 0 - minimum, 10 - maximum")
+		("print",  boost::program_options::value< int >(), "print level, 0 - minimum, 10 - maximum")
 	;
 	try
 	{
@@ -122,11 +124,15 @@ int main(int argc, char** argv) {
 		xmprintf(2, "BTW, shm already exists\n");
 		//return 2;
 	}
-	int debugLevel = 0;
+	
 	if(vm.count("debug"))  {
 		debugLevel = vm["debug"].as< int >();
 		xmprintf(0, "using debug level from cmd: %d \n", debugLevel);
-		xmPrintLevel = debugLevel;
+		if(vm.count("print"))  {
+			xmPrintLevel = vm["print"].as< int >();
+		} else {
+			xmPrintLevel = debugLevel;
+		}
 	}
 
 	try {

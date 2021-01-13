@@ -22,7 +22,7 @@ Q3DView::Q3DView(const std::string& key_, XQPlots* pf_, QWidget *parent) : JustA
 }
 
 Q3DView::~Q3DView() {
-	emit exiting(key);
+	//emit exiting(key);
 }
 
 int Q3DView::q3Init() {

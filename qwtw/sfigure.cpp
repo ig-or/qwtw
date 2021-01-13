@@ -292,6 +292,7 @@ void XQPlots::showMainWindow() {
 JustAplot* XQPlots::figure(std::string name_, JPType type){
 	std::map<std::string,  JustAplot*>::iterator it = figures.find(name_);
 
+	xmprintf(5, "XQPlots::figure start \n");
 	if (it != figures.end()) {
 		cf = it->second;
 		cf->activateWindow();
@@ -323,8 +324,11 @@ JustAplot* XQPlots::figure(std::string name_, JPType type){
 #endif
 #ifdef USEMATHGL
 		case jMathGL: {
+			xmprintf(5, "XQPlots::figure creating QMglPlot.. \n");
 			QMglPlot* q4 = new QMglPlot(name_, this, parent);
+			xmprintf(5, "XQPlots::figure  qInit.. \n");
 			q4->qInit();
+			xmprintf(5, "XQPlots::figure creating QMglPlot done\n");
 			cf = q4;
 		}
 #endif
@@ -346,6 +350,7 @@ JustAplot* XQPlots::figure(std::string name_, JPType type){
 
 		i0->appendRow(raw);
 	}
+	xmprintf(5, "XQPlots::figure finish \n");
 	return cf;
 }
 
@@ -629,6 +634,7 @@ void  XQPlots::plot(double* x, double* y, int size, const char* name,
 }
 
 void XQPlots::mesh(const MeshInfo& info) {
+	xmprintf(6, "\tXQPlots::mesh starting \n");
 	if (cf == 0) {
 		figure(0, jMathGL);
 	} else {
@@ -639,21 +645,28 @@ void XQPlots::mesh(const MeshInfo& info) {
 	if (cf->type != jMathGL) {
 		return;
 	}
-
+	xmprintf(6, "\tXQPlots::mesh adding.... \n");
 	cf->addMesh(info);
+	xmprintf(6, "\tXQPlots::mesh finished \n");
 }
 
 void  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
 	const char* style, int lineWidth, int symSize,
 	double* time) {
 	mxassert((x != 0) && (y != 0) && (z != 0) && (size > 0) && (name != 0) && (style != 0), "");
+	xmprintf(5, "\tXQPlots::plot  start \n");
 	if (cf == 0) {
-		figure(0, jMathGL);
 		xmprintf(5, "\t\tXQPlots::plot  creating another 'figure' (1) \n");
+		figure(0, jMathGL);
+		xmprintf(5, "\t\t - created \n");
+		
 	} else { ///  check:
 		if (cf->type != jMathGL) {
 			xmprintf(5, "\t\tXQPlots::plot  creating another 'figure' (3) \n");
 			figure(0, jMathGL);
+			xmprintf(5, "\t\t - created \n");
+		} else {
+			xmprintf(5, "\tXQPlots::plot  have a good window already \n");
 		}
 	}
 	if (cf->type != jMathGL) {

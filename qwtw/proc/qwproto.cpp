@@ -325,7 +325,8 @@ void QProcInterface::processCommand(int cmd) {
 			break;
 
 		case CmdHeader::qSetLogLevel:
-			xmPrintLevel = pd.hdr->test;
+			//xmPrintLevel = pd.hdr->test;
+			xmprintf(1, "got qSetLogLevel with [%d]\n", pd.hdr->test);
 			break;
 	};
 	xmprintf(2, "QProcInterface::processCommand  cmd = %d finished\n", cmd);

@@ -21,8 +21,11 @@ QMglPlot::~QMglPlot() {
 }
 
 int QMglPlot::qInit() {
+	xmprintf(6, "QMglPlot::qInit() starting\n");
 	if (qmgl != 0) return 1;
+	xmprintf(6, "QMglPlot::qInit() creating QMGL..\n");
 	qmgl = new QMGL1(this);
+	xmprintf(6, "QMglPlot::qInit() OK1\n");
 
 	// Create a label to show the geodetic position
 	//QLabel * positionLabel = new QLabel();
@@ -39,6 +42,7 @@ int QMglPlot::qInit() {
 	resize(500, 400);
 
 	show();
+	xmprintf(6, "QMglPlot::qInit() done\n");
 	return 0;
 }
 

@@ -97,6 +97,7 @@ void QWorker::mgl_mesh(int xSize, int ySize,
 		int type) {
 
 	int rv;
+	xmprintf(4, "QWorker::mgl_mesh start \n");
 	if (!QMetaObject::invokeMethod(this, "mgl_meshImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
 		Q_ARG(int, xSize), Q_ARG(int, ySize),
 		Q_ARG(double, xMin),  Q_ARG(double, xMax), Q_ARG(double, yMin),  Q_ARG(double, yMax), 
@@ -106,6 +107,7 @@ void QWorker::mgl_mesh(int xSize, int ySize,
 
 		std::cout << " cannot invoke mgl_meshImpl" << std::endl;
 	}
+	xmprintf(4, "QWorker::mgl_mesh finished \n");
 	
 }
 
@@ -129,6 +131,7 @@ Q_INVOKABLE int QWorker::mgl_meshImpl(int xSize, int ySize,
 		int type) {
 
 	SurfDataType sd = static_cast<SurfDataType>(type);
+	xmprintf(6, "QWorker::mgl_meshImpl; xSize = %d; ySize = %d\n", xSize, ySize);
 	pf->mesh(MeshInfo{xSize, ySize, xMin, xMax, yMin, yMax, data, name, style, sd});
 	
 	return 0;

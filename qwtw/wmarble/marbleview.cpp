@@ -346,7 +346,7 @@ MarView::~MarView() {
 	if (fa != 0) {
 		delete fa; fa = 0;
 	}
-	emit exiting(key);
+	//emit exiting(key);
 }
 
 int MarView::mvInit() {

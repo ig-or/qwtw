@@ -114,10 +114,9 @@ int AnotherDraw::Draw(mglGraph * gr) {
 		return 0;
 	}
 	drawCounter += 1;
-	int linesCount = lines.size();
 	//printf("Draw. line Count = %d; drawCounter = %d \n", linesCount, drawCounter);
 
-	if (linesCount == 0) {
+	if (plotsCount == 0) {
 		return 0;
 	}
 	//return 0;
@@ -232,6 +231,7 @@ void AnotherDraw::addLine(int size, double* x, double* y, double* z, const std::
 }
 
 void AnotherDraw::addSurf(const MeshInfo& info) {
+	xmprintf(8, "\t\t\tAnotherDraw::addSurf starting \n");
 	if ((info.xSize < 1) || (info.ySize < 1)) {
 		return;
 	}
@@ -248,6 +248,7 @@ void AnotherDraw::addSurf(const MeshInfo& info) {
 	}
 	surfs.push_back(s);
 	plotsCount += 1;
+	xmprintf(8, "\t\t\tAnotherDraw::addSurf finished \n");
 }
 
 
@@ -303,35 +304,38 @@ void QMGL1::addLine(int size, double* x, double* y, double* z) {
 }
 
 void QMGL1::addLine(int size, double* x, double* y, double* z, const std::string& style_) {
-	//xmprintf(5, "\tQMGL1::addLine; size = %d; stype = (%s); \n", size, style_.c_str());
+	xmprintf(7, "\t\tQMGL1::addLine; size = %d; stype = (%s); \n", size, style_.c_str());
 
 	AnotherDraw* test1 = draw;
 
 	void* pTest = (void*)(test1);
 
 	int test123 = draw->plotsCount;
-	//xmprintf(6, "\t\tplotsCount = %d; drawCounter = %d \n", draw->plotsCount, draw->drawCounter);
+	xmprintf(7, "\t\tplotsCount = %d; drawCounter = %d \n", draw->plotsCount, draw->drawCounter);
 	draw->addLine(size, x, y, z, style_);
-	//xmprintf(5, "\tQMGL1::addLine; after draw->addLine \n");
+	xmprintf(7, "\t\tQMGL1::addLine; after draw->addLine \n");
 	//mgl->update();
 	if (linesAddTimer->isActive()) {
 		linesAddTimer->stop();
 	}
 	linesAddTimer->start(150);
-	//xmprintf(5, "\tQMGL1::addLine  done\n");
+	xmprintf(7, "\t\tQMGL1::addLine  done\n");
 }
 
 void QMGL1::addSurf(const MeshInfo& info) {
+	//draw->sdType = sd;
+	xmprintf(7, "\t\tQMGL1::addSurf starting \n");
+	draw->addSurf(info);
 	if (linesAddTimer->isActive()) {
 		linesAddTimer->stop();
+		xmprintf(7, "\t\tQMGL1::addSurf stopping active timer \n");
 	}
 	linesAddTimer->start(150);
-	//draw->sdType = sd;
-	draw->addSurf(info);
+	xmprintf(7, "\t\tQMGL1::addSurf finished \n");
 }
 
 QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
-	printf("creating QMGL1 widget start .. \n");
+	xmprintf(7, "creating QMGL1 widget start .. \n");
 	QVBoxLayout *layout = new QVBoxLayout;
 	layout->setSpacing(2); layout->setMargin(2);
 	squareAxis = false;
@@ -358,8 +362,11 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	horizontalLayout->setMargin(2);
 
 	menu_bar = new QMenuBar();
+	xmprintf(7, "QMGL1: another draw .. \n");
 	draw = new AnotherDraw();
+	xmprintf(7, "QMGL1: mgl ... \n");
 	mgl = new QMathGL(this);
+	xmprintf(7, "QMGL1: set draw .. \n");
 	//mgl = new OurMathGL(0);
 	//mgl->setDraw(sample);
 
@@ -368,7 +375,7 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	//gr = new mglGraph();
 	
 	mgl->setDraw(draw);
-
+	xmprintf(7, "QMGL1: other mgl settings \n");
 	mgl->setZoom(true);
 	mgl->setRotate(true);
 	mgl->autoResize = true;
@@ -398,7 +405,7 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	connect(linesAddTimer, &QTimer::timeout, this, &QMGL1::linesAdded);
 
 	//QTimer::singleShot(250, this, &QMGL1::polish);
-	//printf("creating QMGL1 widget end .. \n");
+	xmprintf(7, "creating QMGL1 widget end .. \n");
 }
 
 /*
@@ -437,7 +444,7 @@ void QMGL1::endOfResize() {
 		mgl->adjust();
 	}
 	//mgl->update();
-	//printf("endOfResize stop\n");
+	printf("endOfResize stop\n");
 	
 }
 

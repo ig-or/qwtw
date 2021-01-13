@@ -143,7 +143,7 @@ qwtwc_API 	void qwtmgl_mesh(int xSize, int ySize,
 		double* data, const char* name,
 		const char* style,
 		int type) {
-			SurfDataType sd = (type == 0) ? sdMesh : sdSurf;
+			SurfDataType sd = static_cast<SurfDataType>(type);
 			test.qwtmgl_mesh(MeshInfo{xSize, ySize, xMin, xMax, yMin, yMax, data, name, style, sd});
 		}
 #endif
