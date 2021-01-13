@@ -208,3 +208,17 @@ void assert_failed(const char* file, unsigned int line, const char* str) {
 	printf("ASSERT faild: %s (file %s, line %d)\n", str, file, line);
 }
 
+static const int logBufLen = 2048;
+static char logBuf[logBufLen];
+int xmprintf(int level, const char * _Format, ...) {
+	va_list args;
+	va_start(args, _Format);
+
+	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
+	logBuf[logBufLen - 1] = 0;
+	if(ok > 0) { // we got the message
+		std::cout << logBuf;
+	}
+	va_end(args);
+	return 0;
+}
