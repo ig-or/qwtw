@@ -8,6 +8,8 @@
 
 #include "pclient.h"
 #include "qwtypes.h"
+#include <chrono>
+#include <thread>
 
 #ifdef WIN32
 #include <windows.h>
@@ -258,6 +260,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 static const int logBufLen = 2048;
 static char logBuf[logBufLen];
 int xmprintf(int level, const char * _Format, ...) {
+	using namespace std::chrono_literals;
 	if (level > xmPrintLevel) {
 		return 1;
 	}
@@ -271,6 +274,9 @@ int xmprintf(int level, const char * _Format, ...) {
 		//std::cout << logBuf;
 	}
 	va_end(args);
+	if (xmPrintLevel > 5) {
+		std::this_thread::sleep_for(10ms);
+	}
 	return 0;
 }
 

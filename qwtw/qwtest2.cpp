@@ -193,6 +193,9 @@ void test(int n) {
 	typedef void (*pPlot)(double*, double*, int, const char*, const char*, int, int);
 	typedef void (*pPlot2)(double*, double*, int, const char*, const char*, int, int, double*);
 
+	typedef void (*pMglLine)(int, double*, double*, double*, const char*, const char*);
+	typedef void (*pMglMesh)(int, int, double, double, double, double, double*, const char*,const char*, int);
+
 #ifdef WIN32
 	pQSimple qHello = (pQSimple)GetProcAddress(hQWTW_DLL, "kyleHello");
 	pQSimple qClose = (pQSimple)GetProcAddress(hQWTW_DLL, "qwtclose");
@@ -222,6 +225,13 @@ void test(int n) {
 	#ifdef USEMARBLE
 	pQSimple1 qTopView = (pQSimple1)dlsym(lib_handle, "qwtmap");
 	#endif
+
+#ifdef USEMATHGL
+	pQSimple1 qMgl = (pQSimple1)dlsym(lib_handle, "qwtmgl");
+	pMglLine qmglLine = (pMglLine)dlsym(lib_handle, "qwtmgl_line");
+	pMglMesh qmglMesh = (pMglMesh)dlsym(lib_handle, "qwtmgl_mesh");
+#endif
+
 	pQSimple1 qFigure = (pQSimple1)dlsym(lib_handle, "qwtfigure");
 	pQSimple2 qTitle = (pQSimple2)dlsym(lib_handle, "qwttitle");
 	pPlot2 qPlot2 = (pPlot2)dlsym(lib_handle, "qwtplot2");
@@ -311,6 +321,51 @@ void test(int n) {
 	qFigure(10);
 	qPlot2(circleData_x1, circleData_y1, nc, "circle", "-qm", 1, 12, circleTime_1);
 	qTitle("'top view' test");
+
+#ifdef USEMATHGL	
+{
+	const int N = 100;
+	double x[N];
+	double y[N];
+	double z[N];
+	double t;
+	double R = 10.0;
+	double x1[N];
+	double y1[N];
+	double z1[N];
+
+
+	for (int i = 0; i < N; i++) {
+		t = (double(i) / double(N)) * 2. * 3.14159 * 3.5;
+		x[i] = R * sin(t);
+		y[i] = R * cos(t);
+		z[i] = t;
+
+		x1[i] = R * sin(t);
+		y1[i] = R * cos(t);
+		z1[i] = x1[i] + y1[i];
+	}
+	qMgl(0);
+
+	qmglLine(N, x, y, z, "", "-sb");
+	qmglLine(N, x1, y1, z1, "", "-or");
+
+	constexpr int xSize = 20;
+	constexpr int ySize = 20;
+	double xMin = -10., xMax = 10.0, yMin = -10.0, yMax = 10.0;
+	double f[xSize * ySize];
+	double ax, ay;
+	for (int i = 0; i < xSize; i++) {
+		ax = xMin + i;
+		for (int j = 0; j < ySize; j++) {
+			ay = yMin + j;
+			f[i + xSize * j] = sin(ax / 5.0) * sin(ay / 7.0) * 10.0;
+		}
+	}
+	
+	qmglMesh(xSize, ySize, xMin, xMax, yMin, yMax, f, "", "", 0);
+}
+#endif
 
 	//std::this_thread::sleep_for(5s);
 	//qClose();

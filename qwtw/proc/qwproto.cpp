@@ -259,8 +259,12 @@ void QProcInterface::processCommand(int cmd) {
 			worker.mglPlot(pd.hdr->test);
 			break;
 		case CmdHeader::qMglLine:
+			xmprintf(5, "\tcase CmdHeader::qMglLine\n");
 			if (pd.hdr->size <= pd.hdr->segSize) {
+				xmprintf(6, "\tpd.hdr->size=%d;   pd.hdr->segSize=%d   \n", pd.hdr->size, pd.hdr->segSize);
 				worker.mgl_line(pd.hdr->size,  pd.x, pd.y, pd.z, pd.hdr->name, pd.hdr->style);
+			} else {
+				xmprintf(0, "\tERROR CmdHeader::qMglLine pd.hdr->size=%d;   pd.hdr->segSize=%d   \n", pd.hdr->size, pd.hdr->segSize);
 			}
 			break;
 		case CmdHeader::qMglMesh:

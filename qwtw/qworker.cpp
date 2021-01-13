@@ -117,6 +117,7 @@ Q_INVOKABLE int QWorker::mglPlotImpl(int n) {
 
 Q_INVOKABLE int QWorker::mgl_lineImpl(int size, double* x, double* y, double* z, const char* name, const char* style) {
 	pf->setmode(3);
+	xmprintf(6, "\tmgl_lineImpl. size = %d \n", size);
 	pf->plot(x, y, z, size, name, style, 1, 1, 0);
 	return 0;	
 }

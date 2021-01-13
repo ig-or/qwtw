@@ -18,16 +18,16 @@ struct CmdHeader {
 		qPlot,
 		qPlot2, 
 		qTitle, 
-		qXlabel,
+		qXlabel, // 10
 		qYlabel,
 		qClear,
 		qImpStatus,
 		qEnableBC,
 		qDisableBC,
 		qSetLogLevel,
-		qMglPlot,
-		qMglLine,
-		qMglMesh,
+		qMglPlot, // 17
+		qMglLine, // 18
+		qMglMesh, // 19
 
 		qwcmdSize
 	};

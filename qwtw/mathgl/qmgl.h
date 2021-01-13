@@ -63,12 +63,15 @@ class AnotherDraw : public mglDraw {
 	std::list<ThreeDline> lines;
 	std::list<std::shared_ptr<SurfData>> surfs;
 
+
+	
+
+public:
+
 	int drawCounter;
 	int endOfResizeFlag;
 	int plotsCount;
 	
-
-public:
 	std::string xLabel, yLabel, zLabel;
 	//std::string title;
 	bool useBox, useGrid;

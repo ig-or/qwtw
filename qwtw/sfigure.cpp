@@ -57,6 +57,8 @@
 #include <boost/bind.hpp>
 #include "xmutils.h"
 
+int xmprintf(int level, const char * _Format, ...);
+
 using boost::asio::ip::udp; 
 
 #pragma pack(1)
@@ -647,23 +649,30 @@ void  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
 	mxassert((x != 0) && (y != 0) && (z != 0) && (size > 0) && (name != 0) && (style != 0), "");
 	if (cf == 0) {
 		figure(0, jMathGL);
+		xmprintf(5, "\t\tXQPlots::plot  creating another 'figure' (1) \n");
 	} else { ///  check:
 		if (cf->type != jMathGL) {
+			xmprintf(5, "\t\tXQPlots::plot  creating another 'figure' (3) \n");
 			figure(0, jMathGL);
 		}
 	}
 	if (cf->type != jMathGL) {
+		xmprintf(0, "\t\tXQPlots::plot  cannot create  jMathGL object\n");
 		return;
 	}
 
 	//it will be deleted in 'cf' destructor
+	xmprintf(5, "\t creating LineItemInfo.. \n");
 	LineItemInfo* i = new LineItemInfo(x, y, z, size, name, time);
+	xmprintf(5, "\t\t created.\n");
 	i->style = style;
 	i->lineWidth = lineWidth;
 	i->symSize = symSize;
 	i->important = currentImportanceMode;
 
+	xmprintf(5, "\tXQPlots::plot  adding line \n");
 	cf->addLine(i);
+	xmprintf(5, "\tXQPlots::plot  finished \n");
 }
 
 #ifdef ENABLE_UDP_SYNC

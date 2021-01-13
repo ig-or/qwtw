@@ -47,12 +47,14 @@
 
 #include <float.h>
 
+int xmprintf(int level, const char * _Format, ...);
+
 ThreeDline::ThreeDline(int size, double* x, double* y, double* z, const std::string& style_) : range(size, x, y, z) {
 	style = style_;
 	mx = mglData(size, x);
 	my = mglData(size, y);
 	mz = mglData(size, z);
-	printf("ThreeDline::ThreeDline: z range = [%.2f  %.2f]\n", range.zMin, range.zMax);
+	//printf("ThreeDline::ThreeDline: z range = [%.2f  %.2f]\n", range.zMin, range.zMax);
 }
 
 SurfData::SurfData(const MeshInfo& info) {
@@ -210,16 +212,23 @@ void AnotherDraw::addLine(int size, double* x, double* y, double* z, const std::
 	if (size < 1) {
 		return;
 	}
+	xmprintf(5, "\tAnotherDraw::addLine; size = %d\n", size);
 
 	ThreeDline line(size, x, y, z, style_);
+	xmprintf(6, "\t\tAnotherDraw::addLine line created; \n");
 	if (plotsCount == 0) {
+		xmprintf(6, "\t\tAnotherDraw::addLine range ...\n");
 		range = line.range;
+		xmprintf(6, "\t\tAnotherDraw::addLine range copied \n");
 	} else {
+		xmprintf(6, "\t\tAnotherDraw::addLine updating range .. \n");
 		range.update(line.range);
+		xmprintf(6, "\t\tAnotherDraw::addLine range updated \n");
 	}
+	xmprintf(6, "\t\tAnotherDraw::addLine range updated \n");
 	lines.push_back(line);
 	plotsCount += 1;
-	//printf("AnotherDraw::addLine: N = %d z range = [%.2f %.2f]\n", size, range.zMin, range.zMax);
+	xmprintf(5, "\tAnotherDraw::addLine: N = %d z range = [%.2f %.2f]\n", size, range.zMin, range.zMax);
 }
 
 void AnotherDraw::addSurf(const MeshInfo& info) {
@@ -294,14 +303,24 @@ void QMGL1::addLine(int size, double* x, double* y, double* z) {
 }
 
 void QMGL1::addLine(int size, double* x, double* y, double* z, const std::string& style_) {
-	//printf("QMGL1::addLine; size = %d\n", size);
+	xmprintf(5, "\tQMGL1::addLine; size = %d; stype = (%s); \n", size, style_.c_str());
+
+	AnotherDraw* test1 = draw;
+
+	void* pTest = (void*)(test1);
+	
+	int test123 = draw->plotsCount;
+	xmprintf(6, "\t\tplotsCount = %d; drawCounter = %d \n", draw->plotsCount, draw->drawCounter);
 	draw->addLine(size, x, y, z, style_);
+	xmprintf(5, "\tQMGL1::addLine; after draw->addLine \n");
 	//mgl->update();
 	if (linesAddTimer->isActive()) {
 		linesAddTimer->stop();
 	}
 	linesAddTimer->start(150);
+	xmprintf(5, "\tQMGL1::addLine  done\n");
 }
+
 void QMGL1::addSurf(const MeshInfo& info) {
 	if (linesAddTimer->isActive()) {
 		linesAddTimer->stop();

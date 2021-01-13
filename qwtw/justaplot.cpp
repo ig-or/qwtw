@@ -9,6 +9,8 @@
 
 #define REMEMBER_EVERYTHING
 
+int xmprintf(int level, const char * _Format, ...);
+
 LineItemInfo::LineItemInfo(double* x_, double* y_, size_t size_, std::string legend_, 
 	   int mode_, double* time_) {
     mxassert(size_ > 0, "");
@@ -50,6 +52,8 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, size_t size_, std::string leg
 LineItemInfo::LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std::string legend_,
 	double* time_) {
 
+	xmprintf(7, "\t\tLineItemInfo::LineItemInfo start \n");
+
 	mxassert(size_ > 0, "");
 	x = x_;
 	y = y_;
@@ -72,6 +76,7 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std
 		time = new double[size_]; memcpy(time, time_, size_ * sizeof(double));
 	}
 #endif
+	xmprintf(7, "\t\tLineItemInfo::LineItemInfo xyzt created \n");
 	size = size_;
 	legend = legend_;
 
@@ -94,11 +99,13 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std
 		smallCoordIndex.push_back(size - 1);
 		std::cout << "LineItemInfo(): smallCoordIndex.size() = " << smallCoordIndex.size() << std::endl;
 	}
+	xmprintf(7, "\t\tLineItemInfo::LineItemInfo almost \n");
 
 	style = std::string();
 	lineWidth = 0; // default value ?????
 	symSize = 8;
 	sqwLine = 0;
+	xmprintf(7, "\t\tLineItemInfo::LineItemInfo done  \n");
 }
 
 LineItemInfo::~LineItemInfo() {

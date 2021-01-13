@@ -55,8 +55,11 @@ void QMglPlot::zlabel(const std::string&  s) {
 
 void QMglPlot::addLine(LineItemInfo* line) {
     if (qmgl == 0) return;
+    xmprintf(6, "\t\tQMglPlot::addLine start \n");
 	JustAplot::addLine(line);
-    qmgl->addLine(line->size, line->x, line->y, line->z);
+    xmprintf(6, "\t\tQMglPlot::addLine .. \n");
+    qmgl->addLine(line->size, line->x, line->y, line->z, line->style);
+    xmprintf(6, "\t\tQMglPlot::addLine finish \n");
 }
 
 void QMglPlot::addMesh(const MeshInfo& info) {
