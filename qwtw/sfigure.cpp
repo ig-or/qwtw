@@ -11,7 +11,11 @@
 	
 */
 
+#ifdef ENABLE_UDP_SYNC
 
+#include <boost/asio.hpp>
+#include <boost/array.hpp>
+#endif
 
 #include "sfigure.h"
 #include "figure2.h"
@@ -43,9 +47,9 @@
 #include <mgl2/qmathgl.h>
 #endif
 
-#ifdef ENABLE_UDP_SYNC
-#include <boost/array.hpp>
-#include <boost/asio.hpp>
+
+int xmprintf(int level, const char * _Format, ...);
+
 #include <iostream>
 #include <atomic>
 #include <condition_variable>
@@ -60,8 +64,8 @@
 #include <boost/bind.hpp>
 #include "xmutils.h"
 
-int xmprintf(int level, const char * _Format, ...);
 
+#ifdef ENABLE_UDP_SYNC
 using boost::asio::ip::udp; 
 
 #pragma pack(1)
