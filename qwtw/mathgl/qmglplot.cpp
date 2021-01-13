@@ -12,8 +12,8 @@
 int xmprintf(int level, const char * _Format, ...);
 
 
-QMglPlot::QMglPlot(const std::string& key_, XQPlots* pf_, QWidget *parent) : JustAplot(key_, pf_, parent, jMathGL) {
-    
+QMglPlot::QMglPlot(const std::string& key_, XQPlots* pf_, QWidget *parent) : qmgl(0), JustAplot(key_, pf_, parent, jMathGL) {
+
 }
 
 QMglPlot::~QMglPlot() {
@@ -36,7 +36,7 @@ int QMglPlot::qInit() {
 	//layout->addWidget(positionLabel);
 
 	setLayout(layout);
-	resize(400, 300);
+	resize(500, 400);
 
 	show();
 	return 0;
