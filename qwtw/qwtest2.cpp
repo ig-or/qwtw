@@ -208,6 +208,11 @@ void test(int n) {
 	#ifdef USEMARBLE
 	pQSimple1 qTopView = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtmap");
 	#endif
+#ifdef USEMATHGL
+	pQSimple1 qMgl = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtmgl");
+	pMglLine qmglLine = (pMglLine)GetProcAddress(hQWTW_DLL, "qwtmgl_line");
+	pMglMesh qmglMesh = (pMglMesh)GetProcAddress(hQWTW_DLL, "qwtmgl_mesh");
+#endif
 	pQSimple1 qFigure = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtfigure");
 	pQSimple2 qTitle = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwttitle");
 	pPlot2 qPlot2 = (pPlot2)GetProcAddress(hQWTW_DLL, "qwtplot2");
