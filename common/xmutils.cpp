@@ -18,6 +18,7 @@ Utilitis which do not belong to any calss.
 #ifdef LIN_UX
 	#include <limits.h>
 	#include <unistd.h>
+	#include <dlfcn.h>
 #endif
 
 #ifdef WIN32
@@ -149,9 +150,16 @@ int xqversion(char* vstr, int bufSize) {
 			XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
 			GIT_INFO);
 	#else
-		int bs = snprintf(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
-			XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
-			GIT_INFO);
+		//#ifdef WIN32
+			int bs = snprintf(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
+				XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
+				GIT_INFO);
+		//#else
+		//	int test = dladdr(void *addr, Dl_info *info);
+		//	int bs = snprintf(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
+		//		XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
+		//		GIT_INFO);
+		//#endif
 	#endif
 #else // no version info
 	int bs = snprintf(vstr, bufSize, "\nbuilt without version info support\n");

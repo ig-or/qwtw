@@ -295,9 +295,10 @@ int main(int argc, char** argv) {
 	} else {
 		xmprintf(0, "\tusing default marble_plugins \n");
 	}
-	Marble::MarbleDirs::debug();
+	
 	if (debugLevel > 2) {
 		Marble::MarbleDebug::setEnabled( true );
+		Marble::MarbleDirs::debug();
 		xmprintf(0, "Marble debug enabled\n");
 	} else {
 		Marble::MarbleDebug::setEnabled( false );

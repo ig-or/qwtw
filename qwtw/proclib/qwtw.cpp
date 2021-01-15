@@ -102,7 +102,7 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size) {
 	}	else {
 		return xqversion(vstr, vstr_size - 1, qwtwLibModule);
 	}
-#else	
+#else	//  linux ? 
 	return xqversion(vstr, vstr_size - 1);
 #endif
 }

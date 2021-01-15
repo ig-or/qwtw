@@ -422,7 +422,7 @@ void QMGL1::polish() {
 */
 void QMGL1::endOfResize() {
 	resizeTimer->stop();
-	printf("endOfResize start (square = %s)\n", squareAxis ? "yes" : "no");
+	//printf("endOfResize start (square = %s)\n", squareAxis ? "yes" : "no");
 	draw->onResize();
 	if (squareAxis) {
 		int w = size().width();
@@ -439,12 +439,12 @@ void QMGL1::endOfResize() {
 		mgl->setSize(a, a);
 		mgl->refresh();	
 
-		printf("QMGL1::endOfResize (squareAxis) size = %d (h = %d;  w = %d)\n", a, h, w);
+		//printf("QMGL1::endOfResize (squareAxis) size = %d (h = %d;  w = %d)\n", a, h, w);
 	} else {
 		mgl->adjust();
 	}
 	//mgl->update();
-	printf("endOfResize stop\n");
+	//printf("endOfResize stop\n");
 	
 }
 
@@ -460,9 +460,9 @@ void QMGL1::setSquare(bool s) {
 			a = 32;
 		}
 		mgl->setSize(a, a);
-		printf("QMGL1::setSquare TRUE; size = %d (h = %d;  w = %d)\n", a, h, w);
+		//printf("QMGL1::setSquare TRUE; size = %d (h = %d;  w = %d)\n", a, h, w);
 	} else {
-		printf("QMGL1::setSquare FALSE \n");
+		//printf("QMGL1::setSquare FALSE \n");
 		mgl->adjust();
 	}
 	emit squareChanged(s);
@@ -470,7 +470,7 @@ void QMGL1::setSquare(bool s) {
 
 void QMGL1::linesAdded() {
 	linesAddTimer->stop();
-	printf("QMGL1::linesAdded() \n");
+	//printf("QMGL1::linesAdded() \n");
 	mgl->update();
 }
 
@@ -564,14 +564,14 @@ void QMGL1::addMenu() {
 	// graphics menu
 
 	
-	printf("adding graphics menu \n");
+	//printf("adding graphics menu \n");
 	{
 		bb = new QToolBar(("Graphics"),this);
 		toolLayout->addWidget(bb, Qt::AlignLeft);
 
 		o = menu_bar->addMenu(("Graphics"));
 
-		printf(" 1 ");
+		//printf(" 1 ");
 
 		a = new QAction(QPixmap(alpha_xpm), ("Alpha"), this);
 		a->setShortcut(Qt::ALT+Qt::Key_T);	a->setCheckable(true);
