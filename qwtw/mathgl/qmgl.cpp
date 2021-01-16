@@ -53,7 +53,14 @@ ThreeDline::ThreeDline(int size, double* x, double* y, double* z, const std::str
 	style = style_;
 	mx = mglData(size, x);
 	my = mglData(size, y);
-	mz = mglData(size, z);
+	if (z == 0) {
+		double* d = new double[size];
+		memset(d, 0, size * sizeof(double));
+		mz = mglData(size, d);
+		delete[] d;
+	} else {
+		mz = mglData(size, z);
+	}
 	//printf("ThreeDline::ThreeDline: z range = [%.2f  %.2f]\n", range.zMin, range.zMax);
 }
 
