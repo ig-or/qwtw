@@ -184,7 +184,7 @@ int SHMTest::testInit(int level) {
 			shared_memory_object shmCommand_(open_only, ProcData::shmNames[0], read_write);
 			shmCommand.swap(shmCommand_);
 			shmConnected = true;
-			xmprintf(3, "\tSHMTest::testInit() connected to SHM\n");
+			xmprintf(3, "\tSHMTest::testInit() connected to SHM; attemptCount = %d\n", attemptCount);
 			break;
 		} catch(interprocess_exception &ex) { // proc not started?  something is not OK
 			exPlanation.assign(ex.what());
@@ -216,7 +216,12 @@ int SHMTest::testInit(int level) {
 	commandReg.swap(commandReg_);
 	pd.hdr = static_cast<CmdHeader*>(commandReg.get_address());
 	{
-		scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+		try {
+			scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+		} catch (interprocess_exception &ex) { 
+			xmprintf(0, "ERROR SHMTest::testInit() (124): (%s) \n", ex.what());
+			return 8;
+		}
 		long long segSize = pd.hdr->segSize;
 		long long dataSize = pd.hdr->dataSize;
 		shmX.truncate(segSize * sizeof(double));
@@ -456,20 +461,25 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 
 	//  now lets plot
 	xmprintf(6, "\tSHMTest::qwtplot2: copying .. \n");
-	pd.hdr->lineWidth = lineWidth;
-	pd.hdr->symSize = symSize;
-	strncpy(pd.hdr->style, style, 8);
-	pd.hdr->size = size;
-	strncpy(pd.hdr->name, name, CmdHeader::nameSize);
+	try {
+		pd.hdr->lineWidth = lineWidth;
+		pd.hdr->symSize = symSize;
+		strncpy(pd.hdr->style, style, 8);
+		pd.hdr->size = size;
+		strncpy(pd.hdr->name, name, CmdHeader::nameSize);
 
-	memcpy(pd.x, x, sizeof(double) * size);
-	memcpy(pd.y, y, sizeof(double) * size);
+		memcpy(pd.x, x, sizeof(double) * size);
+		memcpy(pd.y, y, sizeof(double) * size);
 
-	if (time != 0) {
-		pd.hdr->cmd = CmdHeader::qPlot2;
-		memcpy(pd.t, time, sizeof(double) * size);
-	} else {
-		pd.hdr->cmd = CmdHeader::qPlot;
+		if (time != 0) {
+			pd.hdr->cmd = CmdHeader::qPlot2;
+			memcpy(pd.t, time, sizeof(double) * size);
+		} else {
+			pd.hdr->cmd = CmdHeader::qPlot;
+		}
+	} catch (const std::exception& ex){
+		xmprintf(0, "ERROR: exception in SHMTest::qwtplot2 (%s)\n", ex.what());
+		return;
 	}
 	xmprintf(3, "\tSHMTest::qwtplot2(); notifying..\n");
 	pd.hdr->cmdWait.notify_all();

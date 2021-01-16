@@ -632,7 +632,11 @@ void  XQPlots::plot(double* x, double* y, int size, const char* name,
 						double* time) {
 	mxassert((x != 0) && (y != 0) && (size > 0) && (name != 0) && (style != 0), "");
 	if (cf == 0) {
-		figure(0);
+		figure(0, jQWT);
+	} else {
+		if (cf->type == jMathGL) { // create another one here
+			figure(0, jQWT);
+		}
 	}
 
 	//int mode = currentFigureMode;
