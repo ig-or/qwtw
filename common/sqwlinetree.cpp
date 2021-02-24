@@ -224,6 +224,38 @@ size_t SQWLine::findClosestPoint(double xx, double yy) {
 	double cDistance;
 	bool find = false;
 
+	double r = 0., f, df, cx, cy;
+
+
+	double dxx = fabs(x2 - x1);
+	double dyy = fabs(y2 - y1);
+	cx = (x1 + x2) * 0.5;
+	cy = (y1 + y2) * 0.5;
+	double mdd = sqrt(dxx * dxx + dyy * dyy);
+	double drr = sqrt(((xx - cx) * (xx - cx)) + ((yy - cy) * (yy - cy)));
+	if (drr > (mdd * 4.5)) { // we do not care what point to select in this case; too far anyway
+		ii = w >> 1;
+		return ii;
+	}
+
+
+	if (w <= 2500) {  //  not too many points; lets check all the points
+		double dd = BIGNUMBER;
+		double d, a1, a2;
+		for (i = 0; i < w; i++) {
+			a1 = xx - x[i];
+			a2 = yy - y[i];
+			d = a1*a1+a2*a2;
+			if (d < dd) {
+				dd = d;
+				ii = i;
+			}
+		}
+		return ii;
+	}
+
+
+
 	for (i = 0; i < nn*nn; i++) {
 		low[i]->checked = false;
 	}
@@ -241,9 +273,10 @@ size_t SQWLine::findClosestPoint(double xx, double yy) {
 		md = md1;
 	}
 	md *= 1.6;  //  add some magic here
+	md = sqrt(md);
 	cDistance = md;
 
-	double r = 0., f, df, cx, cy;
+	
 
 	while ((r <= md) && (!find)) {
 		f = 1e-4;
