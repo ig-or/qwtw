@@ -17,11 +17,14 @@ set(INC_DIR_LIST   "../../../common" )
 	
 addSourceFiles("source" "." mgltest)	
 addSourceFiles("mgl" "../" qmgl)
-addSourceFiles("base" "../../" qwtypes)
+addSourceFiles("base" "../../" qwtypes line)
 addSourceFiles("qrc" "../../../img" plib1.qrc)	
 addSourceFiles("common" "../../../common"
-	xstdef xmutils
+	xstdef xmutils sqwlinetree
 )
+
+addSourceFiles("matrix" "../../../xmatrix2" xmatrix_imp xmatrix2)
+
 
 add_definitions(-DQT_DLL)
 

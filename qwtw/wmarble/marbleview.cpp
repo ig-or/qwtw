@@ -19,6 +19,7 @@
 
 #include "xstdef.h"
 #include "sfigure.h"
+#include "line.h"
 #include "xmcoords.h"
 #include "xmutils.h"
 

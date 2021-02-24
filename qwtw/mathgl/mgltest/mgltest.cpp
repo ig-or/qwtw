@@ -37,10 +37,12 @@
 
 #include "qmgl.h"
 #include "mgltest.h"
+#include "line.h"
 #include "qwtypes.h"
 
 
-
+LineItemInfo* ii1 = 0;
+LineItemInfo* ii2 = 0;
 
 MGLTest::MGLTest(QWidget * parent1): QDialog(parent1, 
 		Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowMinimizeButtonHint | 
@@ -79,6 +81,7 @@ void MGLTest::test() {
 	double x[N];
 	double y[N];
 	double z[N];
+	double tt[N];
 	double t;
 	double R = 10.0;
 	double x1[N];
@@ -88,6 +91,7 @@ void MGLTest::test() {
 
 	for (int i = 0; i < N; i++) {
 		t = (double(i) / double(N)) * 2. * 3.14159 * 3.5;
+		tt[i] = t;
 		x[i] = R * sin(t);
 		y[i] = R * cos(t);
 		z[i] = t;
@@ -96,9 +100,9 @@ void MGLTest::test() {
 		y1[i] = R * cos(t);
 		z1[i] = x1[i] + y1[i];
 	}
+	ii1 = new LineItemInfo(x, y, z, N, "first line", tt);     ii1->style = "-sb";
+	ii2 = new LineItemInfo(x1, y1, z1, N, "second line", tt);   ii2->style = "-or";
 
-	test1->addLine(N, x, y, z, "-sb");
-	test1->addLine(N, x1, y1, z1, "-or");
 
 	constexpr int xSize = 20;
 	constexpr int ySize = 20;
@@ -112,10 +116,17 @@ void MGLTest::test() {
 			f[i + xSize * j] = sin(ax / 5.0) * sin(ay / 7.0) * 10.0;
 		}
 	}
+
 	
-	test1->addSurf(MeshInfo{xSize, ySize, xMin, xMax, yMin, yMax, f, "", "", sdMesh});
 
+	//test1->addLine(N, x, y, z, "-sb");
+	//test1->addLine(N, x1, y1, z1, "-or");
+	test1->addLine(ii1);
+	test1->addLine(ii2);
 
+	//return;
+
+	test1->addSurf(MeshInfo{ xSize, ySize, xMin, xMax, yMin, yMax, f, "", "", sdMesh });
 	//test12->addLine(N, x, y, z, "-om");
 
 }

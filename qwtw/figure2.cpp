@@ -38,6 +38,7 @@
 #include "klifft/psd.h"
 #include "xmutils.h"
 #include "sqwlinetree.h"
+#include "line.h"
 #include <sstream>
 
 int xmprintf(int level, const char* _Format, ...);

@@ -41,6 +41,7 @@
 #ifdef USE_QT3D
 #include "qt-3d.h"
 #endif
+#include "line.h"
 #ifdef USEMATHGL
 #include "qmglplot.h"
 #include "qmgl.h"
@@ -571,8 +572,8 @@ JustAplot* XQPlots::figure(int n, JPType type) {
 	char buf[32];
 	std::string fName;
 	if (n == 0) { //  this means 'create new'
-		for (int i = 500; i < 1500; i++) {
-			snprintf(buf, 32, "%d", i);
+		for (int i = 500; i < 2500; i++) {
+			snprintf(buf, 32, "%d", i); buf[31] = 0;
 			fName.assign(buf);
 			if (figures.find(fName) == figures.end()) { //   new value
 				n = i;
@@ -581,7 +582,7 @@ JustAplot* XQPlots::figure(int n, JPType type) {
 		}
 	}
 	
-	snprintf(buf, 32, "%d", n);
+	snprintf(buf, 32, "%d", n); buf[31] = 0;
 	fName.assign(buf);
 	return figure(fName, type);
 }

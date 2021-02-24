@@ -46,9 +46,11 @@
 #include "xpm/pause.xpm"
 
 #include <float.h>
+#include "line.h"
 
 int xmprintf(int level, const char * _Format, ...);
 
+/*
 ThreeDline::ThreeDline(int size, double* x, double* y, double* z, const std::string& style_) : range(size, x, y, z) {
 	style = style_;
 	mx = mglData(size, x);
@@ -61,7 +63,25 @@ ThreeDline::ThreeDline(int size, double* x, double* y, double* z, const std::str
 	} else {
 		mz = mglData(size, z);
 	}
+	legend.clear();
 	//printf("ThreeDline::ThreeDline: z range = [%.2f  %.2f]\n", range.zMin, range.zMax);
+}
+*/
+
+ThreeDline::ThreeDline(LineItemInfo* line) : range(line->size, line->x, line->y, line->z) {
+	style = line->style;
+	mx = mglData(line->size, line->x);
+	my = mglData(line->size, line->y);
+	if (line->z == 0) {
+		double* d = new double[line->size];
+		memset(d, 0, line->size * sizeof(double));
+		mz = mglData(line->size, d);
+		delete[] d;
+	}
+	else {
+		mz = mglData(line->size, line->z);
+	}
+	legend = line->legend;
 }
 
 SurfData::SurfData(const MeshInfo& info) {
@@ -151,30 +171,48 @@ int AnotherDraw::Draw(mglGraph * gr) {
 	gr->Adjust();
 
 	//gr->Plot(mx, my, mz,"rs");
+	std::string style = "";
 	for (auto s : surfs) {
 		if (s->style.empty()) {
-			switch (s->sdType) {
-				case sdMesh:  gr->Mesh(s->f);   break;
-				case sdSurf:  gr->Surf(s->f);   break;
-			};
-		} else {
-			switch (s->sdType) {
-				case sdMesh:  gr->Mesh(s->f, s->style.c_str());   break;
-				case sdSurf:  gr->Surf(s->f, s->style.c_str());   break;
-			};
+			style.clear();
+		}	else {
+			style = s->style;
 		}
+		switch (s->sdType) {
+			case sdMesh:  gr->Mesh(s->f, style.c_str());   break;
+			case sdSurf:  gr->Surf(s->f, style.c_str());   break;
+		};
+
 	}
 	if (surfs.size() != 0) {
 		gr->Colorbar(">");
 	}
 
+	std::string opt = "";
+	std::string pen = "";
+	bool useLegend = false;
 	for (auto a : lines) {
 		if (a.style.empty()) {
-			gr->Plot(a.mx, a.my, a.mz);
-		} else {
-			gr->Plot(a.mx, a.my, a.mz, a.style.c_str());
+			pen.clear();
+		}	else {
+			pen = a.style;
 		}
+		if (a.legend.empty()) {
+			opt.clear();
+			xmprintf(9, "\t 3d line: no legend \n ");
+		}	else {
+			useLegend = true;
+			opt = std::string("legend '") + a.legend + "'";
+			xmprintf(9, "\t + legend %s \n ", a.legend);
+		}
+
+		gr->Plot(a.mx, a.my, a.mz, pen.c_str(), opt.c_str());
 	}
+	if (useLegend) {
+		xmprintf(9, "\t 3D line: drawing legend box\n");
+		gr->Legend(0, "");
+	}
+
 	//printf("eod; range z = [%.2f %.2f]\n", range.zMin, range.zMax);
 	return 0;
 }
@@ -213,7 +251,7 @@ ARange::ARange(int size, double* x, double* y, double* z) {
 	 return yes;
  } 	
 
-
+ /*
 void AnotherDraw::addLine(int size, double* x, double* y, double* z, const std::string& style_) {
 	if (size < 1) {
 		return;
@@ -227,6 +265,33 @@ void AnotherDraw::addLine(int size, double* x, double* y, double* z, const std::
 		range = line.range;
 		//xmprintf(6, "\t\tAnotherDraw::addLine range copied \n");
 	} else {
+		//xmprintf(6, "\t\tAnotherDraw::addLine updating range .. \n");
+		range.update(line.range);
+		//xmprintf(6, "\t\tAnotherDraw::addLine range updated \n");
+	}
+	//xmprintf(6, "\t\tAnotherDraw::addLine range updated \n");
+	lines.push_back(line);
+	plotsCount += 1;
+	//xmprintf(5, "\tAnotherDraw::addLine: N = %d z range = [%.2f %.2f]\n", size, range.zMin, range.zMax);
+}
+*/
+
+void AnotherDraw::addLine(LineItemInfo* ii) {
+	if (ii->size < 1) {
+		return;
+	}
+	xmprintf(5, "\tAnotherDraw::addLine; size = %d, legend = %s\n", ii->size, ii->legend.c_str());
+
+	//std::shared_ptr < ThreeDline > line = std::make_shared < ThreeDline >(ii);
+	ThreeDline line(ii);
+
+	//xmprintf(6, "\t\tAnotherDraw::addLine line created; \n");
+	if (plotsCount == 0) {
+		//xmprintf(6, "\t\tAnotherDraw::addLine range ...\n");
+		range = line.range;
+		//xmprintf(6, "\t\tAnotherDraw::addLine range copied \n");
+	}
+	else {
 		//xmprintf(6, "\t\tAnotherDraw::addLine updating range .. \n");
 		range.update(line.range);
 		//xmprintf(6, "\t\tAnotherDraw::addLine range updated \n");
@@ -306,10 +371,30 @@ int sample(mglGraph* gr)
   	return 0;
 }
 
-void QMGL1::addLine(int size, double* x, double* y, double* z) {
-	addLine(size, x, y, z, "");
+//void QMGL1::addLine(int size, double* x, double* y, double* z) {
+//	addLine(size, x, y, z, "");
+//}
+
+void QMGL1::addLine(LineItemInfo* line) {
+	xmprintf(7, "\t\tQMGL1::addLine3; size = %d; stype = (%s); \n", line->size, line->style.c_str());
+
+	//AnotherDraw* test1 = draw;
+
+	//void* pTest = (void*)(test1);
+
+	//int test123 = draw->plotsCount;
+	xmprintf(7, "\t\tplotsCount = %d; drawCounter = %d \n", draw->plotsCount, draw->drawCounter);
+	draw->addLine(line);
+	xmprintf(7, "\t\tQMGL1::addLine3; after draw->addLine \n");
+	//mgl->update();
+	if (linesAddTimer->isActive()) {
+		linesAddTimer->stop();
+	}
+	linesAddTimer->start(150);
+	xmprintf(7, "\t\tQMGL1::addLine3  done\n");
 }
 
+/*
 void QMGL1::addLine(int size, double* x, double* y, double* z, const std::string& style_) {
 	xmprintf(7, "\t\tQMGL1::addLine; size = %d; stype = (%s); \n", size, style_.c_str());
 
@@ -328,6 +413,7 @@ void QMGL1::addLine(int size, double* x, double* y, double* z, const std::string
 	linesAddTimer->start(150);
 	xmprintf(7, "\t\tQMGL1::addLine  done\n");
 }
+*/
 
 void QMGL1::addSurf(const MeshInfo& info) {
 	//draw->sdType = sd;

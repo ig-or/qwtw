@@ -6,6 +6,7 @@
 
 #include <QLayout>
 #include <QLabel>
+#include "line.h"
 #include "qmglplot.h"
 #include "qmgl.h"
 
@@ -62,9 +63,11 @@ void QMglPlot::addLine(LineItemInfo* line) {
     xmprintf(6, "\t\tQMglPlot::addLine start \n");
 	JustAplot::addLine(line);
     xmprintf(6, "\t\tQMglPlot::addLine .. \n");
-    qmgl->addLine(line->size, line->x, line->y, line->z, line->style);
+    //qmgl->addLine(line->size, line->x, line->y, line->z, line->style);
+	qmgl->addLine(line);
     xmprintf(6, "\t\tQMglPlot::addLine finish \n");
 }
+
 
 void QMglPlot::addMesh(const MeshInfo& info) {
         qmgl->addSurf(info);

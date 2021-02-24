@@ -27,6 +27,8 @@ class QBoxLayout;
 class QResizeEvent;
 class QScrollArea;
 
+struct LineItemInfo;
+
 
 struct ARange {
 	double xMin, xMax, yMin, yMax, zMin, zMax;
@@ -41,7 +43,9 @@ struct ThreeDline {
 	mglData my;
 	mglData mz;
 	std::string style;
-	ThreeDline(int size, double* x, double* y, double* z, const std::string& style_);
+	std::string legend;
+	//ThreeDline(int size, double* x, double* y, double* z, const std::string& style_);
+	ThreeDline(LineItemInfo* line);
 };
 
 struct SurfData {
@@ -60,11 +64,9 @@ struct SurfData {
 class AnotherDraw : public mglDraw {
 	ARange range;
 	//mglGraph *gr;
+	//std::list< std::shared_ptr<ThreeDline>> lines;
 	std::list<ThreeDline> lines;
 	std::list<std::shared_ptr<SurfData>> surfs;
-
-
-	
 
 public:
 
@@ -81,8 +83,9 @@ public:
 	AnotherDraw();
 	~AnotherDraw();
 	int Draw(mglGraph *);
-	void addLine(int size, double* x, double* y, double* z, const std::string& style_);
-	void addLine(int size, double* x, double* y, double* z);
+	//void addLine(int size, double* x, double* y, double* z, const std::string& style_);
+	//void addLine(int size, double* x, double* y, double* z);
+	void addLine(LineItemInfo* ii);
 	void addSurf(const MeshInfo& info);
 };
 
@@ -93,8 +96,9 @@ class QMGL1 : public QWidget {
 public:
 	QMGL1(QWidget *parent = 0);
 	~QMGL1();
-	void addLine(int size, double* x, double* y, double* z, const std::string& style_);
-	void addLine(int size, double* x, double* y, double* z);
+	//void addLine(int size, double* x, double* y, double* z, const std::string& style_);
+	void addLine(LineItemInfo* line);
+	//void addLine(int size, double* x, double* y, double* z);
 	void addSurf(const MeshInfo& info);
 	void xLabel(const std::string& label);
 	void yLabel(const std::string& label);
