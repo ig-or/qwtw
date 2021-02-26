@@ -37,10 +37,14 @@ struct SHMTest {
 	#endif
 	void qsetloglevel(int level);
 	void qwtsetimpstatus(int impStatus);
-	void qwtplot(double* x, double* y, int size, const char* name, const char* style, 
-	int lineWidth, int symSize);
-	void qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
-	int lineWidth, int symSize, double* time);
+	int qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
+	int qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time);
+
+	/// <summary>
+	///   remove a line from a plot
+	/// </summary>
+	/// <param name="id"> id of thie line</param>
+	void qwtremove(int id);
 #ifdef USE_QT3D
 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

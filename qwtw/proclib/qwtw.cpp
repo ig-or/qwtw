@@ -185,15 +185,20 @@ qwtwc_API 	void qwtsetimpstatus(int status) {
 	test.qwtsetimpstatus(status);
 }
 
-qwtwc_API 	void qwtplot(double* x, double* y, int size, const char* name, const char* style, 
+qwtwc_API 	int qwtplot(double* x, double* y, int size, const char* name, const char* style, 
 	    int lineWidth, int symSize) {
-	test.qwtplot(x, y, size, name, style, lineWidth, symSize);
+	return test.qwtplot(x, y, size, name, style, lineWidth, symSize);
 }
 
-qwtwc_API 	void qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
+qwtwc_API 	int qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
 	    int lineWidth, int symSize, double* time) {
-	test.qwtplot2(x, y, size, name, style, lineWidth, symSize, time);
-	}
+	return test.qwtplot2(x, y, size, name, style, lineWidth, symSize, time);
+}
+
+qwtwc_API void qwtremove(int id) {
+	test.qwtremove(id);
+}
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

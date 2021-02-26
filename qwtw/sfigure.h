@@ -20,6 +20,7 @@
 #include <QMap>
 #include <QWidget>
 #include <QDialog>
+#include <map>
 //#include <QMainWindow>
 #include <QAbstractItemModel>
 #include <QStandardItemModel>
@@ -36,10 +37,9 @@
 #endif
 
 class JustAplot;
-
-
 #include "ui_mw.h"
 struct LineItemInfo;
+//struct FigureItem;
 #ifdef ENABLE_UDP_SYNC
 class BCUdpClient;
 class BCUdpServer;
@@ -52,6 +52,11 @@ class PlotsInterfaceModel: public QStandardItemModel {
 
 };
 */
+
+struct LineHandler {
+	LineItemInfo* line;
+	JustAplot* plot;
+};
 
 class /*qqwtw_API*/ XQPlots: public /*QMainWindow { //  */ QDialog {
 	Q_OBJECT
@@ -89,11 +94,14 @@ public:
 	/**
 
 	*/
-	void plot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize,
+	int plot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize,
 	    double* time = 0);
 
-	void plot(double* x, double* y, double* z, int size, const char* name, const char* style, int lineWidth, int symSize,
+	int plot(double* x, double* y, double* z, int size, const char* name, const char* style, int lineWidth, int symSize,
 		double* time = 0);
+
+	int removeLine(int key);
+	int changeLine(int key, double* x, double* y, double* z, double* time, int size);
 
 	void mesh(const MeshInfo& info);
 
@@ -152,6 +160,7 @@ private:
 	JustAplot* getPlotByName(std::string s);
 	void on3DMarker(double p[3]);
 //	QStandardItem* jp2SI
+	std::map<int, LineHandler> lines;
 
 private slots:
 	void onFigureClosed(const std::string& key);

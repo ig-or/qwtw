@@ -371,9 +371,9 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
 #endif
 
 
-void SHMTest::qwtplot(double* x, double* y, int size, const char* name, const char* style, 
+int SHMTest::qwtplot(double* x, double* y, int size, const char* name, const char* style, 
     	int lineWidth, int symSize) {
-	qwtplot2(x, y, size, name, style, lineWidth, symSize, 0);
+	return qwtplot2(x, y, size, name, style, lineWidth, symSize, 0);
 }
 
 void SHMTest::resizeData(long long size) {
@@ -442,9 +442,9 @@ void SHMTest::resize(long long size) {
 	xmprintf(6, "\tSHMTest::resize: new size end \n");
 }
 
-void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
+int SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
     	int lineWidth, int symSize, double* time) {
-	if (status != 0) return;
+	if (status != 0) return -7;
 	using namespace boost::interprocess;
 	
 	//   check max size on the other side:
@@ -479,13 +479,20 @@ void SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const c
 		}
 	} catch (const std::exception& ex){
 		xmprintf(0, "ERROR: exception in SHMTest::qwtplot2 (%s)\n", ex.what());
-		return;
+		return -8;
 	}
 	xmprintf(3, "\tSHMTest::qwtplot2(); notifying..\n");
 	pd.hdr->cmdWait.notify_all();
 	xmprintf(3, "\tSHMTest::qwtplot2();  waiting ..\n");
 	pd.hdr->workDone.wait(lock);
+	int test = pd.hdr->test;
 	xmprintf(3, "\tSHMTest::qwtplot2();  done\n");
+	return test;
+}
+
+void SHMTest::qwtremove(int id) {
+	if (status != 0) return;
+	sendCommand(CmdHeader::qRemoveLine, id);
 }
 
 
@@ -540,7 +547,7 @@ void SHMTest::qwtmgl_line(int size, double* x, double* y, double* z, const char*
 
 void SHMTest::qwtmgl_mesh(const MeshInfo& info)  {
 
-				if (status != 0) return;
+	if (status != 0) return;
 	using namespace boost::interprocess;
 	
 	//   check max size on the other side:

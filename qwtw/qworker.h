@@ -28,8 +28,9 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtxlabelImpl(const char* s);
 	Q_INVOKABLE void qwtylabelImpl(const char* s);
 	Q_INVOKABLE int qwtfigureImpl(int n);
-	Q_INVOKABLE void qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
+	Q_INVOKABLE int qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 	Q_INVOKABLE void qwtclearImpl();
+	Q_INVOKABLE void qwtRemoveLineImpl(int key);
 
 #ifdef USEMATHGL
 	Q_INVOKABLE int mglPlotImpl(int n);
@@ -56,7 +57,7 @@ public:
 	int qtstart(bool wait);
 	void qwtshowmw();
 	int qwttitle(const char* s);
-	void qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time);
+	int qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time);
 	void qwtEnableCoordBroadcast(double* x, double* y, double* z, double* time, int size);
 	void qwtDisableCoordBroadcast();
 	void qwtsetimpstatus(int impStatus);
@@ -64,7 +65,8 @@ public:
 	void qwtylabel(const char* s);
 	void qwtclear();
 	void qwtfigure(int n);
-	void qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
+	void qwtRemoveLine(int key);
+	int qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 	//void appMutexLock
 
 #ifdef USEMARBLE

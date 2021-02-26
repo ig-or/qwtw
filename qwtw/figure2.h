@@ -33,7 +33,7 @@
 #include <qwt_legend.h>
 #include <qwt_plot_zoomer.h>
 #include <qwt_plot_panner.h>
-#include <qwt_plot_curve.h>
+//
 #include <qwt_plot_marker.h>
 #include <qwt_symbol.h>
 #include <qwt_scale_engine.h>
@@ -43,16 +43,6 @@
 #include "ui_lineselect.h"
 
 class QwtPlotRescaler;
-
-struct FigureItem { 
-	QwtPlotCurve*	line;
-	LineItemInfo*	info;
-
-	QwtPlotMarker* ma;
-	FigureItem(LineItemInfo*	info_, QwtPlotCurve*	line_);
-	~FigureItem();
-};
-
 
 
 class FSPlot: public QwtPlot {
@@ -130,6 +120,9 @@ public:
 
 
 	void setAxesEqual();
+	virtual void removeLine(LineItemInfo* line);
+	virtual void changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size);
+
 
 public:
 

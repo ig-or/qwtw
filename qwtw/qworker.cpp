@@ -196,14 +196,15 @@ void QWorker::qwtylabel(const char* s) {
 
 
 
-void QWorker::qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time) {
-	int rv;
+int QWorker::qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time) {
+	int rv = -5;
 	if (!QMetaObject::invokeMethod(this, "qwtplot2Impl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
 		Q_ARG(double*, x), Q_ARG(double*, y), Q_ARG(int, size), Q_ARG(const char*, name), Q_ARG(const char*, style),
 		Q_ARG(int, lineWidth), Q_ARG(int, symSize), Q_ARG(double*, time))) {
 
 		std::cout << " cannot invoke qwtplot2Impl" << std::endl;
 	}
+	return rv;
 }
 
 void QWorker::qwtclear() {
@@ -219,14 +220,21 @@ void QWorker::qwtfigure(int n) {
 	}
 }
 
-void QWorker::qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize) {
-	int rv;
-	if (!QMetaObject::invokeMethod(this, "qwtplotImpl", Qt::BlockingQueuedConnection, 
+void QWorker::qwtRemoveLine(int key) {
+	if (!QMetaObject::invokeMethod(this, "qwtRemoveLineImpl", Qt::QueuedConnection, Q_ARG(int, key))) {
+		std::cout << " cannot invoke qwtRemoveLineImpl" << std::endl;
+	}
+}
+
+int QWorker::qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize) {
+	int rv = -5;
+	if (!QMetaObject::invokeMethod(this, "qwtplotImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
 		Q_ARG(double*, x), Q_ARG(double*, y), Q_ARG(int, size), Q_ARG(const char*, name), Q_ARG(const char*, style),
 		Q_ARG(int, lineWidth), Q_ARG(int, symSize))) {
 
 		std::cout << " cannot invoke qwtplotImpl" << std::endl;
 	}
+	return rv;
 }
 
 
@@ -238,8 +246,8 @@ Q_INVOKABLE int QWorker::qwttitleImpl(const char* s) {
 Q_INVOKABLE int QWorker::qwtplot2Impl(double* x, double* y, int size, const char* name, 
 		const char* style, int lineWidth, int symSize, double* time) {
 	pf->setmode(3);
-	pf->plot(x, y, size, name, style, lineWidth, symSize, time);
-	return 0;
+	int test = pf->plot(x, y, size, name, style, lineWidth, symSize, time);
+	return test;
 }
 Q_INVOKABLE void QWorker::qwtEnableCoordBroadcastImpl(double* x, double* y, double* z, double* time, int size) {
 	pf->enableCoordBroadcast(x, y, z, time, size);
@@ -267,8 +275,14 @@ Q_INVOKABLE int QWorker::qwtfigureImpl(int n) {
 	JustAplot*  test = pf->figure(n, jQWT);
 	return (test == 0) ? 1 : 0;
 }
-Q_INVOKABLE void QWorker::qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize) {
-	pf->plot(x, y, size, name, style, lineWidth, symSize);
+
+Q_INVOKABLE void QWorker::qwtRemoveLineImpl(int key) {
+	pf->removeLine(key);
+}
+
+Q_INVOKABLE int QWorker::qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize) {
+	int test = pf->plot(x, y, size, name, style, lineWidth, symSize);
+	return test;
 }
 
 

@@ -20,6 +20,7 @@
 #include <qwt_symbol.h>
 #include <qwt_plot_magnifier.h>
 #include <qwt_plot_rescaler.h>
+#include <qwt_plot_curve.h>
 
 #include <qwt_legend.h>
 #include <qwt_text.h>
@@ -144,20 +145,6 @@ void FSPlot::doSquareAxis() {
 	replot();
 }
 
-FigureItem::FigureItem(LineItemInfo*	info_, QwtPlotCurve*	line_) {
-	info = info_;
-	line = line_;
-	if (info->mode == 0) {
-		ma = 0;
-	} else {
-		ma = new QwtPlotMarker();
-	}
-}
-
-
-FigureItem::~FigureItem() {
-
-}
 
  TestScaleEngine::TestScaleEngine()    {
 	setAttribute( QwtScaleEngine::Floating, true );
@@ -571,6 +558,44 @@ void Figure2::addLine(LineItemInfo* line) {
 	zoomer->setZoomBase(false);
 }
 
+void Figure2::removeLine(LineItemInfo* line) {
+	const bool doReplot = plot1->autoReplot();
+	plot1->setAutoReplot(false);
+	
+	//  remove from 'lines'
+	std::list<FigureItem*>::iterator it;
+	for (it = lines.begin(); it != lines.end(); it++) {
+		FigureItem* i = *it;
+		if (i->info == line) {
+
+			//   delete and detach QWT line
+			i->line->setData(NULL);
+			i->line->detach();
+			delete i->line;
+
+			// delete FigureItem and its marker
+			delete i;
+
+			lines.erase(it);
+			break;
+		}
+	}
+
+	JustAplot::removeLine(line);  //   delete 'line' itself
+
+	plot1->updateAxes();
+	//zoomer->setZoomBase(true);
+	plot1->setAutoReplot(doReplot);
+	plot1->replot();
+	zoomer->setZoomBase(false);
+}
+
+void Figure2::changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size) {
+
+
+}
+
+
 void Figure2::setupUi()     {
     if (this->objectName().isEmpty())
         this->setObjectName(QString::fromUtf8("Figure2"));
@@ -697,9 +722,10 @@ void Figure2::removeLines() {
 		FigureItem* cf = *xi;
 		cf->line->setData(NULL);
 		cf->line->detach();
-		//   error? delete cf;
-
 		delete cf->line;
+
+		delete cf;
+		
 		xi++;
 	}
 	lines.clear();

@@ -8,8 +8,6 @@
 #include "xmatrixplatform.h"
 #include "xmatrix2.h"
 
-#define REMEMBER_EVERYTHING
-
 
 long long fcp(LineItemInfo* i, double x, double y) {
 	long long ret = 0xffffffff;
@@ -50,6 +48,27 @@ JustAplot::JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, JPT
 void JustAplot::addLine(LineItemInfo* line) {
 	linesInfo.push_back(line);
 	cInfo = line;
+}
+
+void JustAplot::removeLine(LineItemInfo* line) {
+	std::list<LineItemInfo*>::iterator it;
+	for (it = linesInfo.begin(); it != linesInfo.end(); it++) {
+		LineItemInfo* i = *it;
+		if (i == line) {
+			delete i;
+			linesInfo.erase(it);
+			break;
+		}
+	}
+
+	//  update cInfo
+	if (linesInfo.empty()) {
+		cInfo = 0;
+	}	else {
+		if (cInfo == line) {
+			cInfo = linesInfo.back();
+		}
+	}
 }
 
 JustAplot::~JustAplot() {

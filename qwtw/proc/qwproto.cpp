@@ -250,6 +250,10 @@ void QProcInterface::processCommand(int cmd) {
 			worker.qwtfigure(pd.hdr->test);
 			break;
 
+		case CmdHeader::qRemoveLine:
+			worker.qwtRemoveLine(pd.hdr->test);
+			break;
+
 		case CmdHeader::qMap:
 			worker.mapview(pd.hdr->test);
 			break;
@@ -302,7 +306,8 @@ void QProcInterface::processCommand(int cmd) {
 		case CmdHeader::qPlot:
 			if (pd.hdr->size <= pd.hdr->segSize) {
 				xmprintf(5, "processCommand qPlot; style = [%s]\n", pd.hdr->style);
-				worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
+				int test = worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
+				pd.hdr->test = test; //   put answer here
 				xmprintf(5, "processCommand qPlot; worker complete;\n");
 			}
 			break;
@@ -310,8 +315,9 @@ void QProcInterface::processCommand(int cmd) {
 		case CmdHeader::qPlot2:
 			if (pd.hdr->size <= pd.hdr->segSize) {
 				xmprintf(5, "processCommand qPlot2; style = [%s]\n", pd.hdr->style);
-				worker.qwtplot2(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, 
+				int test = worker.qwtplot2(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style,
 					pd.hdr->lineWidth, pd.hdr->symSize, pd.t);
+				pd.hdr->test = test; //   put answer here
 				xmprintf(5, "processCommand qPlot2; worker complete;\n");
 			}
 			break;

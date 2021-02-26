@@ -14,6 +14,7 @@ struct CmdHeader {
 		changeDataSize,
 		qMW,
 		qFigure,
+		qRemoveLine,
 		qMap, 
 		qPlot,
 		qPlot2, 

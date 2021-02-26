@@ -177,9 +177,10 @@ qwtwc_API 	void qwtsetimpstatus(int status);
 
  @param[in] lineWidth line width (1 is fastest)
  @param[in] symSize  size parameter for the symbols (if we use symbols instead of lines).
+ \return this line ID
 
 */
-qwtwc_API 	void qwtplot(double* x, double* y, int size, const char* name, const char* style, 
+qwtwc_API 	int qwtplot(double* x, double* y, int size, const char* name, const char* style, 
     int lineWidth, int symSize);
 
 /**  same as above, but with additional 'time information'.
@@ -195,9 +196,18 @@ qwtwc_API 	void qwtplot(double* x, double* y, int size, const char* name, const 
 	
 
 	for first plot we'll use 'x velo' and 'time' arrays, and for second plot we'll use 'x coord', 'y coord' and 'time' arrays.
+
+ \return this line ID
 */
-qwtwc_API 	void qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
+qwtwc_API 	int qwtplot2(double* x, double* y, int size, const char* name, const char* style, 
     int lineWidth, int symSize, double* time);
+
+/**
+    remove plot with this particular ID
+    \param id the value came from functions like qwtplot..;   the ID of the line to remove
+*/
+qwtwc_API void qwtremove(int id);
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

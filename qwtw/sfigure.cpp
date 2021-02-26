@@ -226,6 +226,8 @@ public:
 
 #endif
 
+static unsigned int linesHistoryCounter = 0;
+
 XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(parent1, Qt::Dialog |
 		Qt::WindowTitleHint | Qt::WindowSystemMenuHint | Qt::WindowMinimizeButtonHint | 
 		Qt::WindowCloseButtonHint | Qt::WindowContextHelpButtonHint) {
@@ -628,7 +630,7 @@ void XQPlots::ylabel(const std::string& s) {
 	cf->ylabel(s);
 }
 
-void  XQPlots::plot(double* x, double* y, int size, const char* name, 
+int  XQPlots::plot(double* x, double* y, int size, const char* name, 
 					     const char* style, int lineWidth, int symSize,
 						double* time) {
 	mxassert((x != 0) && (y != 0) && (size > 0) && (name != 0) && (style != 0), "");
@@ -654,6 +656,10 @@ void  XQPlots::plot(double* x, double* y, int size, const char* name,
 	i->important = currentImportanceMode;
 
 	cf->addLine(i);
+
+	linesHistoryCounter += 1;
+	lines[linesHistoryCounter] = LineHandler{i, cf};
+	return linesHistoryCounter;
 }
 
 void XQPlots::mesh(const MeshInfo& info) {
@@ -673,7 +679,7 @@ void XQPlots::mesh(const MeshInfo& info) {
 	xmprintf(6, "\tXQPlots::mesh finished \n");
 }
 
-void  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
+int  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
 	const char* style, int lineWidth, int symSize,
 	double* time) {
 	mxassert((x != 0) && (y != 0) && (z != 0) && (size > 0) && (name != 0) && (style != 0), "");
@@ -694,7 +700,7 @@ void  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
 	}
 	if (cf->type != jMathGL) {
 		xmprintf(0, "\t\tXQPlots::plot  cannot create  jMathGL object\n");
-		return;
+		return -1;
 	}
 
 	//it will be deleted in 'cf' destructor
@@ -708,7 +714,33 @@ void  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
 
 	xmprintf(5, "\tXQPlots::plot  adding line \n");
 	cf->addLine(i);
+
+	linesHistoryCounter += 1;
+	lines[linesHistoryCounter] = LineHandler{ i, cf };
 	xmprintf(5, "\tXQPlots::plot  finished \n");
+	return linesHistoryCounter;
+}
+
+int XQPlots::removeLine(int key) {
+	auto i = lines.find(key);
+	if (i == lines.end()) {
+		return 1;
+	}
+	LineHandler& h = i->second;
+	h.plot->removeLine(h.line);
+	lines.erase(key);
+
+	return 0;
+}
+int XQPlots::changeLine(int key, double* x, double* y, double* z, double* time, int size) {
+	auto i = lines.find(key);
+	if (i == lines.end()) {
+		return 1;
+	}
+	LineHandler& h = i->second;
+	h.plot->changeLine(h.line, x, y, z, time, size);
+
+	return 0;
 }
 
 #ifdef ENABLE_UDP_SYNC
@@ -771,6 +803,7 @@ void XQPlots::clearFigures() {
 		it++;
 	}
 	figures.clear();
+	lines.clear();
 	clearingAllFigures = false;
 
 	pim.clear();
@@ -798,6 +831,13 @@ void XQPlots::onFigureClosed(const std::string& key) {
 	std::map<std::string,  JustAplot*>::iterator it = figures.find(key);
 	if (it != figures.end()) {
 		f = it->second;  //  DO WE NEED THIS???
+		
+		//    remove all the lines from 'lines':
+		for (auto i : lines) {
+			if (i.second.plot == f) {
+				lines.erase(i.first);
+			}
+		}
 
 		//  remove from tv:
 		QList<QStandardItem *> si = pim.findItems(f->name.c_str());

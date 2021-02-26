@@ -34,6 +34,8 @@ public:
 	virtual void drawMarker(double X, double Y, int type = 1) = 0;
 	virtual void drawMarker(double t);
 	virtual void onClip(double t1, double t2);
+	virtual void removeLine(LineItemInfo* line);
+	virtual void changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size) {}
 
 	/** Just save this pointer.
 	it will 'delete' all the pointers itself later
