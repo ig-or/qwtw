@@ -36,6 +36,7 @@ message(STATUS "got MATHGL2_VERSION_STRING ${MATHGL2_VERSION_STRING}")
 
 if(UNIX)
 	add_definitions(-DLIN_UX)
+	addQWTLinux() # do not need this actually here....
 	addOtherLib("rt")
 	addOtherLib("dl")
 	addOtherLib("GL")

@@ -293,6 +293,9 @@ macro (addQWTLinux)
 		list(APPEND ${L_LIST} ${QWT_LIBRARY})
 		list(APPEND INC_DIR_LIST ${QWT_INCLUDE_DIR})
 
+		message(STATUS "QWT: QWT_INCLUDE_DIR = ${QWT_INCLUDE_DIR}")
+		message(STATUS "QWT: QWT_LIBRARY = ${QWT_LIBRARY}")
+
 	else()
 		message(FATAL_ERROR "cannot find QWT library")
 	ENDIF()
@@ -944,6 +947,7 @@ macro (commonEnd   libType)
 
 	message(STATUS "VERSION_INFO_STRING: ${VERSION_INFO_STRING}")
 	message(STATUS "CMAKE_SHARED_LINKER_FLAGS: ${CMAKE_SHARED_LINKER_FLAGS}")
+	message(STATUS "INCLUDE_DIRECTORIES = ${INC_DIR_LIST}")
 
 	if(WIN32 AND MSVC) 
 		add_definitions(/MP  /GS /std:c++14)
