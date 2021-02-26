@@ -199,6 +199,10 @@ qwtwc_API void qwtremove(int id) {
 	test.qwtremove(id);
 }
 
+qwtwc_API int qwtchange(int id, double* x, double* y, double* z, double* time, int size) {
+	return test.qwtchange(id, x, y, z, time, size);
+}
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

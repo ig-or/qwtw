@@ -591,8 +591,57 @@ void Figure2::removeLine(LineItemInfo* line) {
 }
 
 void Figure2::changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size) {
+	if (size == line->size) {
+	}	else {
+		if (line->x != 0) { 
+			delete[] line->x; 
+			line->x = 0;
+		}
+		if (x != 0) {
+			line->x = new double[size];
+		}
 
+		if (line->y != 0) {
+			delete[] line->y;
+			line->y = 0;
+		}
+		if (y != 0) {
+			line->y = new double[size];
+		}
 
+		if (line->z != 0) {
+			delete[] line->z;
+			line->z = 0;
+		}
+		if (z != 0) {
+			line->z = new double[size];
+		}
+
+		if (line->time != 0) {
+			delete[] line->time;
+			line->time = 0;
+		}
+		if (time != 0) {
+			line->time = new double[size];
+		}
+
+		line->size = size;
+	}
+
+	if (x != 0) {
+		memcpy(line->x, x, size * sizeof(double));
+	}
+	if (y != 0) {
+		memcpy(line->y, y, size * sizeof(double));
+	}
+	if (z != 0) {
+		memcpy(line->z, z, size * sizeof(double));
+	}
+	if (time != 0) {
+		memcpy(line->time, time, size * sizeof(double));
+	}
+
+	plot1->replot();
 }
 
 

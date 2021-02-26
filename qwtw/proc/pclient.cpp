@@ -495,6 +495,63 @@ void SHMTest::qwtremove(int id) {
 	sendCommand(CmdHeader::qRemoveLine, id);
 }
 
+int SHMTest::qwtchange(int id, double* x, double* y, double* z, double* time, int size) {
+	if (status != 0) return -7;
+	using namespace boost::interprocess;
+
+	//   check max size on the other side:
+	pd.hdr->mutex.lock();
+	long long a = pd.hdr->segSize;
+	pd.hdr->mutex.unlock();
+	if (a < size) {
+		xmprintf(3, "\tSHMTest::qwtchange: inc seg size (1); current size = %lld \n", a);
+		resize(size);
+	}
+	xmprintf(3, "SHMTest::qwtchange(); size = %d  locking ..\n", size);
+	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(3, "\tSHMTest::qwtchange();  locked ..\n");
+
+	//  now lets change
+	xmprintf(6, "\tSHMTest::qwtchange: copying the data \n");
+	try {
+		//pd.hdr->lineWidth = lineWidth;
+		//pd.hdr->symSize = symSize;
+		//strncpy(pd.hdr->style, style, 8);
+		pd.hdr->size = size;
+		//strncpy(pd.hdr->name, name, CmdHeader::nameSize);
+
+		memcpy(pd.x, x, sizeof(double) * size);
+		memcpy(pd.y, y, sizeof(double) * size);
+		pd.hdr->cmd = CmdHeader::qChangeLine;
+		pd.hdr->test = id;
+
+		if (time != 0) {
+			pd.hdr->timeIsGood = 1;
+			memcpy(pd.t, time, sizeof(double) * size);
+		}	else {
+			pd.hdr->timeIsGood = 0;
+		}
+		if (z != 0) {
+			pd.hdr->zIsGood = 1;
+			memcpy(pd.z, z, sizeof(double) * size);
+		}	else {
+			pd.hdr->zIsGood = 0;
+		}
+		
+	}
+	catch (const std::exception& ex) {
+		xmprintf(0, "ERROR: exception in SHMTest::qwtchange (%s)\n", ex.what());
+		return -8;
+	}
+	xmprintf(3, "\tSHMTest::qwtchange(); notifying..\n");
+	pd.hdr->cmdWait.notify_all();
+	xmprintf(3, "\tSHMTest::qwtchange();  waiting ..\n");
+	pd.hdr->workDone.wait(lock);
+	int test = pd.hdr->test;
+	xmprintf(3, "\tSHMTest::qwtchange();  done\n");
+	return test;
+}
+
 
 #ifdef USEMATHGL
 void SHMTest::qwtmgl(int n) {

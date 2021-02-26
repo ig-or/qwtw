@@ -208,6 +208,12 @@ qwtwc_API 	int qwtplot2(double* x, double* y, int size, const char* name, const 
 */
 qwtwc_API void qwtremove(int id);
 
+/**
+    replace values for the line
+    \param id the line ID
+*/
+qwtwc_API int qwtchange(int id, double* x, double* y, double* z, double* time, int size);
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

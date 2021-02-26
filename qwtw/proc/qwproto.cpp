@@ -322,6 +322,17 @@ void QProcInterface::processCommand(int cmd) {
 			}
 			break;
 
+		case CmdHeader::qChangeLine:
+			if (pd.hdr->size <= pd.hdr->segSize) {
+				xmprintf(5, "processCommand qChangeLine; size = [%d]\n", pd.hdr->size);
+				double* t = (pd.hdr->timeIsGood == 0) ? 0 : pd.t;
+				double* z = (pd.hdr->zIsGood == 0) ? 0 : pd.z;
+				int test = worker.qwtChangeLine(pd.hdr->test,  pd.x, pd.y, z, t, pd.hdr->size);
+				pd.hdr->test = test; //   put answer here
+				xmprintf(5, "processCommand qChangeLine; worker complete;\n");
+			}
+			break;
+
 		case CmdHeader::qEnableBC:
 			worker.qwtEnableCoordBroadcast(pd.x, pd.y, pd.z, pd.t, pd.hdr->size);
 			break;

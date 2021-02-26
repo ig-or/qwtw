@@ -45,6 +45,7 @@ struct SHMTest {
 	/// </summary>
 	/// <param name="id"> id of thie line</param>
 	void qwtremove(int id);
+	int qwtchange(int id, double* x, double* y, double* z, double* time, int size);
 #ifdef USE_QT3D
 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

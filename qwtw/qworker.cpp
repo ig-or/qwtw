@@ -226,6 +226,18 @@ void QWorker::qwtRemoveLine(int key) {
 	}
 }
 
+int QWorker::qwtChangeLine(int id, double* x, double* y, double* z, double* time, int size) {
+	int rv = -5;
+	if (!QMetaObject::invokeMethod(this, "qwtChangeLineImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
+		Q_ARG(int, id),
+		Q_ARG(double*, x), Q_ARG(double*, y), Q_ARG(double*, z), Q_ARG(double*, time),
+		Q_ARG(int, size))) {
+
+		std::cout << " cannot invoke qwtChangeLineImpl" << std::endl;
+	}
+	return rv;
+}
+
 int QWorker::qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize) {
 	int rv = -5;
 	if (!QMetaObject::invokeMethod(this, "qwtplotImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
@@ -278,6 +290,11 @@ Q_INVOKABLE int QWorker::qwtfigureImpl(int n) {
 
 Q_INVOKABLE void QWorker::qwtRemoveLineImpl(int key) {
 	pf->removeLine(key);
+}
+
+Q_INVOKABLE int  QWorker::qwtChangeLineImpl(int id, double* x, double* y, double* z, double* time, int size) {
+	int test = pf->changeLine(id, x, y, z, time, size);
+	return test;
 }
 
 Q_INVOKABLE int QWorker::qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize) {

@@ -18,6 +18,7 @@ struct CmdHeader {
 		qMap, 
 		qPlot,
 		qPlot2, 
+		qChangeLine,
 		qTitle, 
 		qXlabel, // 10
 		qYlabel,
@@ -48,6 +49,8 @@ struct CmdHeader {
 
 	int xSize, ySize, type;
 	double xMin, xMax, yMin, yMax;
+
+	int timeIsGood, zIsGood;
 
 	boost::interprocess::interprocess_mutex      mutex;
 	boost::interprocess::interprocess_condition  cmdWait;
