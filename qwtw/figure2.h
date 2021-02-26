@@ -42,7 +42,20 @@
 
 #include "ui_lineselect.h"
 
+class QwtPlotCurve;
+class QwtPlotMarker;
 class QwtPlotRescaler;
+
+
+struct FigureItem {
+	QwtPlotCurve* line;
+	LineItemInfo* info;
+	//long long key;
+
+	QwtPlotMarker* ma;
+	FigureItem(LineItemInfo* info_, QwtPlotCurve* line_);
+	~FigureItem();
+};
 
 
 class FSPlot: public QwtPlot {

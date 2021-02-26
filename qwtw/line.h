@@ -8,8 +8,6 @@
 #include <list>
 
 class SQWLine;
-class QwtPlotCurve;
-class QwtPlotMarker;
 
 /**
 one single line on a plot.
@@ -57,17 +55,6 @@ struct LineItemInfo {
 	LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std::string legend_,
 		double* time_ = 0);
 	~LineItemInfo();
-};
-
-
-struct FigureItem {
-	QwtPlotCurve* line;
-	LineItemInfo* info;
-	//long long key;
-
-	QwtPlotMarker* ma;
-	FigureItem(LineItemInfo* info_, QwtPlotCurve* line_);
-	~FigureItem();
 };
 
 

@@ -16,12 +16,11 @@
 #include "figure2.h"
 #include <stdio.h>
 #include <qwt_plot_grid.h>
-//#include <qwt_plot_curve.h>
 #include <qwt_symbol.h>
 #include <qwt_plot_magnifier.h>
 #include <qwt_plot_rescaler.h>
 #include <qwt_plot_curve.h>
-
+#include <qwt_plot_marker.h>
 #include <qwt_legend.h>
 #include <qwt_text.h>
 #include <qwt_picker_machine.h>
@@ -43,6 +42,28 @@
 #include <sstream>
 
 int xmprintf(int level, const char* _Format, ...);
+
+
+FigureItem::FigureItem(LineItemInfo* info_, QwtPlotCurve* line_) {
+	info = info_;
+	line = line_;
+	//key = key_;
+	if (info->mode == 0) {
+		ma = 0;
+	}
+	else {
+		ma = new QwtPlotMarker();
+	}
+}
+
+
+FigureItem::~FigureItem() {
+	if (ma != 0) {
+		delete ma;
+	}
+}
+
+
 
 
 FSPicker::FSPicker(int xAxis, int yAxis, RubberBand rubberBand, 

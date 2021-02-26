@@ -5,8 +5,6 @@
 #include "sqwlinetree.h"
 #include "xmatrix2.h"
 #include "xstdef.h"
-#include <qwt_plot_curve.h>
-#include <qwt_plot_marker.h>
 
 int xmprintf(int level, const char* _Format, ...);
 
@@ -126,24 +124,4 @@ LineItemInfo::~LineItemInfo() {
 	}
 }
 
-
-
-FigureItem::FigureItem(LineItemInfo* info_, QwtPlotCurve* line_) {
-	info = info_;
-	line = line_;
-	//key = key_;
-	if (info->mode == 0) {
-		ma = 0;
-	}
-	else {
-		ma = new QwtPlotMarker();
-	}
-}
-
-
-FigureItem::~FigureItem() {
-	if (ma != 0) {
-		delete ma;
-	}
-}
 
