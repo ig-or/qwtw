@@ -28,6 +28,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QList>
+#include <QLineEdit>
 
 #include "qwt_plot.h"
 #include <qwt_legend.h>
@@ -106,11 +107,31 @@ private:
 
 };
 
+class SelectNameDlg : public QDialog {
+public: 
+	SelectNameDlg(QWidget *parent = 0, const char* name = 0);
+	QLineEdit* text;
+	bool ret;
+	void keyPressEvent( QKeyEvent *k );
+protected:
+    bool eventFilter(QObject *obj, QEvent *event) override;
+	
+};
+
 class TestScaleEngine: public QwtLinearScaleEngine {
 public:
     TestScaleEngine();
  
     virtual void autoScale( int maxNumSteps, double &x1, double &x2, double &stepSize ) const;
+};
+
+class VLineMarker : public QwtPlotMarker {
+	public:
+	double t;
+	VLineMarker(QString text, double time);
+
+
+
 };
 
 class Figure2 : public JustAplot {
@@ -135,6 +156,7 @@ public:
 	void setAxesEqual();
 	virtual void removeLine(LineItemInfo* line);
 	virtual void changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size);
+	void addVMarker();
 
 
 public:
@@ -184,7 +206,14 @@ protected:
 	void setTBState();
 	void onPickerSignal(int x, int y);
 	void focusInEvent(QFocusEvent * event);
+	void keyPressEvent( QKeyEvent *k );
 	std::list<FigureItem*>	selectLines();
+	std::list<VLineMarker*> vmList;
+private:
+	double lastXselected, lastYselected;
+	bool pointWasSelected;
+
+
 
 private slots:
 	void ontb1(bool checked );

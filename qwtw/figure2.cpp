@@ -56,7 +56,6 @@ FigureItem::FigureItem(LineItemInfo* info_, QwtPlotCurve* line_) {
 	}
 }
 
-
 FigureItem::~FigureItem() {
 	if (ma != 0) {
 		delete ma;
@@ -71,12 +70,12 @@ FSPicker::FSPicker(int xAxis, int yAxis, RubberBand rubberBand,
 	QwtPlotPicker(xAxis, yAxis, rubberBand, trackerMode, canv) {
 
 		/*  d_picker = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
-        QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
-        d_plot->canvas() );
-    d_picker->setStateMachine( new QwtPickerDragPointMachine() );
-    d_picker->setRubberBandPen( QColor( Qt::green ) );
-    d_picker->setRubberBand( QwtPicker::CrossRubberBand );
-    d_picker->setTrackerPen( QColor( Qt::white ) );
+		QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
+		d_plot->canvas() );
+	d_picker->setStateMachine( new QwtPickerDragPointMachine() );
+	d_picker->setRubberBandPen( QColor( Qt::green ) );
+	d_picker->setRubberBand( QwtPicker::CrossRubberBand );
+	d_picker->setTrackerPen( QColor( Qt::white ) );
 
 		*/
 
@@ -87,6 +86,17 @@ QPointF FSPicker::transform1(	const QPoint & 	pos	 ) 	 const {
 	return ret;
 }
 
+VLineMarker::VLineMarker(QString text, double time): t(time) {
+	QwtText label(text);
+	label.setFont(QFont("Consolas", 12, QFont::Bold));
+	setLabel(label);
+    setLabelAlignment( Qt::AlignLeft | Qt::AlignBottom );
+    setLabelOrientation( Qt::Vertical );
+    setLineStyle( QwtPlotMarker::VLine );
+    setLinePen( Qt::black, 2, Qt::DashDotLine );
+    setXValue( time );
+}
+
 
 FSPlot::FSPlot(QWidget *parent) : QwtPlot(parent), squareAxis(false) {
 	//const bool doReplot = autoReplot();
@@ -95,17 +105,17 @@ FSPlot::FSPlot(QWidget *parent) : QwtPlot(parent), squareAxis(false) {
 	setCanvasBackground(QColor(Qt::white));
 
 	// grid 
-    QwtPlotGrid *grid = new QwtPlotGrid;
-    grid->enableXMin(true);
-    grid->setMajorPen(QPen(Qt::darkGray, 0, Qt::DotLine));
-    grid->setMinorPen(QPen(Qt::gray, 0 , Qt::DotLine));
-    grid->attach(this);
+	QwtPlotGrid *grid = new QwtPlotGrid;
+	grid->enableXMin(true);
+	grid->setMajorPen(QPen(Qt::darkGray, 0, Qt::DotLine));
+	grid->setMinorPen(QPen(Qt::gray, 0 , Qt::DotLine));
+	grid->attach(this);
 
 	// panning with the left mouse button
-    //( void ) new QwtPlotPanner( canvas );  // ?
+	//( void ) new QwtPlotPanner( canvas );  // ?
 
 	// zoom in/out with the wheel
-    ( void ) new QwtPlotMagnifier( canvas() );
+	( void ) new QwtPlotMagnifier( canvas() );
 
 	enableAxis( QwtPlot::xBottom );  
 	enableAxis( QwtPlot::yLeft );	
@@ -114,7 +124,7 @@ FSPlot::FSPlot(QWidget *parent) : QwtPlot(parent), squareAxis(false) {
 	setAxisScaleEngine( QwtPlot::yLeft, new QwtLinearScaleEngine );
 
 	legend.setFrameStyle(QFrame::Box|QFrame::Sunken);
-    insertLegend(&legend, QwtPlot::TopLegend);
+	insertLegend(&legend, QwtPlot::TopLegend);
 
 	//m_rescaler = new QwtPlotRescaler( canvas(), QwtPlot::xBottom, QwtPlotRescaler::Fixed );
    // m_rescaler->setAspectRatio( QwtPlot::yLeft, 1.0 );
@@ -140,7 +150,7 @@ void FSPlot::setAxisSquare(bool square) {
 
 void FSPlot::doSquareAxis() {
 	const bool doReplot = autoReplot();
-    setAutoReplot( false );
+	setAutoReplot( false );
 
 	QwtScaleMap smY = canvasMap(QwtPlot::yLeft);
 	QwtScaleMap smX = canvasMap(QwtPlot::xBottom);
@@ -169,17 +179,82 @@ void FSPlot::doSquareAxis() {
 
  TestScaleEngine::TestScaleEngine()    {
 	setAttribute( QwtScaleEngine::Floating, true );
-    setAttribute( QwtScaleEngine::Symmetric, true );
+	setAttribute( QwtScaleEngine::Symmetric, true );
 }
  
 void  TestScaleEngine::autoScale( int maxNumSteps, double &x1, double &x2, double &stepSize ) const    {
-    TestScaleEngine *that = const_cast<TestScaleEngine *>( this );
-    that->setReference( 0.5 * ( x1 + x2 ) );
+	TestScaleEngine *that = const_cast<TestScaleEngine *>( this );
+	that->setReference( 0.5 * ( x1 + x2 ) );
  
-    QwtLinearScaleEngine::autoScale( maxNumSteps, x1, x2, stepSize );
+	QwtLinearScaleEngine::autoScale( maxNumSteps, x1, x2, stepSize );
 }
 
+SelectNameDlg::SelectNameDlg(QWidget *parent, const char* name)  : QDialog(parent)  {
+	//resize(128, 166);
+	setSizeGripEnabled(true);
+	//setModal(true);
+	setWindowModality(Qt::WindowModal);
+	ret = true;
+	QVBoxLayout* verticalLayout = new QVBoxLayout(this);
+    verticalLayout->setSpacing(1);
+	verticalLayout->setContentsMargins(2, 2, 2, 2);
+	QFrame *frame = new QFrame(this);
+	QSizePolicy sizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
+	sizePolicy.setHorizontalStretch(0);
+	sizePolicy.setVerticalStretch(0);
+	sizePolicy.setHeightForWidth(frame->sizePolicy().hasHeightForWidth());
+	frame->setSizePolicy(sizePolicy);
 
+    frame->setFrameShape(QFrame::StyledPanel);
+    frame->setFrameShadow(QFrame::Raised);
+	text = new QLineEdit(frame);
+	verticalLayout->addWidget(frame);
+
+	if (name != 0) {
+		text->setText(QString::fromUtf8(name));
+	}
+	resize(frame->size());
+	text->installEventFilter(this);
+}
+
+void SelectNameDlg::keyPressEvent( QKeyEvent *k ) {
+	switch ( k->key() )    {
+	case Qt::Key_Enter:
+	case Qt::Key_Return:
+		accept();
+		break;
+	case Qt::Key_F4:
+	case Qt::Key_Escape:
+		ret = false;
+		reject();
+		break;
+	default:
+		QWidget::keyPressEvent(k);
+		break;
+	};
+}
+bool SelectNameDlg::eventFilter(QObject *obj, QEvent *event) {
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent *k = static_cast<QKeyEvent *>(event);
+		xmprintf(8, "SelectNameDlg::eventFilter: key %s (%d) \n", k->text().toStdString().c_str(), k->key());
+		switch ( k->key() )    {
+		case Qt::Key_Enter:
+		case Qt::Key_Return:
+			ret = true;
+			xmprintf(8, "SelectNameDlg::eventFilter: ENTER was pressed ! \n");
+			event->ignore();
+			accept();
+			return true;
+			break;
+		default:
+			 return QObject::eventFilter(obj, event);
+		};
+        
+    } else {
+        return QObject::eventFilter(obj, event);
+    }
+	return false;
+}
 
 Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : JustAplot(key_, pf_, parent, jQWT) {
 	mode = 0;
@@ -189,9 +264,9 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : Just
 	setupUi();
 
 	QIcon icon;
-    icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
+	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
 	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
-    setWindowIcon(icon);
+	setWindowIcon(icon);
 	//setWindowIconText("qwtw");
 
 	connect(tb1, SIGNAL(toggled( bool )), this, SLOT(ontb1( bool )));
@@ -205,21 +280,21 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : Just
 	connect(tbResetLayout, SIGNAL(clicked()), this, SLOT(onResetLayout()));
 
 	panner = new QwtPlotPanner(plot1->canvas());
-    panner->setMouseButton(Qt::LeftButton);
+	panner->setMouseButton(Qt::LeftButton);
 	panner->setCursor(Qt::OpenHandCursor);
 	panner->setEnabled(false);
 
 	 picker = new FSPicker(QwtPlot::xBottom, QwtPlot::yLeft,
-       // QwtPicker::PointSelection | QwtPicker::DragSelection, 
-        QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn, 
-        plot1->canvas());
+	   // QwtPicker::PointSelection | QwtPicker::DragSelection, 
+		QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn, 
+		plot1->canvas());
 
 	// picker->setSelectionFlags(QwtPicker::PointSelection | QwtPicker::ClickSelection);
 
-    picker->setStateMachine(new QwtPickerDragPointMachine());
-    picker->setRubberBandPen(QColor(Qt::green));
-    picker->setRubberBand(QwtPicker::CrossRubberBand);
-    picker->setTrackerPen(QColor(Qt::darkBlue));
+	picker->setStateMachine(new QwtPickerDragPointMachine());
+	picker->setRubberBandPen(QColor(Qt::green));
+	picker->setRubberBand(QwtPicker::CrossRubberBand);
+	picker->setTrackerPen(QColor(Qt::darkBlue));
 	picker->setTrackerMode(QwtPicker::ActiveOnly);
 	picker->setEnabled(false);
 	//picker->setParent(plot1);
@@ -233,7 +308,7 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : Just
 
 	zoomer->setEnabled(true);
 	zoomer->setTrackerMode( QwtPicker::ActiveOnly );
-    zoomer->setTrackerPen( QColor( Qt::black ) );
+	zoomer->setTrackerPen( QColor( Qt::black ) );
 	zoomer->zoom( 0 );
 
 	tb3->setChecked(true);
@@ -244,8 +319,8 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : Just
 	QWidget *w3 = zoomer->parentWidget();
    // zoomer->setRubberBand(QwtPicker::RectRubberBand);
    // zoomer->setRubberBandPen(QColor(Qt::green));
-    //zoomer->setTrackerMode(QwtPicker::ActiveOnly);
-    //zoomer->setTrackerPen(QColor(Qt::darkBlue));
+	//zoomer->setTrackerMode(QwtPicker::ActiveOnly);
+	//zoomer->setTrackerPen(QColor(Qt::darkBlue));
 
 
 //	setCentralWidget(plot1);
@@ -273,6 +348,7 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : Just
 	//plot1->setAxisScaleEngine(QwtPlot::xBottom, (QwtScaleEngine*)(new TestScaleEngine()));
 
 	makeMarkersVisible(true);
+	lastXselected = 0.0; lastYselected = 0.0;  pointWasSelected = false;
 }
 
 Figure2::~Figure2() {
@@ -285,16 +361,21 @@ Figure2::~Figure2() {
 }
 
 void Figure2::ontb1(bool checked ) {  //   picker
-	picker->setEnabled(checked);
-	pf->setAllMarkersVisible(checked);
+	if (tbModeChanging) return;
+	//picker->setEnabled(checked);
+	//pf->setAllMarkersVisible(checked);
+	
+	
 
-	if (checked) {
-		mode = 1;
-	} else {
-		mode = 0;
-	}
+	//if (checked) {
+	//	mode = 1;
+	//} else {
+	//	mode = 0;
+	//}
+	mode = 1;
 
 	setTBState(); 
+	xmprintf(5, "Figure2::ontb1 mode = %d \n", mode);
 }
 
 void Figure2::onResetLayout() {
@@ -365,31 +446,51 @@ void Figure2::onClip(bool checked) {
 }
 
 void Figure2::ontb2(bool checked ) { //   panner
-	panner->setEnabled(checked);
-	if (checked) {
-		mode = 2; 
-		//plot1->setCursor(Qt::OpenHandCursor);
+	if (tbModeChanging) return;
+	//panner->setEnabled(checked);
+	//if (checked) {
+//		mode = 2; 
+	
 
-	} else {
-		mode = 0;
-	}
+	//} else {
+	//	mode = 0;
+	//}
+	mode = 2;
 	setTBState();
+	xmprintf(5, "Figure2::ontb2 mode = %d \n", mode);
 }
 void Figure2::ontb3(bool checked ) {  //  zoomer
-	zoomer->setEnabled(checked);
+	if (tbModeChanging) return;
+	//zoomer->setEnabled(checked);
 	//zoom(0);
-	if (checked) mode = 3; else mode = 0;
+	//if (checked) mode = 3; else mode = 0;
+	mode = 3;
 	setTBState();
+	xmprintf(5, "Figure2::ontb3 mode = %d \n", mode);
 }
 
 void Figure2::setTBState() {
 	if (tbModeChanging) return;
 	tbModeChanging = true;
 	switch(mode) {
-	case 0: tb1->setChecked(false);  tb2->setChecked(false);  tb3->setChecked(false);  break;
-	case 1:                          tb2->setChecked(false);  tb3->setChecked(false);  break;
-	case 2: tb1->setChecked(false);                           tb3->setChecked(false);  break;
-	case 3: tb1->setChecked(false);  tb2->setChecked(false);                           break;
+	case 0: 
+		tb1->setChecked(false);  tb2->setChecked(false);  tb3->setChecked(false);  
+		picker->setEnabled(false);  panner->setEnabled(false);  zoomer->setEnabled(false); 
+		break;
+	case 1: 
+		tb1->setChecked(true);   tb2->setChecked(false);  tb3->setChecked(false);  
+		picker->setEnabled(true);  panner->setEnabled(false);  zoomer->setEnabled(false); 
+		pf->setAllMarkersVisible(true);
+		break;
+	case 2: 
+		tb1->setChecked(false);  tb2->setChecked(true);   tb3->setChecked(false);
+		picker->setEnabled(false);  panner->setEnabled(true);  zoomer->setEnabled(false); 
+		plot1->setCursor(Qt::OpenHandCursor);
+		break;
+	case 3: 
+		tb1->setChecked(false);  tb2->setChecked(false);  tb3->setChecked(true); 
+		picker->setEnabled(false);  panner->setEnabled(false);  zoomer->setEnabled(true); 
+		break;
 	};
 	tbModeChanging = false;
 }
@@ -447,7 +548,7 @@ void Figure2::addLine(LineItemInfo* line) {
 	
 	QPen pen;
 	cl->setStyle(QwtPlotCurve::Lines);
-    cl->setTitle(line->legend.c_str());
+	cl->setTitle(line->legend.c_str());
 	pen.setColor(QColor(Qt::darkBlue));
 	pen.setWidth(line->lineWidth);
 	
@@ -548,8 +649,8 @@ void Figure2::addLine(LineItemInfo* line) {
 	*/
 	cl->setPen(pen);
 
-    //cl->setSamples(line->x, line->y, line->size);
-    cl->setRawSamples(line->x, line->y, line->size);
+	//cl->setSamples(line->x, line->y, line->size);
+	cl->setRawSamples(line->x, line->y, line->size);
 
 	cl->setYAxis( QwtPlot::yLeft );  cl->setXAxis( QwtPlot::xBottom );
 
@@ -667,58 +768,58 @@ void Figure2::changeLine(LineItemInfo* line, double* x, double* y, double* z, do
 
 
 void Figure2::setupUi()     {
-    if (this->objectName().isEmpty())
-        this->setObjectName(QString::fromUtf8("Figure2"));
-    this->resize(400, 300);
-    QFont font;
-    font.setFamily(QString::fromUtf8("MS Sans Serif"));
-    font.setPointSize(12);
-    this->setFont(font);
-    this->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
-    verticalLayout = new QVBoxLayout(this);
-    verticalLayout->setSpacing(2);
-    verticalLayout->setMargin(2);
-    verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
-    top_frame = new QFrame(this);
-    top_frame->setObjectName(QString::fromUtf8("top_frame"));
-    top_frame->setMinimumSize(QSize(0, 32));
-    top_frame->setFrameShape(QFrame::NoFrame);
-    top_frame->setFrameShadow(QFrame::Raised);
-    top_frame->setLineWidth(1);
-    horizontalLayout = new QHBoxLayout(top_frame);
-    horizontalLayout->setSpacing(2);
-    horizontalLayout->setMargin(2);
-    horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
+	if (this->objectName().isEmpty())
+		this->setObjectName(QString::fromUtf8("Figure2"));
+	this->resize(400, 300);
+	QFont font;
+	font.setFamily(QString::fromUtf8("MS Sans Serif"));
+	font.setPointSize(12);
+	this->setFont(font);
+	this->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
+	verticalLayout = new QVBoxLayout(this);
+	verticalLayout->setSpacing(2);
+	verticalLayout->setMargin(2);
+	verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
+	top_frame = new QFrame(this);
+	top_frame->setObjectName(QString::fromUtf8("top_frame"));
+	top_frame->setMinimumSize(QSize(0, 32));
+	top_frame->setFrameShape(QFrame::NoFrame);
+	top_frame->setFrameShadow(QFrame::Raised);
+	top_frame->setLineWidth(1);
+	horizontalLayout = new QHBoxLayout(top_frame);
+	horizontalLayout->setSpacing(2);
+	horizontalLayout->setMargin(2);
+	horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
 
-    tb1 = new QToolButton(top_frame);
-    tb1->setObjectName(QString::fromUtf8("tb1"));
+	tb1 = new QToolButton(top_frame);
+	tb1->setObjectName(QString::fromUtf8("tb1"));
 	ui_addTBIcon(tb1, ":/icons/arrow.png");
 	tb1->setText("ARROW");
 	tb1->setToolTip("ARROW");
 	//icon1.addPixmap(QPixmap(QString::fromUtf8(":/icons/arrow.PNG")), QIcon::Normal, QIcon::Off);
 	//icon1.addFile("arrow.PNG");
-    //tb1->setIcon(icon1);
+	//tb1->setIcon(icon1);
 
 	tb1->setCheckable(true);
-    horizontalLayout->addWidget(tb1);
+	horizontalLayout->addWidget(tb1);
 
-    tb2 = new QToolButton(top_frame);
-    tb2->setObjectName(QString::fromUtf8("tb2"));
+	tb2 = new QToolButton(top_frame);
+	tb2->setObjectName(QString::fromUtf8("tb2"));
 	tb2->setText("PAN");
 	tb2->setToolTip("PAN");
 
 	ui_addTBIcon(tb2, ":/icons/pan.png");
 	tb2->setCheckable(true);
-    horizontalLayout->addWidget(tb2);
+	horizontalLayout->addWidget(tb2);
 
-    tb3 = new QToolButton(top_frame);
-    tb3->setObjectName(QString::fromUtf8("tb3"));
+	tb3 = new QToolButton(top_frame);
+	tb3->setObjectName(QString::fromUtf8("tb3"));
 	tb3->setText("ZOOM");
 	tb3->setToolTip("ZOOM");
 
 	ui_addTBIcon(tb3, ":/icons/zoom.png");
 	tb3->setCheckable(true);
-    horizontalLayout->addWidget(tb3);
+	horizontalLayout->addWidget(tb3);
 
 	tbSaveDataToTextFile = new QToolButton(top_frame);
 	tbSaveDataToTextFile->setToolTip("Save data to text file");
@@ -755,17 +856,17 @@ void Figure2::setupUi()     {
 	//tbResetLayout->setCheckable(true);
 	horizontalLayout->addWidget(tbResetLayout);
 
-    horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+	horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
-    horizontalLayout->addItem(horizontalSpacer);
-    verticalLayout->addWidget(top_frame);
+	horizontalLayout->addItem(horizontalSpacer);
+	verticalLayout->addWidget(top_frame);
 
-    plot1 = new FSPlot(this);
-    plot1->setObjectName(QString::fromUtf8("plot1"));
+	plot1 = new FSPlot(this);
+	plot1->setObjectName(QString::fromUtf8("plot1"));
 
-    verticalLayout->addWidget(plot1);
-    retranslateUi();
-    QMetaObject::connectSlotsByName(this);
+	verticalLayout->addWidget(plot1);
+	retranslateUi();
+	QMetaObject::connectSlotsByName(this);
 } // setupUi
 
 void Figure2::retranslateUi()     {
@@ -773,17 +874,17 @@ void Figure2::retranslateUi()     {
  //   tb1->setText(QApplication::translate("figure2", "...", 0, QApplication::UnicodeUTF8));
  //   tb2->setText(QApplication::translate("figure2", "...", 0, QApplication::UnicodeUTF8));
   //  tb3->setText(QApplication::translate("figure2", "...", 0, QApplication::UnicodeUTF8));
-    Q_UNUSED(this);
+	Q_UNUSED(this);
 } // retranslateUi 
 
 void Figure2::ui_addTBIcon(QToolButton* tb, const char* i) {
-    QIcon icon;
+	QIcon icon;
 	QString s = QString::fromUtf8(i);
 	QPixmap pm = QPixmap(s);
-    icon.addPixmap(pm, QIcon::Normal, QIcon::Off);
+	icon.addPixmap(pm, QIcon::Normal, QIcon::Off);
 
 //	icon.addFile(":/icons/binokl");
-    tb->setIcon(icon);
+	tb->setIcon(icon);
 }
 
 void Figure2::removeLines() {
@@ -799,6 +900,14 @@ void Figure2::removeLines() {
 		xi++;
 	}
 	lines.clear();
+
+	if (!vmList.empty()) {//  remove all the vertical markers
+		for (VLineMarker* a : vmList) {
+			a->detach();
+			delete a;
+		}
+		vmList.clear();
+	}
 	//cf = 0;
 }
 
@@ -833,8 +942,8 @@ void Figure2::onTbFFT() {
 	std::string pn = this->sTitle; pn.append(" FFT "); pn.append(stmp);
 	std::string pKey = this->key; pKey.append("_fft_"); pKey.append(stmp); pKey.append(s.str());
 
-    pf->figure(pKey);
-    pf->title(pn);
+	pf->figure(pKey);
+	pf->title(pn);
 	pf->xlabel("Hz");
 
 	pf->footer(s.str());
@@ -850,11 +959,11 @@ void Figure2::onTbFFT() {
 		//  2. calculate FFT:
 		double periodOfSampling = (info->x[ix2] - info->x[ix1]) / ((double)(ix2 - ix1));
 		Psd psd;
-        psd.compute(info->y + ix1, ix2 - ix1, periodOfSampling, ws); // 64
+		psd.compute(info->y + ix1, ix2 - ix1, periodOfSampling, ws); // 64
 
 		//  3. draw this fft:
 		std::string ke = info->legend; ke.append("_fft_");
-        pf->plot(psd.frequencies, psd.psd, psd.size, ke.c_str(), info->style.c_str(), 1, 1);
+		pf->plot(psd.frequencies, psd.psd, psd.size, ke.c_str(), info->style.c_str(), 1, 1);
 	}
 }
 
@@ -880,13 +989,13 @@ void Figure2::onSaveImage() {
 }
 
 void Figure2::onSaveData() {
-    size_t n = lines.size();
-    if(n == 0) return;
-    if(sTitle.size() < 1) return;
+	size_t n = lines.size();
+	if(n == 0) return;
+	if(sTitle.size() < 1) return;
 
-    size_t i, w;
-    std::list<FigureItem*>::iterator xi = lines.begin();
-    for(xi = lines.begin(); xi != lines.end(); xi++) {
+	size_t i, w;
+	std::list<FigureItem*>::iterator xi = lines.begin();
+	for(xi = lines.begin(); xi != lines.end(); xi++) {
 	   FigureItem* cf = *xi;
 	   w = cf->info->size;
 	   if(w < 1) {
@@ -899,98 +1008,165 @@ void Figure2::onSaveData() {
 		  fprintf(f, "%.9G\t%.9G\n", cf->info->x[i], cf->info->y[i]);
 	   }
 	   fclose(f);
-    }
+	}
 }
 
 
 void Figure2::onPickerSelection(const QPolygon& pa) {
-    int x = pa.at(0).x();
-    int y = pa.at(0).y();
+	int x = pa.at(0).x();
+	int y = pa.at(0).y();
 
-    onPickerSignal(x, y);
-    setWindowTitle(sTitle.c_str());
+	onPickerSignal(x, y);
+	setWindowTitle(sTitle.c_str());
 }
 
 void Figure2::onPickerMove(const QPoint& pos) {
-    onPickerSignal(pos.x(), pos.y());
+	onPickerSignal(pos.x(), pos.y());
 }
 
 void Figure2::focusInEvent(QFocusEvent * event) {
-    QDialog::focusInEvent(event);
-    if(event->gotFocus()) {
+	QDialog::focusInEvent(event);
+	if(event->gotFocus()) {
 	   emit onSelection(key);
-    }
+	}
+}
+
+void Figure2::keyPressEvent( QKeyEvent *k ) {
+	switch ( k->key() )    {
+	case Qt::Key_Up:
+	case Qt::Key_Down:
+	case Qt::Key_Left:
+	case Qt::Key_Right:
+		QWidget::keyPressEvent(k);
+		break;
+	case Qt::Key_V:
+		xmprintf(9, "V1 was pressed!\n");
+		addVMarker();
+		break;
+	default:
+			QWidget::keyPressEvent(k);
+			break;
+	};
+	
+	return;
+}
+
+void Figure2::addVMarker() {
+	if (mode != 1) {
+		xmprintf(3, "Figure2::addVMarker(): mode = %d \n", mode);
+		return;
+	}
+	if (!pointWasSelected) {
+		xmprintf(3, "Figure2::addVMarker(): point was not selected \n");
+		return;
+	}
+	xmprintf(3, "Figure2::addVMarker(): adding a V marker .. \n");
+	bool haveItAlready = false;
+	QwtScaleMap smX = plot1->canvasMap(QwtPlot::xBottom);
+
+	double dxS = smX.sDist();
+	double dt = dxS / 256.0;
+	VLineMarker* vm;
+	for (VLineMarker* a : vmList) {
+		if (fabs(lastXselected - a->t) < dt) {
+			haveItAlready = true;
+			xmprintf(4, "Figure2::addVMarker(): have it already. removing. dt = %f; dist = %f  \n",
+				dt, fabs(lastXselected - a->t));
+			a->detach();
+			vmList.remove(a);
+			delete a;
+			break;
+		}
+	}
+	if (haveItAlready) {
+		return;
+	}
+
+	char tmp[64];
+	snprintf(tmp, 64, "%.2f", lastXselected);
+
+	SelectNameDlg dlg(this, tmp);
+	dlg.exec();
+	if (!dlg.ret) {
+		xmprintf(3, "Figure2::addVMarker(): rejected \n");
+		return;
+	}
+	QString text = dlg.text->text();
+
+	vm = new VLineMarker(text, lastXselected);
+	vmList.push_back(vm);
+	vm->attach(plot1);
+	xmprintf(3, "Figure2::addVMarker(): OK \n");
 }
 
 void Figure2::onPickerSignal(int x, int y) {
-    if(lines.size() == 0) return;
+	if(lines.size() == 0) return;
 
-    QPointF p = picker->transform1(QPoint(x, y));
-    double xx = p.x();
-    double yy = p.y();
+	QPointF p = picker->transform1(QPoint(x, y));
+	double xx = p.x();
+	double yy = p.y();
 
-   
-    
-
-    emit onSelection(key);
+	emit onSelection(key);
 
    // emit onPicker(key, p.x(), p.y());
-    std::list<FigureItem*>::iterator it = lines.begin();
-    FigureItem* mfi = (*it);
-    long long minIndex = 0, index = 0;
-    double minDist = findDistance(mfi->info, xx, yy, minIndex);
-    if (minIndex == 0xffffffff) { //  error?
-	    xmprintf(2, "Figure2::onPickerSignal() failed\n");
-	    return;
-    }
-    it++;
-    bool ok = true;
-    while (it != lines.end()) {
-	    FigureItem* fi = *it;
-	    LineItemInfo* i = fi->info;
-	    size_t size = i->size;
-	    if ((i->mode == 0) || (size < 2)) continue;
-	    double dist = findDistance(i, xx, yy, index);
-	    if ((index != 0xffffffff) && (dist < minDist)) {
-		    minDist = dist;
-		    minIndex = index;
-		    mfi = fi;
-	    }
-	    it++;
-    }
-    double t = 0.;
-    if (mfi->info->mode == 3) {
-	    t = mfi->info->time[minIndex];
-    } else {
-	    t = mfi->info->x[minIndex];
-    }
-    
+	std::list<FigureItem*>::iterator it = lines.begin();
+	FigureItem* mfi = (*it);
+	long long minIndex = 0, index = 0;
+	double minDist = findDistance(mfi->info, xx, yy, minIndex);
+	if (minIndex == 0xffffffff) { //  error?
+		xmprintf(2, "Figure2::onPickerSignal() failed\n");
+		return;
+	}
+	it++;
+	bool ok = true;
+	while (it != lines.end()) {
+		FigureItem* fi = *it;
+		LineItemInfo* i = fi->info;
+		size_t size = i->size;
+		if ((i->mode == 0) || (size < 2)) continue;
+		double dist = findDistance(i, xx, yy, index);
+		if ((index != 0xffffffff) && (dist < minDist)) {
+			minDist = dist;
+			minIndex = index;
+			mfi = fi;
+		}
+		it++;
+	}
+	double t = 0.;
+	if (mfi->info->mode == 3) {
+		t = mfi->info->time[minIndex];
+	} else {
+		t = mfi->info->x[minIndex];
+	}
+	
    
-    double xxm = mfi->info->x[minIndex];
-    double yym = mfi->info->y[minIndex];
-    //std::ostringstream s; 
-    //s << xxm << ", " << yym << ", (" << mfi->info->legend << ")";
-    char s[256];
-    sprintf(s, "%.6f, %.6f (%s), index=%lld", xxm, yym, mfi->info->legend.c_str(), minIndex);
+	lastXselected = mfi->info->x[minIndex];
+	lastYselected = mfi->info->y[minIndex];
+	pointWasSelected = true;
+	//std::ostringstream s; 
+	//s << xxm << ", " << yym << ", (" << mfi->info->legend << ")";
+	char s[256];
+	sprintf(s, "%.6f, %.6f (%s), index=%lld", 
+			lastXselected, lastYselected, mfi->info->legend.c_str(), minIndex);
 
    // setWindowTitle(s.str().c_str());
-    setWindowTitle(s);
-    
-    if(ok) {
+	setWindowTitle(s);
+	
+	if(ok) {
 	   pf->drawAllMarkers(t);
-    }
+	}
 }
 
 void Figure2::drawMarker(double X, double Y, int type) {
-    double xx = X;
-    double yy = Y;
+	double xx = X;
+	double yy = Y;
 
-    for (std::list<FigureItem*>::iterator it = lines.begin(); it != lines.end(); it++) {
-	    FigureItem* fi = *it;
-	    if (fi->info->mode == 0)  continue;
+	for (std::list<FigureItem*>::iterator it = lines.begin(); it != lines.end(); it++) {
+		FigureItem* fi = *it;
+		if (fi->info->mode == 0)  continue;
 	   // fi->ma->setVisible(true);
-	    fi->ma->setValue(xx, yy);
-    }
+		fi->ma->setValue(xx, yy);
+	}
 
  //   plot1->replot(); // ?
 }
@@ -1025,14 +1201,14 @@ void Figure2::replot() {
 void Figure2::drawMarker(double t) {
 	JustAplot::drawMarker(t);
 
-    if(lines.empty()) {
+	if(lines.empty()) {
 	   return;
-    }
+	}
 
-    int mode = -1;
+	int mode = -1;
 
-    for (std::list<FigureItem*>::iterator it = lines.begin(); it != lines.end(); it++) {
-	    FigureItem* fi = *it;
+	for (std::list<FigureItem*>::iterator it = lines.begin(); it != lines.end(); it++) {
+		FigureItem* fi = *it;
 		if (fi->info->mode == 0) {
 			continue;
 		}
@@ -1040,15 +1216,15 @@ void Figure2::drawMarker(double t) {
 	   // fi->ma->setVisible(true);
 
 
-	    fi->ma->setValue(fi->info->x[fi->info->ma.index], fi->info->y[fi->info->ma.index]);
+		fi->ma->setValue(fi->info->x[fi->info->ma.index], fi->info->y[fi->info->ma.index]);
 
 
-	    if (mode < 0) mode = fi->info->mode; //    select mode of the first line
-    }
-    if (mode < 3) {
+		if (mode < 0) mode = fi->info->mode; //    select mode of the first line
+	}
+	if (mode < 3) {
 	   // vLineMarker.setVisible(true);
 	   vLineMarker.setValue(t, 0);
-    }
+	}
 
    // plot1->replot(); // ?
 }
@@ -1177,10 +1353,10 @@ std::list<FigureItem*>	Figure2::selectLines() {
 }
 
 Zoomer::Zoomer(int xAxis, int yAxis, QWidget *canvas): shouldKeepAxesEqual(false), 
-    QwtPlotZoomer(xAxis, yAxis, canvas)  {
+	QwtPlotZoomer(xAxis, yAxis, canvas)  {
 
    // setSelectionFlags(QwtPicker::DragSelection | QwtPicker::CornerToCorner);
-    setTrackerMode(QwtPicker::AlwaysOff);
+	setTrackerMode(QwtPicker::AlwaysOff);
    // setRubberBand(QwtPicker::NoRubberBand);
 	setRubberBand(QwtPicker::RectRubberBand);
 	setRubberBandPen(QColor(Qt::darkBlue));
@@ -1188,15 +1364,15 @@ Zoomer::Zoomer(int xAxis, int yAxis, QWidget *canvas): shouldKeepAxesEqual(false
 	initMousePattern(2);
 	setResizeMode(Stretch);
 
-    // RightButton: zoom out by 1
+	// RightButton: zoom out by 1
 
-    // Ctrl+RightButton: zoom out to full size
+	// Ctrl+RightButton: zoom out to full size
 
    // setMousePattern(QwtEventPattern::MouseSelect2,        Qt::RightButton, Qt::ControlModifier);
    // setMousePattern(QwtEventPattern::MouseSelect3,      Qt::RightButton);
 
 	setMousePattern(QwtEventPattern::MouseSelect2,     Qt::RightButton, Qt::ControlModifier);
-    setMousePattern(QwtEventPattern::MouseSelect3,     Qt::RightButton);
+	setMousePattern(QwtEventPattern::MouseSelect3,     Qt::RightButton);
 }
 void Zoomer::keepEqual(bool e) {
 	if (shouldKeepAxesEqual != e) {
@@ -1208,20 +1384,20 @@ void Zoomer::rescale() {
 	//QwtPlotZoomer::rescale();
 	//return;
 
-    QwtPlot *plt = plot();
-    if ( !plt )
-        return;
+	QwtPlot *plt = plot();
+	if ( !plt )
+		return;
 
-    const QRectF &rect = zoomRect();
-    if ( rect != scaleRect() )
-    {
-        const bool doReplot = plt->autoReplot();
-        plt->setAutoReplot( false );
+	const QRectF &rect = zoomRect();
+	if ( rect != scaleRect() )
+	{
+		const bool doReplot = plt->autoReplot();
+		plt->setAutoReplot( false );
 
-        double x1 = rect.left();
-        double x2 = rect.right();
-        double y1 = rect.top();
-        double y2 = rect.bottom();
+		double x1 = rect.left();
+		double x2 = rect.right();
+		double y1 = rect.top();
+		double y2 = rect.bottom();
 
 		if (shouldKeepAxesEqual == false) {
 			if ( !plt->axisScaleDiv( xAxis() ).isIncreasing() )
@@ -1251,10 +1427,10 @@ void Zoomer::rescale() {
 			}
 		}
 
-        plt->setAutoReplot( doReplot );
+		plt->setAutoReplot( doReplot );
 
-        plt->replot();
-    }
+		plt->replot();
+	}
 }
 
 
