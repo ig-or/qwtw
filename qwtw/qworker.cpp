@@ -9,6 +9,7 @@
 
 #include "qworker.h"
 #include "qwtypes.h"
+#include "settings.h"
 
 #include <iostream>
 #ifdef WIN32
@@ -305,6 +306,8 @@ Q_INVOKABLE int QWorker::qwtplotImpl(double* x, double* y, int size, const char*
 
 
 Q_INVOKABLE int QWorker::qtstartImpl() {
+	int test = qwSettings.qwLoad();
+	
 	if (pf == nullptr) {
 		xmprintf(3, "PATH inside qtstartImpl: %s\n\n", std::getenv("PATH"));
 		pf = new XQPlots();

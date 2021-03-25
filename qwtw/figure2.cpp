@@ -14,6 +14,7 @@
 
 
 #include "figure2.h"
+#include "settings.h"
 #include <stdio.h>
 #include <qwt_plot_grid.h>
 #include <qwt_symbol.h>
@@ -31,7 +32,9 @@
 #include <QFileDialog>
 #include <QFocusEvent>
 #include <QCheckBox>
+#include <QPushButton>
 #include <QToolButton>
+#include <QColorDialog>
 
 #include "xmatrix2.h"
 #include "sfigure.h"
@@ -89,12 +92,35 @@ QPointF FSPicker::transform1(	const QPoint & 	pos	 ) 	 const {
 VLineMarker::VLineMarker(QString text, double time): t(time) {
 	QwtText label(text);
 	label.setFont(QFont("Consolas", 12, QFont::Bold));
+	label.setBackgroundBrush(QBrush(QColor(250, 250, 250)));
+	QPen pen( Qt::black, 1 );
+	label.setBorderPen(pen);
+
 	setLabel(label);
     setLabelAlignment( Qt::AlignLeft | Qt::AlignBottom );
     setLabelOrientation( Qt::Vertical );
     setLineStyle( QwtPlotMarker::VLine );
     setLinePen( Qt::black, 2, Qt::DashDotLine );
     setXValue( time );
+}
+
+AMarker::AMarker(QString text, double x_, double y_): x(x_), y(y_) {
+	QwtText label(text);
+	label.setFont(QFont("Consolas", 12, QFont::Bold));
+
+	QColor co = qwSettings.markerColor();
+
+	label.setColor(co);
+	label.setBackgroundBrush(QBrush(QColor(250, 250, 250)));
+	QPen pen( co, 1 );
+	label.setBorderPen(pen);
+
+	setRenderHint( QwtPlotItem::RenderAntialiased, true );
+    setItemAttribute( QwtPlotItem::Legend, false );
+    setSymbol( new ArrowSymbol() );
+    setValue( QPointF( x, y));
+    setLabel( label );
+    setLabelAlignment( Qt::AlignRight | Qt::AlignBottom );
 }
 
 
@@ -189,35 +215,26 @@ void  TestScaleEngine::autoScale( int maxNumSteps, double &x1, double &x2, doubl
 	QwtLinearScaleEngine::autoScale( maxNumSteps, x1, x2, stepSize );
 }
 
-SelectNameDlg::SelectNameDlg(QWidget *parent, const char* name)  : QDialog(parent)  {
-	//resize(128, 166);
-	setSizeGripEnabled(true);
-	//setModal(true);
-	setWindowModality(Qt::WindowModal);
-	ret = true;
-	QVBoxLayout* verticalLayout = new QVBoxLayout(this);
+
+SelectInfoDlg::SelectInfoDlg(QWidget *parent) : QDialog(parent), ret(true) {
+	verticalLayout = new QVBoxLayout(this);
+	verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
     verticalLayout->setSpacing(1);
 	verticalLayout->setContentsMargins(2, 2, 2, 2);
-	QFrame *frame = new QFrame(this);
-	QSizePolicy sizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-	sizePolicy.setHorizontalStretch(0);
-	sizePolicy.setVerticalStretch(0);
-	sizePolicy.setHeightForWidth(frame->sizePolicy().hasHeightForWidth());
-	frame->setSizePolicy(sizePolicy);
 
-    frame->setFrameShape(QFrame::StyledPanel);
-    frame->setFrameShadow(QFrame::Raised);
-	text = new QLineEdit(frame);
-	verticalLayout->addWidget(frame);
+	QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	sizePolicy.setHorizontalStretch(1);
+	sizePolicy.setVerticalStretch(1);
 
-	if (name != 0) {
-		text->setText(QString::fromUtf8(name));
-	}
-	resize(frame->size());
+	text = new QLineEdit(this);
+	text->setSizePolicy(sizePolicy);
 	text->installEventFilter(this);
+
+	setSizeGripEnabled(true);
+	setWindowModality(Qt::WindowModal);
 }
 
-void SelectNameDlg::keyPressEvent( QKeyEvent *k ) {
+void SelectInfoDlg::keyPressEvent( QKeyEvent *k ) {
 	switch ( k->key() )    {
 	case Qt::Key_Enter:
 	case Qt::Key_Return:
@@ -233,7 +250,8 @@ void SelectNameDlg::keyPressEvent( QKeyEvent *k ) {
 		break;
 	};
 }
-bool SelectNameDlg::eventFilter(QObject *obj, QEvent *event) {
+
+bool SelectInfoDlg::eventFilter(QObject *obj, QEvent *event) {
     if (event->type() == QEvent::KeyPress) {
         QKeyEvent *k = static_cast<QKeyEvent *>(event);
 		xmprintf(8, "SelectNameDlg::eventFilter: key %s (%d) \n", k->text().toStdString().c_str(), k->key());
@@ -254,6 +272,125 @@ bool SelectNameDlg::eventFilter(QObject *obj, QEvent *event) {
         return QObject::eventFilter(obj, event);
     }
 	return false;
+}
+
+
+SelectNameDlg::SelectNameDlg(QWidget *parent, const char* name)  : SelectInfoDlg(parent)  {
+	setObjectName(QString::fromUtf8("SelectNameDlg"));
+	QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	sizePolicy.setHorizontalStretch(1);
+	sizePolicy.setVerticalStretch(1);
+	
+	verticalLayout->addWidget(text);
+
+	if (name != 0) {
+		text->setText(QString::fromUtf8(name));
+	}
+	resize(text->size());
+}
+
+
+SelectMarkerParamsDlg::SelectMarkerParamsDlg(QWidget *parent, const char* name)  : SelectInfoDlg(parent)   {
+	setObjectName(QString::fromUtf8("SelectMarkerParamsDlg"));
+	QSizePolicy sizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+	sizePolicy.setHorizontalStretch(1);
+	sizePolicy.setVerticalStretch(1);
+
+	verticalLayout->addWidget(text);
+
+	QFrame* f = new QFrame(this);
+	f->setSizePolicy(sizePolicy);
+	QHBoxLayout* hLayout = new QHBoxLayout(f);
+
+	cpb = new QPushButton("&Color", this);
+	cpb->setSizePolicy(sizePolicy);
+	QColor co = qwSettings.markerColor();
+
+	QPalette pal = cpb->palette();
+	pal.setColor(QPalette::Button, co);
+	cpb->setAutoFillBackground(true);
+	cpb->setPalette(pal);
+	cpb->update();
+
+	hLayout->addWidget(cpb);
+
+	okpb = new QPushButton("&OK", this);
+	okpb->setSizePolicy(sizePolicy);
+	hLayout->addWidget(okpb);
+	//verticalLayout->addWidget(cpb);
+	verticalLayout->addWidget(f);
+
+	connect(cpb, &QPushButton::clicked, this, &SelectMarkerParamsDlg::onColor);
+	connect(okpb, &QPushButton::clicked, this, &SelectMarkerParamsDlg::onOK);
+
+	if (name != 0) {
+		text->setText(QString::fromUtf8(name));
+	}
+
+	//QSize fs = frame->size();
+	//fs *= 1.5;
+	//resize(fs);
+}
+
+void SelectMarkerParamsDlg::onColor() {
+	QColor co = qwSettings.markerColor();
+	QColor color = QColorDialog::getColor(co, this, "marker color");
+	if (!color.isValid()) {
+		xmprintf(5, "SelectMarkerParamsDlg::onColor(): color not valid \n");
+		return;
+	}
+	if (color == co) {
+		xmprintf(5, "SelectMarkerParamsDlg::onColor(): color is the same \n");
+		return;
+	}
+
+	QPalette pal = cpb->palette();
+	pal.setColor(QPalette::Button, color);
+	cpb->setAutoFillBackground(true);
+	cpb->setPalette(pal);
+	cpb->update();
+
+	qwSettings.aMarkerColor_R = color.red();
+	qwSettings.aMarkerColor_G = color.green();
+	qwSettings.aMarkerColor_B = color.blue();
+
+	int test = qwSettings.qwSave();
+
+}
+void SelectMarkerParamsDlg::onOK() {
+	accept();
+}
+
+ArrowSymbol::ArrowSymbol()    {
+	QPen pen( Qt::black, 0 );
+	pen.setJoinStyle( Qt::MiterJoin );
+
+	setPen( pen );
+
+	QColor co = qwSettings.markerColor();
+
+	setBrush( co );
+
+	QPainterPath path;
+	path.moveTo( 0, 12 );
+	path.lineTo( 0, 7 );
+	path.lineTo( -3, 7 );
+	path.lineTo( 0, 0 );
+	path.lineTo( 3, 7 );
+	path.lineTo( 0, 7 );
+
+	QPen pen2( Qt::black, 2);
+	setPen( pen2 );
+	path.lineTo( 0, 12 );
+
+	QTransform transform;
+	transform.rotate( -30.0 );
+	path = transform.map( path );
+
+	setPath( path );
+	setPinPoint( QPointF( 0, 0 ) );
+
+	setSize( 14, 18 );
 }
 
 Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : JustAplot(key_, pf_, parent, jQWT) {
@@ -908,6 +1045,13 @@ void Figure2::removeLines() {
 		}
 		vmList.clear();
 	}
+	if (!amList.empty()) {//  remove all the other markers
+		for (AMarker* a : amList) {
+			a->detach();
+			delete a;
+		}
+		amList.clear();
+	}
 	//cf = 0;
 }
 
@@ -1040,8 +1184,12 @@ void Figure2::keyPressEvent( QKeyEvent *k ) {
 		QWidget::keyPressEvent(k);
 		break;
 	case Qt::Key_V:
-		xmprintf(9, "V1 was pressed!\n");
+		xmprintf(9, "V was pressed!\n");
 		addVMarker();
+		break;
+	case Qt::Key_A:
+		xmprintf(9, "A was pressed!\n");
+		addAMarker();
 		break;
 	default:
 			QWidget::keyPressEvent(k);
@@ -1098,6 +1246,60 @@ void Figure2::addVMarker() {
 	vm->attach(plot1);
 	xmprintf(3, "Figure2::addVMarker(): OK \n");
 }
+
+void Figure2::addAMarker() {
+	if (mode != 1) {
+		xmprintf(3, "Figure2::addAMarker(): mode = %d \n", mode);
+		return;
+	}
+	if (!pointWasSelected) {
+		xmprintf(3, "Figure2::addAMarker(): point was not selected \n");
+		return;
+	}
+	xmprintf(3, "Figure2::addAMarker(): adding a A marker .. \n");
+	bool haveItAlready = false;
+	QwtScaleMap smY = plot1->canvasMap(QwtPlot::yLeft);
+	QwtScaleMap smX = plot1->canvasMap(QwtPlot::xBottom);
+	double dxS = smX.sDist();
+	double dyS = smY.sDist();
+
+	double dx = dxS / 100.0;
+	double dy = dyS / 100.0;
+
+	AMarker* am;
+	for (AMarker* a : amList) {
+		if ((fabs(lastXselected - a->x) < dx) && (fabs(lastYselected - a->y) < dy)) {
+			haveItAlready = true;
+			xmprintf(4, "Figure2::addAMarker(): have it already. removing. dx = %f; dist = %f  \n",
+				dx, fabs(lastXselected - a->x));
+			a->detach();
+			amList.remove(a);
+			delete a;
+			break;
+		}
+	}
+	if (haveItAlready) {
+		return;
+	}
+	xmprintf(4, "Figure2::addAMarker(): adding another arrow marker \n");
+
+	char tmp[64];
+	snprintf(tmp, 64, "[%.2f, %.2f]", lastXselected, lastYselected);
+
+	SelectMarkerParamsDlg dlg(this, tmp);
+	dlg.exec();
+	if (!dlg.ret) {
+		xmprintf(3, "Figure2::addAMarker(): rejected \n");
+		return;
+	}
+	QString text = dlg.text->text();
+
+	am = new AMarker(text, lastXselected, lastYselected);
+	amList.push_back(am);
+	am->attach(plot1);
+	xmprintf(3, "Figure2::addAMarker(): OK \n");
+}
+
 
 void Figure2::onPickerSignal(int x, int y) {
 	if(lines.size() == 0) return;

@@ -77,10 +77,10 @@ private:
 
 class Zoomer: public QwtPlotZoomer {
 public:
-    Zoomer(int xAxis, int yAxis, QWidget *canvas);
+	Zoomer(int xAxis, int yAxis, QWidget *canvas);
 	void keepEqual(bool e);
 protected:
-    virtual void rescale();
+	virtual void rescale();
 private:
 	bool shouldKeepAxesEqual;
 };
@@ -106,32 +106,60 @@ private:
 	std::map<QCheckBox*, FigureItem*> items;
 
 };
+class SelectInfoDlg : public QDialog {
+	Q_OBJECT
+public:
+	SelectInfoDlg(QWidget *parent);
+	QLineEdit* text;
+	QVBoxLayout* verticalLayout;
+	bool ret;
+protected:
+	bool eventFilter(QObject *obj, QEvent *event) override;
+	void keyPressEvent( QKeyEvent *k );
+};
 
-class SelectNameDlg : public QDialog {
+class SelectNameDlg : public SelectInfoDlg {
+	Q_OBJECT
 public: 
 	SelectNameDlg(QWidget *parent = 0, const char* name = 0);
-	QLineEdit* text;
-	bool ret;
-	void keyPressEvent( QKeyEvent *k );
-protected:
-    bool eventFilter(QObject *obj, QEvent *event) override;
-	
+};
+
+class SelectMarkerParamsDlg : public SelectInfoDlg {
+	Q_OBJECT
+public:
+	SelectMarkerParamsDlg(QWidget *parent = 0, const char* name = 0);
+	QPushButton* cpb;
+	QPushButton* okpb;
+
+public slots:
+	void onColor();
+	void onOK();
+
 };
 
 class TestScaleEngine: public QwtLinearScaleEngine {
 public:
-    TestScaleEngine();
+	TestScaleEngine();
  
-    virtual void autoScale( int maxNumSteps, double &x1, double &x2, double &stepSize ) const;
+	virtual void autoScale( int maxNumSteps, double &x1, double &x2, double &stepSize ) const;
 };
 
 class VLineMarker : public QwtPlotMarker {
 	public:
 	double t;
 	VLineMarker(QString text, double time);
+};
+
+class AMarker : public QwtPlotMarker {
+	public:
+	double x, y;
+	AMarker(QString text, double x_, double y_);
+};
 
 
-
+class ArrowSymbol: public QwtSymbol  {
+public:
+	ArrowSymbol();
 };
 
 class Figure2 : public JustAplot {
@@ -157,16 +185,17 @@ public:
 	virtual void removeLine(LineItemInfo* line);
 	virtual void changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size);
 	void addVMarker();
+	void addAMarker();
 
 
 public:
 
-    QVBoxLayout *verticalLayout;
-    QFrame *top_frame;
-    QHBoxLayout *horizontalLayout;
-    QToolButton *tb1;
-    QToolButton *tb2;
-    QToolButton *tb3;
+	QVBoxLayout *verticalLayout;
+	QFrame *top_frame;
+	QHBoxLayout *horizontalLayout;
+	QToolButton *tb1;
+	QToolButton *tb2;
+	QToolButton *tb3;
 	QToolButton *tbSaveDataToTextFile;
 	QToolButton *tbFFT;
 	QToolButton *tbSquareAxis;
@@ -175,11 +204,11 @@ public:
 
 	QToolButton* tbSavePicture;
 
-    QSpacerItem *horizontalSpacer;
-    FSPlot *plot1;
+	QSpacerItem *horizontalSpacer;
+	FSPlot *plot1;
 
-    void setupUi();
-    void retranslateUi();
+	void setupUi();
+	void retranslateUi();
 
 protected:
 	int mode;///< figure gui mode
@@ -202,18 +231,17 @@ protected:
 
 	void closeEvent ( QCloseEvent * event );
 	void removeLines();
-    void ui_addTBIcon(QToolButton* tb, const char* i);
+	void ui_addTBIcon(QToolButton* tb, const char* i);
 	void setTBState();
 	void onPickerSignal(int x, int y);
 	void focusInEvent(QFocusEvent * event);
 	void keyPressEvent( QKeyEvent *k );
 	std::list<FigureItem*>	selectLines();
 	std::list<VLineMarker*> vmList;
+	std::list<AMarker*> amList;
 private:
 	double lastXselected, lastYselected;
 	bool pointWasSelected;
-
-
 
 private slots:
 	void ontb1(bool checked );
@@ -228,7 +256,6 @@ private slots:
 	void onTbSquareAxis(bool checked);
 	void onPickerSelection(const QPolygon& pa);
 	void onPickerMove(const QPoint&);
-
 };
 
 
