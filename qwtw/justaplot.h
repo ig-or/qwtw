@@ -45,6 +45,8 @@ public:
 	virtual void addMesh(const MeshInfo& info) {}
 	virtual void makeMarkersVisible(bool visible);
 	virtual void replot() {}
+	virtual void addVMarker(double t, const char* label = 0, int id_ = 0) {}
+	virtual void removeVMarker(int id_) {}
 
 signals:
 	void exiting(const std::string&);

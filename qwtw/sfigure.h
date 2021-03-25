@@ -118,6 +118,8 @@ public:
 	void drawMarker(const std::string& key_, double X, double Y, int type = 1);
 
 	Q_INVOKABLE void drawAllMarkers(double t);
+	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0);
+	Q_INVOKABLE void removeVMarkerEverywhere(int id_);
 
 	void clipAll(double t1, double t2);
 

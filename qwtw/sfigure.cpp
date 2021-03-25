@@ -524,6 +524,25 @@ void XQPlots::on3DMarker(double p[3]) {
 	}
 }
 
+Q_INVOKABLE void XQPlots::addVMarkerEverywhere(double t, const char* label, int id_) {
+    std::map<std::string, JustAplot*>::iterator it;
+    for(it = figures.begin(); it != figures.end(); it++) {
+	   it->second->addVMarker(t, label, id_);
+    }
+	for (it = figures.begin(); it != figures.end(); it++) {
+		it->second->replot();
+	}
+}
+Q_INVOKABLE void XQPlots::removeVMarkerEverywhere(int id_) {
+    std::map<std::string, JustAplot*>::iterator it;
+    for(it = figures.begin(); it != figures.end(); it++) {
+	   it->second->removeVMarker(id_);
+    }
+	for (it = figures.begin(); it != figures.end(); it++) {
+		it->second->replot();
+	}
+}
+
 Q_INVOKABLE void XQPlots::drawAllMarkers(double t) {
 	//if (!markersAreVisible) markersAreVisible = true;
     std::map<std::string, JustAplot*>::iterator it;

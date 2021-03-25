@@ -130,6 +130,7 @@ public:
 	SelectMarkerParamsDlg(QWidget *parent = 0, const char* name = 0);
 	QPushButton* cpb;
 	QPushButton* okpb;
+	QColor selectedColor;
 
 public slots:
 	void onColor();
@@ -144,16 +145,23 @@ public:
 	virtual void autoScale( int maxNumSteps, double &x1, double &x2, double &stepSize ) const;
 };
 
-class VLineMarker : public QwtPlotMarker {
-	public:
-	double t;
-	VLineMarker(QString text, double time);
+class QWMarker : public QwtPlotMarker {
+public:
+	QWMarker(int id_) : id(id_) {}
+	int id;
 };
 
-class AMarker : public QwtPlotMarker {
+class VLineMarker :public QWMarker {
+	public:
+	double t;
+	VLineMarker(const char* text, double time, int id_ = 0);
+};
+
+class AMarker : public QWMarker  {
 	public:
 	double x, y;
-	AMarker(QString text, double x_, double y_);
+	QColor color;
+	AMarker(const char* text, double x_, double y_, const QColor& color_, int id_ = 0);
 };
 
 
@@ -185,6 +193,17 @@ public:
 	virtual void removeLine(LineItemInfo* line);
 	virtual void changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size);
 	void addVMarker();
+	void addGlobalVMarker();
+	/**  test what we can do about the marker.
+	 * 	\param type 1 - VMarker, 2 - AMarker
+	 *  \param mid marker ID to remove
+	 * \return 	0 do nothing
+	 * 			1 add a marker
+	 * 			2 remove a marker
+	 */ 
+	int markerTest(int type, int& mid, std::string& label, QColor& color);
+	virtual void addVMarker(double t, const char* label = 0, int id = 0);
+	virtual void removeVMarker(int id_);
 	void addAMarker();
 
 
@@ -236,6 +255,7 @@ protected:
 	void onPickerSignal(int x, int y);
 	void focusInEvent(QFocusEvent * event);
 	void keyPressEvent( QKeyEvent *k );
+
 	std::list<FigureItem*>	selectLines();
 	std::list<VLineMarker*> vmList;
 	std::list<AMarker*> amList;

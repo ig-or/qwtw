@@ -45,6 +45,7 @@
 #include <sstream>
 
 int xmprintf(int level, const char* _Format, ...);
+static int markerID = 1;
 
 
 FigureItem::FigureItem(LineItemInfo* info_, QwtPlotCurve* line_) {
@@ -89,7 +90,7 @@ QPointF FSPicker::transform1(	const QPoint & 	pos	 ) 	 const {
 	return ret;
 }
 
-VLineMarker::VLineMarker(QString text, double time): t(time) {
+VLineMarker::VLineMarker(const char* text, double time, int id_): t(time), QWMarker(id_) {
 	QwtText label(text);
 	label.setFont(QFont("Consolas", 12, QFont::Bold));
 	label.setBackgroundBrush(QBrush(QColor(250, 250, 250)));
@@ -104,15 +105,16 @@ VLineMarker::VLineMarker(QString text, double time): t(time) {
     setXValue( time );
 }
 
-AMarker::AMarker(QString text, double x_, double y_): x(x_), y(y_) {
+AMarker::AMarker(const char* text, double x_, double y_, const QColor& color_, int id_): 
+		x(x_), y(y_), color(color_), QWMarker(id_)  {
 	QwtText label(text);
 	label.setFont(QFont("Consolas", 12, QFont::Bold));
 
-	QColor co = qwSettings.markerColor();
+	//QColor co = qwSettings.markerColor();
 
-	label.setColor(co);
+	label.setColor(color);
 	label.setBackgroundBrush(QBrush(QColor(250, 250, 250)));
-	QPen pen( co, 1 );
+	QPen pen( color, 1 );
 	label.setBorderPen(pen);
 
 	setRenderHint( QwtPlotItem::RenderAntialiased, true );
@@ -334,6 +336,7 @@ SelectMarkerParamsDlg::SelectMarkerParamsDlg(QWidget *parent, const char* name) 
 
 void SelectMarkerParamsDlg::onColor() {
 	QColor co = qwSettings.markerColor();
+	selectedColor = co;
 	QColor color = QColorDialog::getColor(co, this, "marker color");
 	if (!color.isValid()) {
 		xmprintf(5, "SelectMarkerParamsDlg::onColor(): color not valid \n");
@@ -355,7 +358,7 @@ void SelectMarkerParamsDlg::onColor() {
 	qwSettings.aMarkerColor_B = color.blue();
 
 	int test = qwSettings.qwSave();
-
+	selectedColor = color;
 }
 void SelectMarkerParamsDlg::onOK() {
 	accept();
@@ -1183,13 +1186,30 @@ void Figure2::keyPressEvent( QKeyEvent *k ) {
 	case Qt::Key_Right:
 		QWidget::keyPressEvent(k);
 		break;
-	case Qt::Key_V:
-		xmprintf(9, "V was pressed!\n");
-		addVMarker();
+	case Qt::Key_V: //  add vertical marker
+		if (k->modifiers() & Qt::ShiftModifier) {
+			xmprintf(9, "Shift + V was pressed!\n");
+			addGlobalVMarker();
+		} else {
+			xmprintf(9, "V was pressed!\n");
+			addVMarker();
+		}
 		break;
-	case Qt::Key_A:
+	case Qt::Key_A:  //  add arrow marker
 		xmprintf(9, "A was pressed!\n");
 		addAMarker();
+		break;
+	case Qt::Key_M: //  switch to marker mode
+		mode = 1;
+		setTBState(); 
+		break;
+	case Qt::Key_P: //  switch to pan mode
+		mode = 2;
+		setTBState(); 
+		break;
+	case Qt::Key_Z: //  switch to zoom mode
+		mode = 3;
+		setTBState(); 
 		break;
 	default:
 			QWidget::keyPressEvent(k);
@@ -1199,104 +1219,173 @@ void Figure2::keyPressEvent( QKeyEvent *k ) {
 	return;
 }
 
-void Figure2::addVMarker() {
+int Figure2::markerTest(int type, int& mid, std::string& label, QColor& color) {
+	int ret = 0;
+	mid = 0;
 	if (mode != 1) {
-		xmprintf(3, "Figure2::addVMarker(): mode = %d \n", mode);
-		return;
+		xmprintf(3, "Figure2::markerTest(): mode = %d \n", mode);
+		return 0;
 	}
 	if (!pointWasSelected) {
-		xmprintf(3, "Figure2::addVMarker(): point was not selected \n");
-		return;
+		xmprintf(3, "Figure2::markerTest(): point was not selected \n");
+		return 0;
 	}
-	xmprintf(3, "Figure2::addVMarker(): adding a V marker .. \n");
-	bool haveItAlready = false;
-	QwtScaleMap smX = plot1->canvasMap(QwtPlot::xBottom);
-
-	double dxS = smX.sDist();
-	double dt = dxS / 256.0;
-	VLineMarker* vm;
-	for (VLineMarker* a : vmList) {
-		if (fabs(lastXselected - a->t) < dt) {
-			haveItAlready = true;
-			xmprintf(4, "Figure2::addVMarker(): have it already. removing. dt = %f; dist = %f  \n",
-				dt, fabs(lastXselected - a->t));
-			a->detach();
-			vmList.remove(a);
-			delete a;
-			break;
-		}
-	}
-	if (haveItAlready) {
-		return;
-	}
-
-	char tmp[64];
-	snprintf(tmp, 64, "%.2f", lastXselected);
-
-	SelectNameDlg dlg(this, tmp);
-	dlg.exec();
-	if (!dlg.ret) {
-		xmprintf(3, "Figure2::addVMarker(): rejected \n");
-		return;
-	}
-	QString text = dlg.text->text();
-
-	vm = new VLineMarker(text, lastXselected);
-	vmList.push_back(vm);
-	vm->attach(plot1);
-	xmprintf(3, "Figure2::addVMarker(): OK \n");
-}
-
-void Figure2::addAMarker() {
-	if (mode != 1) {
-		xmprintf(3, "Figure2::addAMarker(): mode = %d \n", mode);
-		return;
-	}
-	if (!pointWasSelected) {
-		xmprintf(3, "Figure2::addAMarker(): point was not selected \n");
-		return;
-	}
-	xmprintf(3, "Figure2::addAMarker(): adding a A marker .. \n");
+	
+	xmprintf(3, "Figure2::markerTest(): ..... \n");
 	bool haveItAlready = false;
 	QwtScaleMap smY = plot1->canvasMap(QwtPlot::yLeft);
 	QwtScaleMap smX = plot1->canvasMap(QwtPlot::xBottom);
 	double dxS = smX.sDist();
 	double dyS = smY.sDist();
 
-	double dx = dxS / 100.0;
+	double dx = dxS / 256.0;
 	double dy = dyS / 100.0;
 
-	AMarker* am;
-	for (AMarker* a : amList) {
-		if ((fabs(lastXselected - a->x) < dx) && (fabs(lastYselected - a->y) < dy)) {
-			haveItAlready = true;
-			xmprintf(4, "Figure2::addAMarker(): have it already. removing. dx = %f; dist = %f  \n",
-				dx, fabs(lastXselected - a->x));
+	switch (type) {
+	case 1: //  vertical
+		for (VLineMarker* a : vmList) {
+			if (fabs(lastXselected - a->t) < dx) {
+				haveItAlready = true;
+				mid = a->id;
+				break;
+			}
+		}
+		break;
+	case 2:  // arrow
+		for (AMarker* a : amList) {
+			if ((fabs(lastXselected - a->x) < dx) && (fabs(lastYselected - a->y) < dy)) {
+				haveItAlready = true;
+				mid = a->id;
+				break;
+			}
+		}
+		break;
+	};
+	if (haveItAlready) {
+		return 2;
+	}
+	char tmp[64];
+	switch(type) {
+	case 1:
+		snprintf(tmp, 64, "%.2f", lastXselected);
+		{
+			SelectNameDlg dlg(this, tmp);
+			dlg.exec();
+			if (!dlg.ret) {
+				xmprintf(3, "Figure2::markerTest(): rejected \n");
+				return 0;
+			}
+			label = dlg.text->text().toStdString();
+		}
+		break;
+	case 2: 
+		snprintf(tmp, 64, "[%.2f, %.2f]", lastXselected, lastYselected);
+		{
+			SelectMarkerParamsDlg dlg(this, tmp);
+			dlg.exec();
+			if (!dlg.ret) {
+				xmprintf(3, "Figure2::markerTest(): rejected \n");
+				return 0;
+			}
+			label = dlg.text->text().toStdString();
+			color = dlg.selectedColor;
+		}
+		break;
+	};
+
+
+	return 1;
+}
+
+void Figure2::addGlobalVMarker() {
+	int mid = 0;
+	std::string label;
+	QColor color;
+	int  test = markerTest(1, mid, label, color);
+	switch(test) {
+	case 1:  
+		markerID++;
+		//addVMarker(lastXselected, label.c_str(), markerID);
+		pf->addVMarkerEverywhere(lastXselected, label.c_str(), markerID);
+		break;
+	case 2:
+		//removeVMarker(mid);
+		pf->removeVMarkerEverywhere(mid);
+		break;
+	};
+	xmprintf(3, "Figure2::addVMarker(): OK \n");
+}
+
+void Figure2::addVMarker() {
+	int mid = 0;
+	std::string label;
+	QColor color;
+	int  test = markerTest(1, mid, label, color);
+	switch(test) {
+	case 1:  
+		markerID++;
+		addVMarker(lastXselected, label.c_str(), markerID);
+		break;
+	case 2:
+		removeVMarker(mid);
+		break;
+	};
+	xmprintf(3, "Figure2::addVMarker(): OK \n");
+}
+
+void Figure2::addVMarker(double t, const char* label, int id_) {
+	VLineMarker* vm = new VLineMarker(label, t, id_);
+	vm->attach(plot1);
+	vmList.push_back(vm);
+}
+
+void Figure2::removeVMarker(int id_) {
+	std::list<VLineMarker*>::iterator it = vmList.begin();
+	while (it != vmList.end()) {
+		VLineMarker* a = *it;
+		int test = a->id;
+		if (a->id == id_) {
 			a->detach();
-			amList.remove(a);
+			//vmList.remove(a);
+			vmList.erase(it++);
 			delete a;
-			break;
+			//  do not break here
+		} else {
+			++it;
 		}
 	}
-	if (haveItAlready) {
-		return;
-	}
-	xmprintf(4, "Figure2::addAMarker(): adding another arrow marker \n");
+}
 
-	char tmp[64];
-	snprintf(tmp, 64, "[%.2f, %.2f]", lastXselected, lastYselected);
+void Figure2::addAMarker() {
+	int mid = 0;
+	std::string label;
+	QColor color;
+	AMarker* am;
+	int  test = markerTest(2, mid, label, color);
+	switch(test) {
+	case 1:  
+		markerID++;
+		am = new AMarker(label.c_str(), lastXselected, lastYselected, color, markerID);
+		amList.push_back(am);
+		am->attach(plot1);
+		break;
+	case 2:
+		{
+			std::list<AMarker*>::iterator it = amList.begin();
+			while (it != amList.end()) {
+				AMarker* a = *it;
+				if (a->id == mid) {
+					a->detach();
+					amList.erase(it++);
+					delete a;
+				} else {
+					++it;
+				}
+			}
+		}
+		break;
+	};
 
-	SelectMarkerParamsDlg dlg(this, tmp);
-	dlg.exec();
-	if (!dlg.ret) {
-		xmprintf(3, "Figure2::addAMarker(): rejected \n");
-		return;
-	}
-	QString text = dlg.text->text();
-
-	am = new AMarker(text, lastXselected, lastYselected);
-	amList.push_back(am);
-	am->attach(plot1);
 	xmprintf(3, "Figure2::addAMarker(): OK \n");
 }
 
