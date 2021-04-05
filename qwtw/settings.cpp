@@ -12,6 +12,7 @@ QWSettings::QWSettings() {
 	aMarkerColor_R = 0;
 	aMarkerColor_G = 0;
 	aMarkerColor_B = 0;
+	direction = 0;
 }
 int QWSettings::qwSave() {
 	char folder[512];
@@ -27,6 +28,7 @@ int QWSettings::qwSave() {
 	root.put("aMarkerColor_R", aMarkerColor_R);
 	root.put("aMarkerColor_G", aMarkerColor_G);
 	root.put("aMarkerColor_B", aMarkerColor_B);
+	root.put("direction", direction);
 	std::ostringstream oss;
 	pt::write_json(oss, root);
 	try {
@@ -63,8 +65,9 @@ int QWSettings::qwLoad() {
 	aMarkerColor_R = root.get<int>("aMarkerColor_R", 0);
 	aMarkerColor_G = root.get<int>("aMarkerColor_G", 0);
 	aMarkerColor_B = root.get<int>("aMarkerColor_B", 0);
+	direction = root.get<int>("direction", 0);
 
-	xmprintf(5, "QWSettings::qwLoad() file loaded    \n");
+	xmprintf(9, "QWSettings::qwLoad() file loaded    \n");
 
 	return 0;
 }

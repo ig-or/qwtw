@@ -661,14 +661,8 @@ int  XQPlots::plot(double* x, double* y, int size, const char* name,
 		}
 	}
 
-	//int mode = currentFigureMode;
-	int mode = 2;
-	if(time != 0) {
-	    mode = 3;
-	} 
-
 	//it will be deleted in 'cf' destructor
-	LineItemInfo* i = new LineItemInfo(x, y, size, name, mode, time);
+	LineItemInfo* i = new LineItemInfo(x, y, size, name, (time == 0) ? 2 : 3, time);
 	i->style = style; 
 	i->lineWidth = lineWidth;
 	i->symSize = symSize;

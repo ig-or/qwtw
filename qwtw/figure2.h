@@ -22,6 +22,7 @@
 #include <QApplication>
 #include <QButtonGroup>
 #include <QDialog>
+#include <QComboBox>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QSpacerItem>
@@ -111,6 +112,7 @@ class SelectInfoDlg : public QDialog {
 public:
 	SelectInfoDlg(QWidget *parent);
 	QLineEdit* text;
+	QComboBox* cbDirection;
 	QVBoxLayout* verticalLayout;
 	bool ret;
 protected:
@@ -135,6 +137,7 @@ public:
 public slots:
 	void onColor();
 	void onOK();
+	void directionChanged(int dir);
 
 };
 
@@ -159,15 +162,28 @@ class VLineMarker :public QWMarker {
 
 class AMarker : public QWMarker  {
 	public:
+	enum AMPos {
+		amBottomRight = 0, 
+		amBottomLeft,
+		amTopLeft,
+		amTopRight
+	};
 	double x, y;
+	AMPos pos;
 	QColor color;
 	AMarker(const char* text, double x_, double y_, const QColor& color_, int id_ = 0);
+	AMarker(const char* text, double x_, double y_, const QColor& color_, AMarker::AMPos pos_, int id_ = 0);
+private:
+	void amInit(const char* text, double x_, double y_, const QColor& color_, AMPos pos_);
 };
 
 
 class ArrowSymbol: public QwtSymbol  {
 public:
 	ArrowSymbol();
+	ArrowSymbol(double angle, int size);
+private:
+	void asInit(double angle, int size);
 };
 
 class Figure2 : public JustAplot {
@@ -230,7 +246,7 @@ public:
 	void retranslateUi();
 
 protected:
-	int mode;///< figure gui mode
+	int mouseMode;///< figure gui mode
 	bool	tbModeChanging;
 	bool clipperHost;
 

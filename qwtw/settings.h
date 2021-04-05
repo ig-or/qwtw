@@ -9,6 +9,7 @@ struct QWSettings {
 	int aMarkerColor_R;
 	int aMarkerColor_G;
 	int aMarkerColor_B;
+	int direction;
 
 	QWSettings();
 	int qwSave();

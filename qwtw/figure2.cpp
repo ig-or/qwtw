@@ -105,8 +105,18 @@ VLineMarker::VLineMarker(const char* text, double time, int id_): t(time), QWMar
     setXValue( time );
 }
 
-AMarker::AMarker(const char* text, double x_, double y_, const QColor& color_, int id_): 
-		x(x_), y(y_), color(color_), QWMarker(id_)  {
+AMarker::AMarker(const char* text, double x_, double y_, const QColor& color_, int id_): QWMarker(id_)	 {
+	amInit(text, x_, y_, color_, amBottomRight);
+}
+AMarker::AMarker(const char* text, double x_, double y_, const QColor& color_, AMarker::AMPos pos_, int id_): QWMarker(id_)	 {
+	amInit(text, x_, y_, color_, pos_);
+}
+void AMarker::amInit(const char* text, double x_, double y_, const QColor& color_,  AMPos pos_) {
+	x = x_;
+	y = y_;
+	color = color_;
+	pos = pos_;
+
 	QwtText label(text);
 	label.setFont(QFont("Consolas", 12, QFont::Bold));
 
@@ -119,10 +129,33 @@ AMarker::AMarker(const char* text, double x_, double y_, const QColor& color_, i
 
 	setRenderHint( QwtPlotItem::RenderAntialiased, true );
     setItemAttribute( QwtPlotItem::Legend, false );
-    setSymbol( new ArrowSymbol() );
+	setLabel( label );
+	ArrowSymbol* as;
+	switch (pos) {
+
+	case amTopLeft:  
+		as =  new ArrowSymbol(150.0, 14);
+		setLabelAlignment( Qt::AlignLeft | Qt::AlignTop );
+		break;
+
+	case amTopRight:
+		as =  new ArrowSymbol(-150.0, 14);
+		setLabelAlignment( Qt::AlignRight | Qt::AlignTop );
+		break;
+
+	case amBottomLeft:
+		as =  new ArrowSymbol(30.0, 14);
+		setLabelAlignment( Qt::AlignLeft | Qt::AlignBottom );
+		break;
+
+	case amBottomRight:  
+	default:
+		as =  new ArrowSymbol(); 
+		setLabelAlignment( Qt::AlignRight | Qt::AlignBottom );
+		break;
+	};
+    setSymbol( as );
     setValue( QPointF( x, y));
-    setLabel( label );
-    setLabelAlignment( Qt::AlignRight | Qt::AlignBottom );
 }
 
 
@@ -300,6 +333,15 @@ SelectMarkerParamsDlg::SelectMarkerParamsDlg(QWidget *parent, const char* name) 
 
 	verticalLayout->addWidget(text);
 
+	cbDirection = new QComboBox(this);
+	cbDirection->addItem("bottom right");
+	cbDirection->addItem("bottom left");
+	cbDirection->addItem("top left");
+	cbDirection->addItem("top right");
+	verticalLayout->addWidget(cbDirection);
+	cbDirection->setEditable(false);
+	cbDirection->setCurrentIndex(qwSettings.direction);
+
 	QFrame* f = new QFrame(this);
 	f->setSizePolicy(sizePolicy);
 	QHBoxLayout* hLayout = new QHBoxLayout(f);
@@ -324,6 +366,7 @@ SelectMarkerParamsDlg::SelectMarkerParamsDlg(QWidget *parent, const char* name) 
 
 	connect(cpb, &QPushButton::clicked, this, &SelectMarkerParamsDlg::onColor);
 	connect(okpb, &QPushButton::clicked, this, &SelectMarkerParamsDlg::onOK);
+	connect(cbDirection,  QOverload<int>::of(&QComboBox::currentIndexChanged), this,  &SelectMarkerParamsDlg::directionChanged);
 
 	if (name != 0) {
 		text->setText(QString::fromUtf8(name));
@@ -363,8 +406,14 @@ void SelectMarkerParamsDlg::onColor() {
 void SelectMarkerParamsDlg::onOK() {
 	accept();
 }
+void SelectMarkerParamsDlg::directionChanged(int dir) {
+	if (dir != qwSettings.direction) {
+		qwSettings.direction = dir;
+		qwSettings.qwSave();
+	}
+}
 
-ArrowSymbol::ArrowSymbol()    {
+void ArrowSymbol::asInit(double angle, int size) {
 	QPen pen( Qt::black, 0 );
 	pen.setJoinStyle( Qt::MiterJoin );
 
@@ -387,17 +436,25 @@ ArrowSymbol::ArrowSymbol()    {
 	path.lineTo( 0, 12 );
 
 	QTransform transform;
-	transform.rotate( -30.0 );
+	transform.rotate(angle);
 	path = transform.map( path );
 
 	setPath( path );
 	setPinPoint( QPointF( 0, 0 ) );
 
-	setSize( 14, 18 );
+	setSize( size, size + 4);
+}
+
+ArrowSymbol::ArrowSymbol()    {
+	asInit(-30.0, 14);
+}
+
+ArrowSymbol::ArrowSymbol(double angle, int size) {
+	asInit(angle, size);
 }
 
 Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : JustAplot(key_, pf_, parent, jQWT) {
-	mode = 0;
+	mouseMode = 0;
 	//cf = 0;
 	tbModeChanging = false;
 	clipperHost = false;
@@ -512,10 +569,10 @@ void Figure2::ontb1(bool checked ) {  //   picker
 	//} else {
 	//	mode = 0;
 	//}
-	mode = 1;
+	mouseMode = 1;
 
 	setTBState(); 
-	xmprintf(5, "Figure2::ontb1 mode = %d \n", mode);
+	xmprintf(5, "Figure2::ontb1 mouseMode = %d \n", mouseMode);
 }
 
 void Figure2::onResetLayout() {
@@ -574,15 +631,64 @@ void Figure2::onResetLayout() {
 	plot1->replot(); // ?
 }
 
+void updateBounds(double& t1, double& t2, double t, bool& corrected1, bool& corrected2) {
+	if (t < t1) {
+		t1 = t;
+		corrected1 = true;
+	} else {
+		if (t > t2) {
+			t2 = t;
+			corrected2 = true;
+		}
+	}
+}
+
+
+
 void Figure2::onClip(bool checked) {
 	//  left and right points:
 	clipperHost = true;
 	QwtScaleMap smX = plot1->canvasMap(QwtPlot::xBottom);
 	double  x1 = smX.s1();
 	double  x2 = smX.s2();
-	
+	if (x1 > x2) {
+		double tmp = x1; 
+		x1 = x2;
+		x2 = tmp;
+	}
+	QwtScaleMap smY = plot1->canvasMap(QwtPlot::yLeft);
+	double  y1 = smY.s1();
+	double  y2 = smY.s2();
+	if (y1 > y2) {
+		double tmp = y1;
+		y1 = y2;
+		y2 = tmp;
+	}
 
-	pf->clipAll(x1, x2);
+	double tMin = BIGNUMBER;
+	double tMax = -BIGNUMBER;
+	bool minCorrected = false;
+	bool maxCorrected = false;
+
+	for (auto a : lines) {
+		LineItemInfo* i = a->info;
+		if ((i->mode == 3) && (i->time != 0)) {
+			for (int k = 0; k < i->size; k++) {
+				if (i->x[k] < x1) continue;
+				if (i->x[k] > x2) continue;
+				if (i->y[k] < y1) continue;
+				if (i->y[k] > y2) continue;
+				updateBounds(tMin, tMax, i->time[k], minCorrected, maxCorrected);
+			}
+		} else { 
+			updateBounds(tMin, tMax, x1, minCorrected, maxCorrected);
+			updateBounds(tMin, tMax, x2, minCorrected, maxCorrected);
+		}
+
+	}
+	if (minCorrected && maxCorrected) {
+		pf->clipAll(tMin, tMax);
+	}
 }
 
 void Figure2::ontb2(bool checked ) { //   panner
@@ -595,24 +701,24 @@ void Figure2::ontb2(bool checked ) { //   panner
 	//} else {
 	//	mode = 0;
 	//}
-	mode = 2;
+	mouseMode = 2;
 	setTBState();
-	xmprintf(5, "Figure2::ontb2 mode = %d \n", mode);
+	xmprintf(5, "Figure2::ontb2 mouseMode = %d \n", mouseMode);
 }
 void Figure2::ontb3(bool checked ) {  //  zoomer
 	if (tbModeChanging) return;
 	//zoomer->setEnabled(checked);
 	//zoom(0);
 	//if (checked) mode = 3; else mode = 0;
-	mode = 3;
+	mouseMode = 3;
 	setTBState();
-	xmprintf(5, "Figure2::ontb3 mode = %d \n", mode);
+	xmprintf(5, "Figure2::ontb3 mouseMode = %d \n", mouseMode);
 }
 
 void Figure2::setTBState() {
 	if (tbModeChanging) return;
 	tbModeChanging = true;
-	switch(mode) {
+	switch(mouseMode) {
 	case 0: 
 		tb1->setChecked(false);  tb2->setChecked(false);  tb3->setChecked(false);  
 		picker->setEnabled(false);  panner->setEnabled(false);  zoomer->setEnabled(false); 
@@ -1199,16 +1305,20 @@ void Figure2::keyPressEvent( QKeyEvent *k ) {
 		xmprintf(9, "A was pressed!\n");
 		addAMarker();
 		break;
+	//case Qt::Key_B:  //  add arrow marker (top left pos)
+	//	xmprintf(9, "B was pressed!\n");
+	//	addAMarker(AMarker::amTopLeft);
+	//	break;
 	case Qt::Key_M: //  switch to marker mode
-		mode = 1;
+		mouseMode = 1;
 		setTBState(); 
 		break;
 	case Qt::Key_P: //  switch to pan mode
-		mode = 2;
+		mouseMode = 2;
 		setTBState(); 
 		break;
 	case Qt::Key_Z: //  switch to zoom mode
-		mode = 3;
+		mouseMode = 3;
 		setTBState(); 
 		break;
 	default:
@@ -1222,8 +1332,8 @@ void Figure2::keyPressEvent( QKeyEvent *k ) {
 int Figure2::markerTest(int type, int& mid, std::string& label, QColor& color) {
 	int ret = 0;
 	mid = 0;
-	if (mode != 1) {
-		xmprintf(3, "Figure2::markerTest(): mode = %d \n", mode);
+	if (mouseMode != 1) {
+		xmprintf(3, "Figure2::markerTest(): mouseMode = %d \n", mouseMode);
 		return 0;
 	}
 	if (!pointWasSelected) {
@@ -1365,7 +1475,8 @@ void Figure2::addAMarker() {
 	switch(test) {
 	case 1:  
 		markerID++;
-		am = new AMarker(label.c_str(), lastXselected, lastYselected, color, markerID);
+		am = new AMarker(label.c_str(), lastXselected, lastYselected, color, 
+				static_cast<AMarker::AMPos>(qwSettings.direction), markerID);
 		amList.push_back(am);
 		am->attach(plot1);
 		break;
