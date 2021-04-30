@@ -59,7 +59,7 @@ bool QProcInterface::runningAlready() {
 		shared_memory_object shmCommandTest(open_only, ProcData::shmNames[0], read_write);
 		ret = true;
 	} catch(interprocess_exception &ex) { 
-
+		xmprintf(2, "QProcInterface::runningAlready(): cannot create shared_memory_object (%s)\n", ex.what());
 	}
 	return ret;
 }
@@ -75,15 +75,13 @@ void QProcInterface::start() {
 	using namespace boost::interprocess;
 	//Create a shared memory object.
 	removeSHM();
-	xmprintf(3, "/tQProcInterface::start() setting up SHM\n");
+	xmprintf(3, "\tQProcInterface::start() setting up SHM\n");
 	try{
-
 		shmCommand =  new shared_memory_object(create_only, ProcData::shmNames[0], read_write);
 		shmDataX =  new shared_memory_object(create_only, ProcData::shmNames[1], read_write);
 		shmDataY =  new shared_memory_object(create_only, ProcData::shmNames[2], read_write);
 		shmDataZ =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
 		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
-
 		shmDataData =  new shared_memory_object(create_only, ProcData::shmNames[5], read_write);
 	} catch (interprocess_exception &ex){
 		xmprintf(0, "QProcInterface::start()  cannot create shared memory: %s \n", ex.what());
@@ -105,9 +103,9 @@ void QProcInterface::start() {
 
 	//pd.hdr = (CmdHeader*)commandReg->get_address();
 	pd.hdr = new (commandReg->get_address()) CmdHeader;
-	xmprintf(3, "/tQProcInterface::start() locking..\n");
+	xmprintf(3, "\tQProcInterface::start() locking..\n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-	xmprintf(3, "/tQProcInterface::start() locked.\n");
+	xmprintf(3, "\tQProcInterface::start() locked.\n");
 	pd.hdr->cmd = 100; //    just started
 	pd.hdr->segSize = startSegSize;
 	pd.hdr->dataSize = startSegSize;

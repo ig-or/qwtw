@@ -61,7 +61,7 @@ std::string tchar2stdstring(TCHAR* src) {
 
 std::string getTemporalPath() {
     TCHAR lpTempPathBuffer[MAX_PATH];
-    LPCTSTR errMsg;
+    //LPCTSTR errMsg;
     std::string ret("c:\\tmp");
     DWORD dwRetVal = 0;
     dwRetVal = GetTempPath(MAX_PATH,  lpTempPathBuffer); // buffer for path 

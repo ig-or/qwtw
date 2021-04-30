@@ -182,14 +182,14 @@ void QWorker::qwtsetimpstatus(int impStatus) {
 }
 
 void QWorker::qwtxlabel(const char* s) {
-	int rv;
+	//int rv;
 	if (!QMetaObject::invokeMethod(this, "qwtxlabelImpl", Qt::BlockingQueuedConnection, Q_ARG(const char*, s))) {
 		std::cout << " cannot invoke qwtxlabelImpl" << std::endl;
 	}
 }
 
 void QWorker::qwtylabel(const char* s) {
-	int rv;
+	//int rv;
 	if (!QMetaObject::invokeMethod(this, "qwtylabelImpl", Qt::BlockingQueuedConnection,  Q_ARG(const char*, s))) {
 		std::cout << " cannot invoke qwtylabelImpl" << std::endl;
 	}

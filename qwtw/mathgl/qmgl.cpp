@@ -618,7 +618,7 @@ void QMGL1::ensurePolished() {
 void QMGL1::addMenu() {
 	
 	QAction *a;
-	QMenu *o, *oo, *f;
+	QMenu *o, *oo;
 	QToolBar *bb;
 
 	QMenu *popup = new QMenu(this);

@@ -43,7 +43,7 @@ void XQByteBuffer::putInt(int x) {
 
 void XQByteBuffer::putString(const char* s) {
 	if(s != 0) {
-		int n = strlen(s);
+		size_t n = strlen(s);
 		if(ms > 0) {
 			int free = ms - size;
 			mxassert(n < free, "");
@@ -69,7 +69,7 @@ double* XQByteBuffer::getDPtr() {
 }
 
 void XQByteBuffer::getString(char* s) {
-	int n = strlen((const char*)buf);
+	size_t n = strlen((const char*)buf);
 	memcpy(s, buf, n); s[n] = 0;
 	buf += n + 1;
 }

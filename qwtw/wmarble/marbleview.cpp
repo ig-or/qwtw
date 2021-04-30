@@ -191,7 +191,7 @@ void MWidgetEx::customPaint(GeoPainter* painter) {
 			if (i->info->style == std::string()) {
 				//
 			} else {
-				int sn = i->info->style.size();
+				size_t sn = i->info->style.size();
 				if (sn > 0) { //    last is always color:
 					//  set color:
 					switch (i->info->style[sn - 1]) {

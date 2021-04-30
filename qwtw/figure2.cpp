@@ -58,6 +58,10 @@ FigureItem::FigureItem(LineItemInfo* info_, QwtPlotCurve* line_) {
 	else {
 		ma = new QwtPlotMarker();
 	}
+	id = info_->id;
+	if (!info->lCheck()) {
+		xmprintf(4, "FigureItem::FigureItem: bad line added \n");
+	}
 }
 
 FigureItem::~FigureItem() {
@@ -939,7 +943,7 @@ void Figure2::removeLine(LineItemInfo* line) {
 			//   delete and detach QWT line
 			i->line->setData(NULL);
 			i->line->detach();
-			delete i->line;
+			delete i->line;  //  delete QwtPlotCurve
 
 			// delete FigureItem and its marker
 			delete i;
@@ -1139,13 +1143,14 @@ void Figure2::removeLines() {
 		FigureItem* cf = *xi;
 		cf->line->setData(NULL);
 		cf->line->detach();
-		delete cf->line;
+		delete cf->line; // this was QwtPlotCurve
 
 		delete cf;
 		
 		xi++;
 	}
 	lines.clear();
+	remove_lines();
 
 	if (!vmList.empty()) {//  remove all the vertical markers
 		for (VLineMarker* a : vmList) {
@@ -1182,9 +1187,9 @@ void Figure2::onTbFFT() {
 	if (selected.size() == 0) {
 		return;
 	}
-	unsigned int ws = dlg.getWindowSize();
+	int ws = dlg.getWindowSize();
 	char stmp[16];
-	sprintf(stmp, "%u", ws);
+	snprintf(stmp, 16, "%u", ws);
 
 	//  left and right points:
 	QwtScaleMap smX = plot1->canvasMap(QwtPlot::xBottom);
@@ -1548,7 +1553,7 @@ void Figure2::onPickerSignal(int x, int y) {
 	//std::ostringstream s; 
 	//s << xxm << ", " << yym << ", (" << mfi->info->legend << ")";
 	char s[256];
-	sprintf(s, "%.6f, %.6f (%s), index=%lld", 
+	snprintf(s, 256, "%.6f, %.6f (%s), index=%lld", 
 			lastXselected, lastYselected, mfi->info->legend.c_str(), minIndex);
 
    // setWindowTitle(s.str().c_str());
@@ -1654,6 +1659,10 @@ void Figure2::onClip(double t1, double t2) {
 		if (!i->important) {
 			continue;
 		}
+		if (!i->lCheck()) {
+			xmprintf(1, "ERROR: Figure2::onClip bad LineItemInfo \n");
+			continue;
+		}
 		if (i->mode != 3) { //   'simple' line
 			if (xMax < t2) xMax = t2;
 			if (xMin > t1) xMin = t1;
@@ -1715,7 +1724,7 @@ SLDialog::SLDialog(std::list<FigureItem*> lines, QWidget *parent) : QDialog(pare
 
 	unsigned int ws = 1;
 	do {
-		sprintf(stmp, "%u", ws);
+		snprintf(stmp, 16, "%u", ws);
 		ui.cbWindowSize->addItem(stmp);
 
 		ws <<= 1;

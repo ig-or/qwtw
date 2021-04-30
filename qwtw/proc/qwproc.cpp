@@ -119,7 +119,7 @@ int checkProcRunning() {
 				}
 			}	else {
 				LPVOID lpMsgBuf;
-				LPVOID lpDisplayBuf;
+				//LPVOID lpDisplayBuf;
 				DWORD dw = GetLastError();
 				if (dw == 5) {  //  looks like running
 					return 1; 

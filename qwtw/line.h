@@ -28,7 +28,7 @@ struct LineItemInfo {
 	*/
 	int mode;
 	bool important; ///< if 'false', it will not participate in 'clipping'
-	size_t size; ///< size for x, y, z , and time
+	long long size; ///< size for x, y, z , and time
 	std::string  legend;
 	std::string  style;
 	int lineWidth;
@@ -38,6 +38,7 @@ struct LineItemInfo {
 
 	/* we will put here the indeces of the points with about 1m between*/
 	std::list<unsigned int> smallCoordIndex;
+	int id;
 
 	struct Marker {
 		bool active;
@@ -55,6 +56,7 @@ struct LineItemInfo {
 	LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std::string legend_,
 		double* time_ = 0);
 	~LineItemInfo();
+	bool lCheck();
 };
 
 

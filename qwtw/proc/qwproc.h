@@ -60,13 +60,14 @@ struct CmdHeader {
 
 
 struct ProcData {
-	static constexpr const char* shmNames[] = {"QWTWCommand", "QWTW_x", "QWTW_y", "QWTW_z", "QWTW_t", "QWTW_data"};
+	static constexpr const char* shmNames[] = {
+		"QWTWCommand", "QWTW_x", "QWTW_y", "QWTW_z", "QWTW_t", "QWTW_data"
+	};
 	CmdHeader* hdr;
 	double*	x;
 	double* y;
 	double* z;
 	double* t;
-
 	double* data;
 };
 

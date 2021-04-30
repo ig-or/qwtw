@@ -8,6 +8,7 @@
 #include "xmatrixplatform.h"
 #include "xmatrix2.h"
 
+int xmprintf(int level, const char* _Format, ...);
 
 long long fcp(LineItemInfo* i, double x, double y) {
 	long long ret = 0xffffffff;
@@ -55,6 +56,7 @@ void JustAplot::removeLine(LineItemInfo* line) {
 	for (it = linesInfo.begin(); it != linesInfo.end(); it++) {
 		LineItemInfo* i = *it;
 		if (i == line) {
+			xmprintf(5, "deleting line (%s)(%d)\n", i->legend.c_str(), i->id);
 			delete i;
 			linesInfo.erase(it);
 			break;
@@ -71,15 +73,19 @@ void JustAplot::removeLine(LineItemInfo* line) {
 	}
 }
 
-JustAplot::~JustAplot() {
-	emit exiting(key);
-	
+void JustAplot::remove_lines() {
 	std::list<LineItemInfo*>::iterator it;
 	for (it = linesInfo.begin(); it != linesInfo.end(); it++) {
 		LineItemInfo* i = *it;
 		delete i;
 	}
 	linesInfo.clear();
+}
+
+JustAplot::~JustAplot() {
+	emit exiting(key);
+	
+	remove_lines();
 }
 
 void JustAplot::title(const std::string& s) {

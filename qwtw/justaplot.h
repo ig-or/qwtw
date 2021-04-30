@@ -35,6 +35,7 @@ public:
 	virtual void drawMarker(double t);
 	virtual void onClip(double t1, double t2);
 	virtual void removeLine(LineItemInfo* line);
+	void remove_lines();
 	virtual void changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size) {}
 
 	/** Just save this pointer.

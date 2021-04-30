@@ -14,8 +14,12 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, size_t size_, std::string leg
 	if ((size_ < 1) || (x_ == 0) || (y_ == 0)) {
 		x = 0;
 		y = 0;
+		z = 0; 
 		time = 0;
+		id = -187;
 		ok = false;
+		xmprintf(0, "ERROR: LineItemInfo::LineItemInfo: cannot create line [%s]; size = %d\n", 
+			legend_.c_str(), size);
 		return;
 	}
 	ok = true;
@@ -54,6 +58,7 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, size_t size_, std::string leg
 	else {
 		sqwLine = 0;
 	}
+	id = 0;
 }
 
 LineItemInfo::LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std::string legend_,
@@ -62,6 +67,20 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std
 	xmprintf(7, "\t\tLineItemInfo::LineItemInfo start \n");
 
 	mxassert(size_ > 0, "");
+
+	if ((size_ < 1) || (x_ == 0) || (y_ == 0) || (z_ == 0)) {
+		x = 0;
+		y = 0;
+		z = 0;
+		time = 0;
+		id = -188;
+		ok = false;
+		xmprintf(0, "ERROR: LineItemInfo::LineItemInfo: cannot create line [%s]; size = %d\n",
+			legend_.c_str(), size);
+		return;
+	}
+	ok = true;
+
 	x = x_;
 	y = y_;
 	z = z_; //  3D plot
@@ -110,6 +129,7 @@ LineItemInfo::LineItemInfo(double* x_, double* y_, double* z_, size_t size_, std
 	lineWidth = 0; // default value ?????
 	symSize = 8;
 	sqwLine = 0;
+	id = 0;
 	xmprintf(7, "\t\tLineItemInfo::LineItemInfo done  \n");
 }
 
@@ -122,6 +142,18 @@ LineItemInfo::~LineItemInfo() {
 	if (sqwLine != 0) {
 		delete sqwLine;
 	}
+	
+}
+
+bool LineItemInfo::lCheck() {
+	if (x == 0) { return false; }
+	if (y == 0) { return false; }
+	if (size <= 0) { return false; }
+	if (lineWidth < 0) { return false; }
+	if (symSize < 0) { return false;  }
+	if (!ok) { return false;  }
+
+	return true;
 }
 
 

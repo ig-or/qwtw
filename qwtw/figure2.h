@@ -52,7 +52,7 @@ class QwtPlotRescaler;
 struct FigureItem {
 	QwtPlotCurve* line;
 	LineItemInfo* info;
-	//long long key;
+	int id;
 
 	QwtPlotMarker* ma;
 	FigureItem(LineItemInfo* info_, QwtPlotCurve* line_);

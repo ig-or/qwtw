@@ -86,40 +86,48 @@ int lockHandle() {
 }
 
 int main(int argc, char** argv) {
-	boost::program_options::variables_map vm;
-	boost::program_options::options_description desc(" Valid arguments");
+	using namespace boost::program_options;
+	variables_map vm;
+	int iTest = 14;
+	std::string va(" Valid arguments");
+	options_description desc(va);
 	desc.add_options()
 		("help", "This help message")		
 		#ifdef USEMARBLE
-		("marble_data", boost::program_options::value< std::string >(), "path to the Marble data files")
-		("marble_plugins", boost::program_options::value< std::string >(), "path to the Marble plugins")
+		("marble_data", value< std::string >(), "path to the Marble data files")
+		("marble_plugins", value< std::string >(), "path to the Marble plugins")
 		#endif
-		("debug",  boost::program_options::value< int >(), "debug level, 0 - minimum, 10 - maximum")
-		("print",  boost::program_options::value< int >(), "print level, 0 - minimum, 10 - maximum")
-		("second",  boost::program_options::value< int >(), "second")
+		("debug",  value< int >(), "debug level, 0 - minimum, 10 - maximum")
+		("print",  value< int >(), "print level, 0 - minimum, 10 - maximum")
+		("second",  value< int >(), "second")
 		
 	;
 	try
 	{
-		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc, 
-			boost::program_options::command_line_style::unix_style ^
-			boost::program_options::command_line_style::allow_short
+		//using namespace boost::program_options;
+		store(parse_command_line(argc, argv, desc, 
+			command_line_style::unix_style ^
+			command_line_style::allow_short
 			), vm);
 		//boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
-		boost::program_options::notify(vm);
+		notify(vm);
 	}
 	catch(...) 	{
-		std::cerr << "   : error: bad arguments" <<  std::endl << desc << std::endl << std::endl;
-		std::cerr << "argc = " << argc << "; argv: ";
+		std::cout << "   : error: bad arguments" <<  std::endl << desc << std::endl << std::endl;
+		std::cout << "argc = " << argc << "; argv: ";
 		for (int i = 0; i < argc; i++) {
-			std::cerr << " " << argv[i] << ";";
+			std::cout << " " << argv[i] << ";";
 		}
-		std::cerr << std::endl;
+		std::cout << std::endl;
 		return 1;
 	}
 	//if(vm.count("marble_data"))  {
 //		xmprintf(0, "@@@@@@@@@@ marble_data  =  %s\n", vm["marble_data"].as< std::string >().c_str());
 	//}
+	if (vm.count("help")) {
+		std::cout << " (help)  " << std::endl << desc << std::endl;
+		return 0;
+	}
 
 	bool test = QProcInterface::runningAlready();
 	if (test) {
@@ -145,9 +153,12 @@ int main(int argc, char** argv) {
 		}
 		s << std::endl;	
 		xmprintf(0, "params: %s\n", s.str().c_str());
+
 	} catch(...) {
 
 	}
+
+
 
 #ifdef WIN32	// make it a windows service could be a better way, though.. 
 				//  probably this also works:

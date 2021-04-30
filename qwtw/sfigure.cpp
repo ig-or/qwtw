@@ -161,7 +161,7 @@ public:
 			boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
 			s1.send_to(boost::asio::buffer(b, 5), destination);
 		} catch (const std::exception& ex) {
-			//xm_printf("exception: %s\n", ex.what());
+			xmprintf(2, "exception: %s\n", ex.what());
 		}
 
 		st.join();
@@ -661,17 +661,27 @@ int  XQPlots::plot(double* x, double* y, int size, const char* name,
 		}
 	}
 
+	linesHistoryCounter += 1;
+
 	//it will be deleted in 'cf' destructor
 	LineItemInfo* i = new LineItemInfo(x, y, size, name, (time == 0) ? 2 : 3, time);
+	if (!i->ok) {
+		xmprintf(0, "ERROR in XQPlots::plot: cannot create line (%s)(%s) \n", name, style);
+		delete i;
+		return -2;
+	}
 	i->style = style; 
 	i->lineWidth = lineWidth;
 	i->symSize = symSize;
 	i->important = currentImportanceMode;
+	i->id = linesHistoryCounter;
 
 	cf->addLine(i);
 
-	linesHistoryCounter += 1;
+	
 	lines[linesHistoryCounter] = LineHandler{i, cf};
+	xmprintf(5, "XQPlots::plot: line [%s](%d) added\n", i->legend.c_str(), linesHistoryCounter);
+
 	return linesHistoryCounter;
 }
 
@@ -717,9 +727,9 @@ int  XQPlots::plot(double* x, double* y, double* z, int size, const char* name,
 	}
 
 	//it will be deleted in 'cf' destructor
-	xmprintf(5, "\t creating LineItemInfo.. \n");
+	//xmprintf(5, "\t creating LineItemInfo.. \n");
 	LineItemInfo* i = new LineItemInfo(x, y, z, size, name, time);
-	xmprintf(5, "\t\t created.\n");
+	//xmprintf(5, "\t\t created.\n");
 	i->style = style;
 	i->lineWidth = lineWidth;
 	i->symSize = symSize;
@@ -846,7 +856,7 @@ void XQPlots::onFigureClosed(const std::string& key) {
 		f = it->second;  //  DO WE NEED THIS???
 		
 		//    remove all the lines from 'lines':
-		for (auto i : lines) {
+		for (const auto i : lines) {
 			if (i.second.plot == f) {
 				lines.erase(i.first);
 			}
@@ -865,10 +875,9 @@ void XQPlots::onFigureClosed(const std::string& key) {
 		disconnect(f, 0, 0, 0);
 		figures.erase(it);
 
-		
-
 	}   else  {
 		//   error? 
+		xmprintf(4, "ERROR: XQPlots::onFigureClosed for key = {%s} \n", key.c_str());
 	}
 
 	if (f == cf) { // we need new 'cf'
