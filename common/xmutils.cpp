@@ -150,40 +150,40 @@ int xqversion(char* vstr, int bufSize) {
 			XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
 			GIT_INFO);
 	#else
-		//#ifdef WIN32
-			int bs = snprintf(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
-				XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
-				GIT_INFO);
-		//#else
-		//	int test = dladdr(void *addr, Dl_info *info);
-		//	int bs = snprintf(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
-		//		XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
-		//		GIT_INFO);
-		//#endif
+		int bs = snprintf(vstr, bufSize, "\n(%s) v %s; bn #%s; compiled %s, platform %s\n%s",
+			XQX9STR(OURPROJECTNAME), VERSION, BUILD_NUMBER, COMPILE_TIME, OUR_PLATFORM,
+			GIT_INFO);
 	#endif
 #else // no version info
 	int bs = snprintf(vstr, bufSize, "\nbuilt without version info support\n");
 #endif
 		vstr[bufSize - 1] = 0;
 		vstr[bufSize - 2] = 0;
-	return bs;
+	return std::min(bs, bufSize-1);
 }
 
 #ifdef WIN32
 int xqversion(char* vstr, int bufSize, void* hModule) {
 	int bs = xqversion(vstr, bufSize);
 
+	int freeSpace = bufSize - bs - 1;
+	if (freeSpace < 4) {
+		return bs;
+	}
+
 	char dllPath[MAX_PATH];
 	DWORD dw = GetModuleFileNameA((HMODULE)(hModule), dllPath, MAX_PATH);
-
 	dllPath[MAX_PATH-1] = 0; dllPath[MAX_PATH-2] = 0;
 
 #if defined(_MSC_VER) && _MSC_VER < 1900
-	int ret = sprintf_s(vstr + bs, bufSize - bs, " loaded from %s", dllPath);
+	int ret = sprintf_s(vstr + bs, freeSpace, " loaded from %s", dllPath);
 #else
-	int ret = snprintf(vstr + bs, bufSize - bs, " loaded from %s", dllPath);
+	int ret = snprintf(vstr + bs, freeSpace, " loaded from %s", dllPath);
 #endif
-	return ret + bs;
+
+	vstr[bufSize - 1] = 0;
+	vstr[bufSize - 2] = 0;
+	return bs + std::min(ret, freeSpace);
 }
 #endif
 #endif
@@ -258,9 +258,16 @@ long long  findClosestPoint_1(long long  i1, long long i2, const double* v, doub
 	long long i3;
 	if (v == 0) {
 		mxat(v != 0);
-		return 0;
+		return i1;
 	}
-	mxat(i2 > i1);
+	if (i1 == i2) {
+		return i1;
+	}
+	if (i1 > i2) {
+		mxat(i2 > i1);
+		return i2;
+	}
+
 	if (x >= v[i2]) return i2;
 	if (x <= v[i1]) return i1;
 
