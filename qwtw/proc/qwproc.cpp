@@ -11,6 +11,7 @@
 #ifdef WIN32	
 	#include "windows.h"
 	#include <shlobj.h>
+	#include <psapi.h>
 #else
 	#include <syslog.h>
 	#include <unistd.h>
@@ -21,8 +22,30 @@
 #include <iostream>
 #include <sstream>
 
-
 #include "boost/filesystem.hpp"
+
+//Returns the last Win32 error, in string format. Returns an empty string if there is no error.
+std::string GetLastErrorAsString(DWORD errorMessageID) {
+	if (errorMessageID == 0) {
+		return std::string(); //No error message has been recorded
+	}
+
+	LPSTR messageBuffer = nullptr;
+
+	//Ask Win32 to give us the string version of that message ID.
+	//The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
+	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+
+	//Copy the error message into a std::string.
+	std::string message(messageBuffer, size);
+
+	//Free the Win32's string's buffer.
+	LocalFree(messageBuffer);
+
+	return message;
+}
+
 
 bool getFolderLocation(char* p, int pSize) {
 	using namespace boost::filesystem;
@@ -86,7 +109,7 @@ int checkProcRunning() {
 	path f = dir / "qwproc";
 	xmprintf(2, "\tcheckProcRunning() starting\n");
 	try {
-		xmprintf(3, "file f: %s, %s, %s \n", f.string().c_str(), absolute(f).string().c_str(), canonical(f).string().c_str());
+		xmprintf(3, "\tfile f: %s, %s, %s \n", f.string().c_str(), absolute(f).string().c_str(), canonical(f).string().c_str());
 	} catch  (std::exception& ex) {
 		xmprintf(3, "exception %s\n", ex.what());
 	}
@@ -112,7 +135,31 @@ int checkProcRunning() {
 #endif
 			if (test) { // ....
 				if (status == STILL_ACTIVE) {
-					xmprintf(2, "\tstill running\n");
+					xmprintf(3, "\something is running. GetExitCodeProcess for %d returned 'STILL_ACTIVE'\n", pid);
+
+					//  lets check what we have here:
+					char fName[512];
+					DWORD test14 = GetModuleFileNameExA(ph, NULL, fName, 512);
+					if (test14 == 0) { //  this not working
+						DWORD error14 = GetLastError();
+						std::string s14 = GetLastErrorAsString(error14);
+						xmprintf(2, "GetModuleFileNameExA failed; error = %d; (%s)  \n", error14, s14.c_str());
+
+						return 0; // lets return 'not running'
+					} else {
+						fName[511] = 0;
+						xmprintf(3, "we got following with this PID: %s\n", fName);
+						if (strstr(fName, "qwproc") == NULL) {
+							xmprintf(3, "\tthis was not our plot server \n");
+							return 0;
+						} else {
+							xmprintf(3, "\tthis looks like our plot server \n");
+							return 1;
+						}
+
+					}
+
+
 					return 1; //  running!
 				} else {
 					xmprintf(2, "\tnot running!\n");

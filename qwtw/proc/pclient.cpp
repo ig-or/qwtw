@@ -137,6 +137,7 @@ int SHMTest::startProc(int level) {
 	xmprintf(2, "SHMTest::startProc() exiting \n");
 	return 0;
 }
+
 #ifdef USEMARBLE
 int SHMTest::testInit(const std::string& mdp, const std::string& mpp, int level) {
 #else
@@ -174,7 +175,7 @@ int SHMTest::testInit(int level) {
 			return 1; //  cannot start the program  (not installed?)
 		}
 	}
-
+	xmprintf(3, "\nSHMTest::testInit() looks like qwtwc is (was?) running \n");
 	xmprintf(3, "\tSHMTest::testInit() setting up memory\n");
 	int attemptCount = 10;
 	bool shmConnected = false;
@@ -188,6 +189,8 @@ int SHMTest::testInit(int level) {
 			break;
 		} catch(interprocess_exception &ex) { // proc not started?  something is not OK
 			exPlanation.assign(ex.what());
+			xmprintf(3, "\tSHMTest::testInit() proc not started? (attemptCount = %d)  something is not OK; (%s)\n", 
+				attemptCount, exPlanation.c_str());
 			std::this_thread::sleep_for(275ms);
 		}
 		attemptCount -= 1;
@@ -199,6 +202,7 @@ int SHMTest::testInit(int level) {
 	}
 	std::this_thread::sleep_for(27ms);
 
+	xmprintf(4, "creating shared_memory_object's.... \n");
 	shared_memory_object shmX_(open_only, ProcData::shmNames[1], read_write);
 	shared_memory_object shmY_(open_only, ProcData::shmNames[2], read_write);
 	shared_memory_object shmZ_(open_only, ProcData::shmNames[3], read_write);
@@ -214,8 +218,10 @@ int SHMTest::testInit(int level) {
 	shmCommand.truncate(sizeof(CmdHeader));
 	mapped_region commandReg_ = mapped_region(shmCommand, read_write);
 	commandReg.swap(commandReg_);
+	xmprintf(4, "shared_memory_object's created \n");
 	pd.hdr = static_cast<CmdHeader*>(commandReg.get_address());
 	{
+		xmprintf(4, "trying to adjust the memory according to header info ... \n");
 		try {
 			scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		} catch (interprocess_exception &ex) { 
@@ -229,8 +235,10 @@ int SHMTest::testInit(int level) {
 		shmZ.truncate(segSize * sizeof(double));
 		shmT.truncate(segSize * sizeof(double));
 		shmData.truncate(dataSize * sizeof(double));
+		xmprintf(4, "memory adjusted \n");
 	}
 
+	xmprintf(4, "creating local memory object pointers.. \n");
 	mapped_region xReg_ = mapped_region(shmX, read_write);
 	mapped_region yReg_ = mapped_region(shmY, read_write);
 	mapped_region zReg_ = mapped_region(shmZ, read_write);
@@ -242,6 +250,8 @@ int SHMTest::testInit(int level) {
 	zReg.swap(zReg_);
 	tReg.swap(tReg_);
 	dataReg.swap(dataReg_);
+
+	xmprintf(4, "local pointers created \n");
 
 	pd.x = static_cast<double*>(xReg.get_address());
 	pd.y = static_cast<double*>(yReg.get_address());
