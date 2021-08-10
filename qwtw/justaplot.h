@@ -19,6 +19,7 @@ class JustAplot: public QDialog {
 public:
 	std::string key;
 	std::string name;
+	int clipGroup;  ///< defaults to 0
 	JPType type;
 
 	JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, JPType type_);

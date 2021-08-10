@@ -64,6 +64,16 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size);
 */
 qwtwc_API 	void qwtfigure(int n);
 
+/**
+set current 'clip group';
+all (new) subsequent plots/figires will belong to this group. if press 'clip' button, 
+then if will work only for plots from the same group. 
+
+useful in case some of the plots have another time range.
+\param gr group number
+*/
+qwtwc_API 	void qwtclipgroup(int gr);
+
 
 #ifdef USEMARBLE
 /**  create (and draw) new map plot with ID 'n'.

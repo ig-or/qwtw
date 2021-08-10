@@ -20,6 +20,7 @@ struct SHMTest {
 	int testInit(int level = 0);
 #endif
 	void qwtfigure(int n);
+	void qwtClipGroup(int gr);
 
 	void stopQt();
 

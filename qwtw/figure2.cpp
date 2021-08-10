@@ -691,7 +691,7 @@ void Figure2::onClip(bool checked) {
 
 	}
 	if (minCorrected && maxCorrected) {
-		pf->clipAll(tMin, tMax);
+		pf->clipAll(tMin, tMax, clipGroup);
 	}
 }
 

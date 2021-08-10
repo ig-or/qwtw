@@ -76,6 +76,7 @@ public:
 	void footer(const std::string& s);
 	void xlabel(const std::string& s);
 	void ylabel(const std::string& s);
+	void setClipGroup(int cg);
 	/** change marker mode for new plots
 
 	*/
@@ -121,7 +122,7 @@ public:
 	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0);
 	Q_INVOKABLE void removeVMarkerEverywhere(int id_);
 
-	void clipAll(double t1, double t2);
+	void clipAll(double t1, double t2, int clipGroup);
 
 
 	//void figure3(int n);
@@ -145,6 +146,7 @@ protected:
 #endif
 	JustAplot*	cf;	
 	QWidget* parent;
+	int currentClipGroup;
 	/** marker - related stuff
 
 	*/

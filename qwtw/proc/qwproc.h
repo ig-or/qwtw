@@ -30,6 +30,7 @@ struct CmdHeader {
 		qMglPlot, // 17
 		qMglLine, // 18
 		qMglMesh, // 19
+		qSetClipGroup, // 20
 
 		qwcmdSize
 	};

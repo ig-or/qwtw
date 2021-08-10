@@ -248,6 +248,10 @@ void QProcInterface::processCommand(int cmd) {
 			worker.qwtfigure(pd.hdr->test);
 			break;
 
+		case CmdHeader::qSetClipGroup:
+			worker.qwtSetClipGroup(pd.hdr->test);
+			break;
+
 		case CmdHeader::qRemoveLine:
 			worker.qwtRemoveLine(pd.hdr->test);
 			break;

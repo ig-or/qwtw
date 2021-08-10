@@ -28,6 +28,7 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtxlabelImpl(const char* s);
 	Q_INVOKABLE void qwtylabelImpl(const char* s);
 	Q_INVOKABLE int qwtfigureImpl(int n);
+	Q_INVOKABLE void qwtSetClipGroupImpl(int gr);
 	Q_INVOKABLE int qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 	Q_INVOKABLE void qwtclearImpl();
 	Q_INVOKABLE void qwtRemoveLineImpl(int key);
@@ -66,6 +67,7 @@ public:
 	void qwtylabel(const char* s);
 	void qwtclear();
 	void qwtfigure(int n);
+	void qwtSetClipGroup(int gr);
 	void qwtRemoveLine(int key);
 	int qwtChangeLine(int id, double* x, double* y, double* z, double* time, int size);
 	int qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);

@@ -27,6 +27,11 @@ void SHMTest::qwtfigure(int n) {
 	if (status != 0) return;
 	sendCommand(CmdHeader::qFigure, n);
 }
+void SHMTest::qwtClipGroup(int gr) {
+	if (status != 0) return;
+	sendCommand(CmdHeader::qSetClipGroup, gr);
+}
+
 void SHMTest::qwtsetimpstatus(int impStatus) {
 	if (status != 0) return;
 	sendCommand(CmdHeader::qImpStatus, impStatus);

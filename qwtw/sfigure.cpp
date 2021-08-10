@@ -233,6 +233,7 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 		Qt::WindowCloseButtonHint | Qt::WindowContextHelpButtonHint) {
 	parent = parent1;
 	cf = 0;  //cf3 = 0;
+	currentClipGroup = 0;
 	markersAreVisible = false;
 	//currentFigureMode = 2;  //  
 	clearingAllFigures = false;
@@ -329,9 +330,9 @@ JustAplot* XQPlots::figure(std::string name_, JPType type){
 			break;
 #ifdef USEMARBLE
 		case jMarble: {
-			MarView* tvp = new MarView(name_, this, parent);
-			tvp->mvInit();
-			cf = tvp;
+				MarView* tvp = new MarView(name_, this, parent);
+				tvp->mvInit();
+				cf = tvp;
 			}
 			break;
 #endif
@@ -345,16 +346,17 @@ JustAplot* XQPlots::figure(std::string name_, JPType type){
 #endif
 #ifdef USEMATHGL
 		case jMathGL: {
-			xmprintf(5, "XQPlots::figure creating QMglPlot.. \n");
-			QMglPlot* q4 = new QMglPlot(name_, this, parent);
-			xmprintf(5, "XQPlots::figure  qInit.. \n");
-			q4->qInit();
-			xmprintf(5, "XQPlots::figure creating QMglPlot done\n");
-			cf = q4;
-		}
+				xmprintf(5, "XQPlots::figure creating QMglPlot.. \n");
+				QMglPlot* q4 = new QMglPlot(name_, this, parent);
+				xmprintf(5, "XQPlots::figure  qInit.. \n");
+				q4->qInit();
+				xmprintf(5, "XQPlots::figure creating QMglPlot done\n");
+				cf = q4;
+			}
 #endif
 		};
 		bool test = true;
+		cf->clipGroup = currentClipGroup;
 		test = connect(cf, SIGNAL(exiting (const std::string&)), this, SLOT(onFigureClosed(const std::string&)));
 		test = connect(cf, SIGNAL(onSelection(const std::string&)), this, SLOT(onSelection(const std::string&)));
 		test = connect(cf, SIGNAL(onPicker(const std::string&, double, double)), this, SLOT(onPicker(const std::string&, double, double)));
@@ -364,11 +366,27 @@ JustAplot* XQPlots::figure(std::string name_, JPType type){
 
 		// add to tree view:
 		//ui.tv->iie
+
+		static const QColor iColors[5] = { Qt::yellow, Qt::green,	Qt::lightGray,	Qt::blue,	Qt::darkYellow };
+		static const QColor jColors[5] = { Qt::black, Qt::black,	Qt::black,		Qt::white,	Qt::blue };
+
 		QStandardItem *i0 = pim.invisibleRootItem();
 		QList<QStandardItem *> raw; 
-		raw.append(new QStandardItem(cf->key.c_str()));
+
+		QStandardItem* kim = new QStandardItem(cf->key.c_str());
+		raw.append(kim);
 		raw.append(new QStandardItem(cf->name.c_str()));
 
+		QStandardItem* gn = new QStandardItem(std::to_string(cf->clipGroup).c_str());
+		raw.append(gn);
+		QBrush br;   QColor clr(iColors[cf->clipGroup % 5]);
+		br.setColor(clr);
+
+		gn->setBackground(br);
+		gn->setForeground(jColors[cf->clipGroup % 5]);
+
+		QFont serifFont("Times", 12, QFont::Bold);
+		gn->setFont(serifFont);
 		i0->appendRow(raw);
 	}
 	xmprintf(5, "XQPlots::figure finish \n");
@@ -582,10 +600,13 @@ void XQPlots::sendBroadcast(double x, double y, double z) {
 }
 #endif
 
-void XQPlots::clipAll(double t1, double t2) {
+void XQPlots::clipAll(double t1, double t2, int clipGroup) {
 	std::map<std::string, JustAplot*>::iterator it;
 	for (it = figures.begin(); it != figures.end(); it++) {
-		it->second->onClip(t1, t2);
+		JustAplot* jsp = it->second;
+		if (jsp->clipGroup == clipGroup) {
+			jsp->onClip(t1, t2);
+		}
 	}
 }
 
@@ -647,6 +668,10 @@ void XQPlots::ylabel(const std::string& s) {
 		return;
 	}
 	cf->ylabel(s);
+}
+
+void  XQPlots::setClipGroup(int cg) {
+	currentClipGroup = cg;
 }
 
 int  XQPlots::plot(double* x, double* y, int size, const char* name, 

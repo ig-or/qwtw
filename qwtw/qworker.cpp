@@ -221,6 +221,12 @@ void QWorker::qwtfigure(int n) {
 	}
 }
 
+void QWorker::qwtSetClipGroup(int gr) {
+	if (!QMetaObject::invokeMethod(this, "qwtSetClipGroupImpl", Qt::QueuedConnection, Q_ARG(int, gr))) {
+		std::cout << " cannot invoke qwtSetClipGroupImpl" << std::endl;
+	}
+}
+
 void QWorker::qwtRemoveLine(int key) {
 	if (!QMetaObject::invokeMethod(this, "qwtRemoveLineImpl", Qt::QueuedConnection, Q_ARG(int, key))) {
 		std::cout << " cannot invoke qwtRemoveLineImpl" << std::endl;
@@ -287,6 +293,10 @@ Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 Q_INVOKABLE int QWorker::qwtfigureImpl(int n) {
 	JustAplot*  test = pf->figure(n, jQWT);
 	return (test == 0) ? 1 : 0;
+}
+
+Q_INVOKABLE void QWorker::qwtSetClipGroupImpl(int gr) {
+	pf->setClipGroup(gr);
 }
 
 Q_INVOKABLE void QWorker::qwtRemoveLineImpl(int key) {

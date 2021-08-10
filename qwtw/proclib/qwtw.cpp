@@ -116,6 +116,10 @@ qwtwc_API 	void qwtfigure(int n) {
 	test.qwtfigure(n);
 }
 
+qwtwc_API 	void qwtclipgroup(int gr) {
+	test.qwtClipGroup(gr);
+}
+
 #ifdef USEMARBLE
 /**  create (and draw) new map plot with ID 'n'.
 @param[in] n this plot ID
