@@ -24,6 +24,7 @@
 
 #include "boost/filesystem.hpp"
 
+#ifdef WIN32
 //Returns the last Win32 error, in string format. Returns an empty string if there is no error.
 std::string GetLastErrorAsString(DWORD errorMessageID) {
 	if (errorMessageID == 0) {
@@ -45,6 +46,7 @@ std::string GetLastErrorAsString(DWORD errorMessageID) {
 
 	return message;
 }
+#endif
 
 
 bool getFolderLocation(char* p, int pSize) {

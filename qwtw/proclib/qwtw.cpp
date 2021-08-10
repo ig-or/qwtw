@@ -15,6 +15,7 @@
 #include <windows.h>
 HMODULE qwtwLibModule = 0;
 #endif
+#include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
 
 
 void assert_failed(const char* file, unsigned int line, const char* str) {
