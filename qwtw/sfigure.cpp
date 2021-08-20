@@ -311,7 +311,7 @@ void XQPlots::showMainWindow() {
 	showNormal();
 }
 
-JustAplot* XQPlots::figure(std::string name_, JPType type){
+JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 	std::map<std::string,  JustAplot*>::iterator it = figures.find(name_);
 
 	xmprintf(5, "XQPlots::figure start \n");
@@ -326,7 +326,7 @@ JustAplot* XQPlots::figure(std::string name_, JPType type){
 
 		switch(type) {
 		case jQWT:
-			cf	= new Figure2(name_, this, parent);
+			cf	= new Figure2(name_, this, parent, flags);
 			break;
 #ifdef USEMARBLE
 		case jMarble: {
@@ -610,7 +610,7 @@ void XQPlots::clipAll(double t1, double t2, int clipGroup) {
 	}
 }
 
-JustAplot* XQPlots::figure(int n, JPType type) {
+JustAplot* XQPlots::figure(int n, JPType type, unsigned int flags) {
 	char buf[32];
 	std::string fName;
 	if (n == 0) { //  this means 'create new'
@@ -626,7 +626,7 @@ JustAplot* XQPlots::figure(int n, JPType type) {
 	
 	snprintf(buf, 32, "%d", n); buf[31] = 0;
 	fName.assign(buf);
-	return figure(fName, type);
+	return figure(fName, type, flags);
 }
 
 void XQPlots::title(const std::string& s) {

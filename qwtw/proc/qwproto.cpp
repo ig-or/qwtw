@@ -245,7 +245,7 @@ void QProcInterface::processCommand(int cmd) {
 			break;
 
 		case CmdHeader::qFigure: {
-				int k = worker.qwtfigure(pd.hdr->test);
+				int k = worker.qwtfigure(pd.hdr->test, pd.hdr->flags);
 				pd.hdr->test = k; //    return the result
 			}
 			break;

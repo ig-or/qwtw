@@ -163,7 +163,8 @@ void AMarker::amInit(const char* text, double x_, double y_, const QColor& color
 }
 
 
-FSPlot::FSPlot(QWidget *parent) : QwtPlot(parent), squareAxis(false) {
+FSPlot::FSPlot(QWidget *parent, unsigned int flags_) : QwtPlot(parent), squareAxis(false) {
+	flags = flags_;
 	//const bool doReplot = autoReplot();
 	setAutoReplot(false);
 	//setTitle("no titile yet");
@@ -185,8 +186,16 @@ FSPlot::FSPlot(QWidget *parent) : QwtPlot(parent), squareAxis(false) {
 	enableAxis( QwtPlot::xBottom );  
 	enableAxis( QwtPlot::yLeft );	
 	
-	setAxisScaleEngine( QwtPlot::xBottom, new QwtLinearScaleEngine );
-	setAxisScaleEngine( QwtPlot::yLeft, new QwtLinearScaleEngine );
+	if (flags & 1) {
+		setAxisScaleEngine(QwtPlot::xBottom, new QwtLogScaleEngine);
+	}	else {
+		setAxisScaleEngine(QwtPlot::xBottom, new QwtLinearScaleEngine);
+	}
+	if (flags & 2) {
+		setAxisScaleEngine(QwtPlot::yLeft, new QwtLogScaleEngine);
+	} 	else {
+		setAxisScaleEngine(QwtPlot::yLeft, new QwtLinearScaleEngine);
+	}
 
 	legend.setFrameStyle(QFrame::Box|QFrame::Sunken);
 	insertLegend(&legend, QwtPlot::TopLegend);
@@ -457,8 +466,9 @@ ArrowSymbol::ArrowSymbol(double angle, int size) {
 	asInit(angle, size);
 }
 
-Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent) : JustAplot(key_, pf_, parent, jQWT) {
+Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent, unsigned int flags_) : JustAplot(key_, pf_, parent, jQWT) {
 	mouseMode = 0;
+	flags = flags_;
 	//cf = 0;
 	tbModeChanging = false;
 	clipperHost = false;
@@ -1111,7 +1121,7 @@ void Figure2::setupUi()     {
 	horizontalLayout->addItem(horizontalSpacer);
 	verticalLayout->addWidget(top_frame);
 
-	plot1 = new FSPlot(this);
+	plot1 = new FSPlot(this, flags);
 	plot1->setObjectName(QString::fromUtf8("plot1"));
 
 	verticalLayout->addWidget(plot1);

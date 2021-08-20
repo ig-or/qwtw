@@ -113,8 +113,8 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size) {
      if plot with this ID already exists, it will be made 'active'
  @param[in] n this plot ID
 */
-qwtwc_API 	int qwtfigure(int n) {
-	return test.qwtfigure(n);
+qwtwc_API 	int qwtfigure(int n, unsigned int flags) {
+	return test.qwtfigure(n, flags);
 }
 
 qwtwc_API 	void qwtclipgroup(int gr) {

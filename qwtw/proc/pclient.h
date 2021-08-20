@@ -19,7 +19,7 @@ struct SHMTest {
 #else
 	int testInit(int level = 0);
 #endif
-	int qwtfigure(int n);
+	int qwtfigure(int n, unsigned int flags);
 	void qwtClipGroup(int gr);
 
 	void stopQt();
@@ -61,7 +61,7 @@ struct SHMTest {
 private:    
 
 	int sendCommand(CmdHeader::QWCmd cmd, const char* text = 0);
-	int sendCommand(CmdHeader::QWCmd cmd, int v);
+	int sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags = 0);
 	void resize(long long size);
 	void resizeData(long long size);
 

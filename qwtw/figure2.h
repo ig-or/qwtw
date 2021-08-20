@@ -62,13 +62,14 @@ struct FigureItem {
 
 class FSPlot: public QwtPlot {
 public:
-	FSPlot(QWidget *parent);
+	FSPlot(QWidget *parent, unsigned int flags_ = 0);
 //private:
 	QwtLegend	legend;
 
 	virtual void resizeEvent(QResizeEvent* e);
 	void setAxisSquare(bool square);
 private:
+	unsigned int flags;
 	bool squareAxis;
 	void doSquareAxis();
 
@@ -189,7 +190,7 @@ private:
 class Figure2 : public JustAplot {
 	Q_OBJECT
 public:
-	Figure2(const std::string& key_, XQPlots* pf_, QWidget *parent);
+	Figure2(const std::string& key_, XQPlots* pf_, QWidget *parent, unsigned int flags_ = 0);
 	~Figure2();
 
 	virtual void title(const std::string& s);
@@ -247,6 +248,7 @@ public:
 
 protected:
 	int mouseMode;///< figure gui mode
+	unsigned int flags;
 	bool	tbModeChanging;
 	bool clipperHost;
 

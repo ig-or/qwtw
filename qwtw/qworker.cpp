@@ -219,9 +219,10 @@ void QWorker::qwtclear() {
 	}
 }
 
-int QWorker::qwtfigure(int n) {
+int QWorker::qwtfigure(int n, unsigned int flags) {
 	int rv = 0;
-	if (!QMetaObject::invokeMethod(this, "qwtfigureImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n))) {
+	if (!QMetaObject::invokeMethod(this, "qwtfigureImpl", Qt::BlockingQueuedConnection, 
+			Q_RETURN_ARG(int, rv), Q_ARG(int, n), Q_ARG(unsigned int, flags))) {
 		std::cout << " cannot invoke qwtfigureImpl" << std::endl;
 	}
 	return rv;
@@ -296,8 +297,8 @@ Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 	pf->ylabel(s);
 }
 
-Q_INVOKABLE int QWorker::qwtfigureImpl(int n) {
-	JustAplot*  test = pf->figure(n, jQWT);
+Q_INVOKABLE int QWorker::qwtfigureImpl(int n, unsigned int flags) {
+	JustAplot*  test = pf->figure(n, jQWT, flags);
 	return (test == 0) ? 0 : test->iKey;
 }
 

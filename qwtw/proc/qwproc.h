@@ -45,6 +45,7 @@ struct CmdHeader {
 	int lineWidth;
 	long long symSize;
 	int test;
+	unsigned int flags;
 	char style[32];
 	char name[nameSize];
 

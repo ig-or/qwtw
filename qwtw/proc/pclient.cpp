@@ -24,9 +24,9 @@ int SHMTest::qwtmap(int n) {
 #endif
 
 
-int SHMTest::qwtfigure(int n) {
+int SHMTest::qwtfigure(int n, unsigned int flags) {
 	if (status != 0) return 0;
-	int test = sendCommand(CmdHeader::qFigure, n);
+	int test = sendCommand(CmdHeader::qFigure, n, flags);
 	return test;
 }
 void SHMTest::qwtClipGroup(int gr) {
@@ -336,7 +336,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	return test;
 
 }
-int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
+int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	if (status != 0) return 0;
 	using namespace boost::interprocess;
 	xmprintf(4, "SHMTest::sendCommand(%d, %d): locking ..\n", static_cast<int>(cmd), v);
@@ -344,6 +344,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
 	xmprintf(4, "\tSHMTest::sendCommand locked. \n");
 	pd.hdr->cmd = cmd;
 	pd.hdr->test = v;
+	pd.hdr->flags = flags;
 
 	pd.hdr->cmdWait.notify_all();
 	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): start waiting ..\n", static_cast<int>(cmd), v);

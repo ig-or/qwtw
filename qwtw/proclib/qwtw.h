@@ -61,9 +61,12 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size);
 
      if n == 0 then will add another plot anyway
     @param[in] n this plot ID
+    @param flags 
+        0 bit: use log scale for x axis
+        1 bit: use log scale for y axis
     @return ID of the created plot; this is useful when n == 0
 */
-qwtwc_API 	int qwtfigure(int n);
+qwtwc_API 	int qwtfigure(int n, unsigned int flags);
 
 /**
 set current 'clip group';

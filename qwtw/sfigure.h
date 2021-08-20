@@ -71,8 +71,8 @@ public:
 		@param[in] type plot type; '1' - QWT plot; '2' - map (top view); '3' - 3D plot
 		@return pointer to the created plot
 	*/
-	JustAplot* figure(int n, JPType type = jQWT);
-	JustAplot* figure(std::string name_, JPType type = jQWT);
+	JustAplot* figure(int n, JPType type = jQWT, unsigned int flags = 0);
+	JustAplot* figure(std::string name_, JPType type = jQWT, unsigned int flags = 0);
 	void title(const std::string& s);
 	void footer(const std::string& s);
 	void xlabel(const std::string& s);
