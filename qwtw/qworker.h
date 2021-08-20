@@ -66,7 +66,7 @@ public:
 	void qwtxlabel(const char* s);
 	void qwtylabel(const char* s);
 	void qwtclear();
-	void qwtfigure(int n);
+	int qwtfigure(int n);
 	void qwtSetClipGroup(int gr);
 	void qwtRemoveLine(int key);
 	int qwtChangeLine(int id, double* x, double* y, double* z, double* time, int size);
@@ -74,10 +74,10 @@ public:
 	//void appMutexLock
 
 #ifdef USEMARBLE
-	void mapview(int n);
+	int mapview(int n);
 #endif
 #ifdef USEMATHGL
-	void mglPlot(int n);
+	int mglPlot(int n);
 	void mgl_line(int size, double* x, double* y, double* z, const char* name, const char* style);
 	void mgl_mesh(int xSize, int ySize, 
 		double xMin, double xMax, double yMin, double yMax, 

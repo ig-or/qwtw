@@ -43,6 +43,12 @@ JustAplot::JustAplot(const std::string& key_, XQPlots* pf_, QWidget *parent, JPT
 	name = key;
 	type = type_;
 	clipGroup = 0; //  default clip group is zero
+	try {
+		iKey = std::stoi(key);
+	}
+	catch (const std::exception& ex) { //  error
+		iKey = 0;
+	}
 
 	setAttribute(Qt::WA_DeleteOnClose);
 }

@@ -18,6 +18,7 @@ class JustAplot: public QDialog {
 	Q_OBJECT
 public:
 	std::string key;
+	int iKey;
 	std::string name;
 	int clipGroup;  ///< defaults to 0
 	JPType type;

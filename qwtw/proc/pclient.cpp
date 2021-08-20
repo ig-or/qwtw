@@ -16,16 +16,18 @@ SHMTest::SHMTest(): status(5) {
 }
 
 #ifdef USEMARBLE
-void SHMTest::qwtmap(int n) {
-	if (status != 0) return;
-	sendCommand(CmdHeader::qMap, n);
+int SHMTest::qwtmap(int n) {
+	if (status != 0) return 0;
+	int test = sendCommand(CmdHeader::qMap, n);
+	return test;
 }
 #endif
 
 
-void SHMTest::qwtfigure(int n) {
-	if (status != 0) return;
-	sendCommand(CmdHeader::qFigure, n);
+int SHMTest::qwtfigure(int n) {
+	if (status != 0) return 0;
+	int test = sendCommand(CmdHeader::qFigure, n);
+	return test;
 }
 void SHMTest::qwtClipGroup(int gr) {
 	if (status != 0) return;
@@ -314,8 +316,8 @@ void SHMTest::qsetloglevel(int level) {
 	//xmPrintLevel = tmp; // level
 }
 
-void SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
-	if (status != 0) return;
+int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
+	if (status != 0) return 0;
 	using namespace boost::interprocess;
 	xmprintf(4, "SHMTest::sendCommand(%d, %s): locking ..\n", static_cast<int>(cmd), text);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
@@ -328,9 +330,14 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): start waiting ..\n", static_cast<int>(cmd), text);
 	pd.hdr->workDone.wait(lock);
 	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): complete\n", static_cast<int>(cmd), text);
+
+	int test = pd.hdr->test;
+	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): test = %d\n", static_cast<int>(cmd), text, test);
+	return test;
+
 }
-void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
-	if (status != 0) return;
+int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
+	if (status != 0) return 0;
 	using namespace boost::interprocess;
 	xmprintf(4, "SHMTest::sendCommand(%d, %d): locking ..\n", static_cast<int>(cmd), v);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
@@ -342,6 +349,10 @@ void SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v) {
 	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): start waiting ..\n", static_cast<int>(cmd), v);
 	pd.hdr->workDone.wait(lock);
 	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): finished\n", static_cast<int>(cmd), v);
+
+	int test = pd.hdr->test;
+	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): test = %d\n", static_cast<int>(cmd), v, test);
+	return test;
 }
 
 #ifdef ENABLE_UDP_SYNC
@@ -569,9 +580,10 @@ int SHMTest::qwtchange(int id, double* x, double* y, double* z, double* time, in
 
 
 #ifdef USEMATHGL
-void SHMTest::qwtmgl(int n) {
-	if (status != 0) return;
-	sendCommand(CmdHeader::qMglPlot, n);
+int SHMTest::qwtmgl(int n) {
+	if (status != 0) return 0;
+	int test = sendCommand(CmdHeader::qMglPlot, n);
+	return test;
 }
 
 void SHMTest::qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {

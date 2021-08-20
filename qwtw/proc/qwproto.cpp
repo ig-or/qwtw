@@ -244,8 +244,10 @@ void QProcInterface::processCommand(int cmd) {
 			worker.qwtshowmw();
 			break;
 
-		case CmdHeader::qFigure:
-			worker.qwtfigure(pd.hdr->test);
+		case CmdHeader::qFigure: {
+				int k = worker.qwtfigure(pd.hdr->test);
+				pd.hdr->test = k; //    return the result
+			}
 			break;
 
 		case CmdHeader::qSetClipGroup:
@@ -256,13 +258,19 @@ void QProcInterface::processCommand(int cmd) {
 			worker.qwtRemoveLine(pd.hdr->test);
 			break;
 
-		case CmdHeader::qMap:
-			worker.mapview(pd.hdr->test);
+#ifdef USEMARBLE
+		case CmdHeader::qMap: {
+				int k = worker.mapview(pd.hdr->test);
+				pd.hdr->test = k; //    return the result
+			}
 			break;
+#endif
 
 #ifdef USEMATHGL
-		case CmdHeader::qMglPlot:
-			worker.mglPlot(pd.hdr->test);
+		case CmdHeader::qMglPlot: {
+				int k = worker.mglPlot(pd.hdr->test);
+				pd.hdr->test = k; //    return the result
+			}
 			break;
 		case CmdHeader::qMglLine:
 			xmprintf(5, "\tcase CmdHeader::qMglLine\n");

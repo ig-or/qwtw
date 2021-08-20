@@ -69,6 +69,7 @@ public:
 	/**    create a plot with a number, or raise up  already created plot  
 		@param[in] n a plot number. There can be only one plot with this number in PlotFactory.
 		@param[in] type plot type; '1' - QWT plot; '2' - map (top view); '3' - 3D plot
+		@return pointer to the created plot
 	*/
 	JustAplot* figure(int n, JPType type = jQWT);
 	JustAplot* figure(std::string name_, JPType type = jQWT);

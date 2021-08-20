@@ -19,7 +19,7 @@ struct SHMTest {
 #else
 	int testInit(int level = 0);
 #endif
-	void qwtfigure(int n);
+	int qwtfigure(int n);
 	void qwtClipGroup(int gr);
 
 	void stopQt();
@@ -29,10 +29,10 @@ struct SHMTest {
 	void qwtylabel(const char* s);
 	void qwtclear();
 	#ifdef USEMARBLE
-	void qwtmap(int n);
+	int qwtmap(int n);
 	#endif
 	#ifdef USEMATHGL
-	void qwtmgl(int n);
+	int qwtmgl(int n);
 	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style);
 	void qwtmgl_mesh(const MeshInfo& info);
 	#endif
@@ -60,8 +60,8 @@ struct SHMTest {
 
 private:    
 
-	void sendCommand(CmdHeader::QWCmd cmd, const char* text = 0);
-	void sendCommand(CmdHeader::QWCmd cmd, int v);
+	int sendCommand(CmdHeader::QWCmd cmd, const char* text = 0);
+	int sendCommand(CmdHeader::QWCmd cmd, int v);
 	void resize(long long size);
 	void resizeData(long long size);
 

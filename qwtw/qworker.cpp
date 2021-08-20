@@ -66,17 +66,23 @@ void QWorker::qwtshowmw() {
 	}
 }
 #ifdef USEMARBLE
-void QWorker::mapview(int n) {
-	int rv;
-	QMetaObject::invokeMethod(this, "topviewImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n));
+int QWorker::mapview(int n) {
+	int rv = 0;
+	if (!QMetaObject::invokeMethod(this, "topviewImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n))) {
+		std::cout << " cannot invoke topviewImpl" << std::endl;
+	}
+	return rv;
 }
 #endif
 
 #ifdef USEMATHGL
-void QWorker::mglPlot(int n) {
-	int rv;
-	QMetaObject::invokeMethod(this, "mglPlotImpl", Qt::BlockingQueuedConnection, 
-		Q_RETURN_ARG(int, rv), Q_ARG(int, n));
+int QWorker::mglPlot(int n) {
+	int rv = 0;
+	if (!QMetaObject::invokeMethod(this, "mglPlotImpl", Qt::BlockingQueuedConnection,
+			Q_RETURN_ARG(int, rv), Q_ARG(int, n))) {
+		std::cout << " cannot invoke mglPlotImpl" << std::endl;
+	}
+	return rv;
 }
 
 void QWorker::mgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {
@@ -114,8 +120,7 @@ void QWorker::mgl_mesh(int xSize, int ySize,
 
 Q_INVOKABLE int QWorker::mglPlotImpl(int n) {
 	JustAplot* test = pf->figure(n, jMathGL);
-	return (test == 0) ? 1 : 0;	
-	return 0;
+	return (test == 0) ? 0 : test->iKey;	
 }
 
 Q_INVOKABLE int QWorker::mgl_lineImpl(int size, double* x, double* y, double* z, const char* name, const char* style) {
@@ -214,11 +219,12 @@ void QWorker::qwtclear() {
 	}
 }
 
-void QWorker::qwtfigure(int n) {
-//	int rv;
-	if (!QMetaObject::invokeMethod(this, "qwtfigureImpl", Qt::QueuedConnection,  Q_ARG(int, n))) {
+int QWorker::qwtfigure(int n) {
+	int rv = 0;
+	if (!QMetaObject::invokeMethod(this, "qwtfigureImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n))) {
 		std::cout << " cannot invoke qwtfigureImpl" << std::endl;
 	}
+	return rv;
 }
 
 void QWorker::qwtSetClipGroup(int gr) {
@@ -292,7 +298,7 @@ Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 
 Q_INVOKABLE int QWorker::qwtfigureImpl(int n) {
 	JustAplot*  test = pf->figure(n, jQWT);
-	return (test == 0) ? 1 : 0;
+	return (test == 0) ? 0 : test->iKey;
 }
 
 Q_INVOKABLE void QWorker::qwtSetClipGroupImpl(int gr) {
@@ -346,7 +352,7 @@ Q_INVOKABLE void QWorker::qwtshowmwImpl() {
 #ifdef USEMARBLE
 Q_INVOKABLE int QWorker::topviewImpl(int n) {
 	JustAplot* test = pf->figure(n, jMarble);
-	return (test == 0) ? 1 : 0;
+	return (test == 0) ? 0 : test->iKey;
 }
 #endif
 

@@ -61,8 +61,9 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size);
 
      if n == 0 then will add another plot anyway
     @param[in] n this plot ID
+    @return ID of the created plot; this is useful when n == 0
 */
-qwtwc_API 	void qwtfigure(int n);
+qwtwc_API 	int qwtfigure(int n);
 
 /**
 set current 'clip group';
@@ -78,8 +79,9 @@ qwtwc_API 	void qwtclipgroup(int gr);
 #ifdef USEMARBLE
 /**  create (and draw) new map plot with ID 'n'.
 @param[in] n this plot ID
+@return ID of the created plot; this is useful when n == 0
 */
-qwtwc_API 	void qwtmap(int n);
+qwtwc_API 	int qwtmap(int n);
 #endif
 #ifdef USE_QT3D
 qwtwc_API 	void qwtfigure3d(int n);
@@ -88,8 +90,9 @@ qwtwc_API 	void qwtfigure3d(int n);
 #ifdef USEMATHGL
 /** add new MathGL plot.
  * \param n plot ID
+ * @return ID of the created plot; this is useful when n == 0
  * */
-qwtwc_API 	void qwtmgl(int n);
+qwtwc_API 	int qwtmgl(int n);
 
 /**  Add 3D line.
  * \param style if 0, then use something default

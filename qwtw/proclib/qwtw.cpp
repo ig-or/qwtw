@@ -113,8 +113,8 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size) {
      if plot with this ID already exists, it will be made 'active'
  @param[in] n this plot ID
 */
-qwtwc_API 	void qwtfigure(int n) {
-	test.qwtfigure(n);
+qwtwc_API 	int qwtfigure(int n) {
+	return test.qwtfigure(n);
 }
 
 qwtwc_API 	void qwtclipgroup(int gr) {
@@ -125,8 +125,8 @@ qwtwc_API 	void qwtclipgroup(int gr) {
 /**  create (and draw) new map plot with ID 'n'.
 @param[in] n this plot ID
 */
-qwtwc_API 	void qwtmap(int n) {
-	test.qwtmap(n);
+qwtwc_API 	int qwtmap(int n) {
+	return test.qwtmap(n);
 }
 #endif
 #ifdef USE_QT3D
@@ -135,8 +135,8 @@ qwtwc_API 	void qwtfigure3d(int n);
 
 #ifdef USEMATHGL
 
-qwtwc_API 	void qwtmgl(int n){
-	test.qwtmgl(n);
+qwtwc_API 	int qwtmgl(int n){
+	return test.qwtmgl(n);
 }
 
 qwtwc_API 	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {
