@@ -92,6 +92,9 @@ public:
 	FSPicker(int xAxis, int yAxis, RubberBand rubberBand, 
 		DisplayMode trackerMode, QWidget*);
 	QPointF transform1(	const QPoint & 	pos	 ) 	 const;
+protected:
+	QwtText 	trackerTextF(const QPointF&) const;
+
 };
 
 class QCheckBox;

@@ -324,10 +324,11 @@ Q_INVOKABLE int QWorker::qwtplotImpl(double* x, double* y, int size, const char*
 
 Q_INVOKABLE int QWorker::qtstartImpl() {
 	int test = qwSettings.qwLoad();
-	
+	xmprintf(7, "starting QWorker::qtstartImpl()\n");
 	if (pf == nullptr) {
 		xmprintf(3, "PATH inside qtstartImpl: %s\n\n", std::getenv("PATH"));
 		pf = new XQPlots();
+		xmprintf(5, "\tXQPlots created\n ");
 		if (pf == nullptr) { //  fail
 			std::cout << " error qtstartImpl: (pf == nullptr)" << std::endl;
 		}	else {
@@ -342,7 +343,10 @@ Q_INVOKABLE int QWorker::qtstartImpl() {
 			Marble::MarbleDirs::setMarblePluginPath(mpPath.c_str());
 			#endif			
 		}
-	} 
+	}	else {
+		xmprintf(5, "\talready started .. \n");
+	}
+	xmprintf(7, "QWorker::qtstartImpl() ended\n");
 	return 25;
 }
 Q_INVOKABLE void QWorker::qwtshowmwImpl() {

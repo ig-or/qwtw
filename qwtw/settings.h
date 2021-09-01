@@ -10,6 +10,7 @@ struct QWSettings {
 	int aMarkerColor_G;
 	int aMarkerColor_B;
 	int direction;
+	int pickerDigitsNumber; ///< number of digits to display when press on a plot with an arrow (marker mode)
 
 	QWSettings();
 	int qwSave();

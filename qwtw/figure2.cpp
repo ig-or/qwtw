@@ -94,6 +94,14 @@ QPointF FSPicker::transform1(	const QPoint & 	pos	 ) 	 const {
 	return ret;
 }
 
+QwtText 	FSPicker::trackerTextF(const QPointF& pos) const {
+	QString text;
+	int dn = qwSettings.pickerDigitsNumber;
+	text = QString::number(pos.x(), 'f', dn)	+ ", " + QString::number(pos.y(), 'f', dn);
+
+	return QwtText(text);
+}
+
 VLineMarker::VLineMarker(const char* text, double time, int id_): t(time), QWMarker(id_) {
 	QwtText label(text);
 	label.setFont(QFont("Consolas", 12, QFont::Bold));
