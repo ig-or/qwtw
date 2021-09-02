@@ -843,6 +843,9 @@ void Figure2::addLine(LineItemInfo* line) {
 				case 'b': color = Qt::blue;  break;
 				case 'c': color = Qt::cyan;  break;
 				case 'C': color = Qt::darkCyan;  break;
+				case 'a': color = Qt::gray;    break;
+				case 'A': color = Qt::darkGray; break;
+				case 'h': color = Qt::lightGray; break;
 			};
 
 			sym->setBrush(color);  
@@ -863,19 +866,23 @@ void Figure2::addLine(LineItemInfo* line) {
 		}
 		if (sn == 3) {  //   middle is symbol type
 			switch (line->style[1]) {
-			case 'e': sym->setStyle(QwtSymbol::Ellipse);  break;
-			case 'r': sym->setStyle(QwtSymbol::Rect);  break;
+			case 'e': sym->setStyle(QwtSymbol::Ellipse);  break; // Ellipse or circle.
+			case 'r': sym->setStyle(QwtSymbol::Rect);  break; // Rectangle.
 			case 'd': sym->setStyle(QwtSymbol::Diamond);  break;
-			case 't': sym->setStyle(QwtSymbol::Triangle);  break;
-			case 'x': sym->setStyle(QwtSymbol::Cross);  break;
-			case 's': sym->setStyle(QwtSymbol::Star1);  break;
-			case 'q': sym->setStyle(QwtSymbol::Star2);  break;
-			case 'w': sym->setStyle(QwtSymbol::XCross);  break;
-			case 'u': sym->setStyle(QwtSymbol::UTriangle);  break;
+			case 't': sym->setStyle(QwtSymbol::Triangle);  break; // Triangle pointing upwards.
+			case 'T': sym->setStyle(QwtSymbol::DTriangle);  break; // Triangle pointing downwards.
+			case 'L': sym->setStyle(QwtSymbol::LTriangle);  break; // Triangle pointing left.
+			case 'R': sym->setStyle(QwtSymbol::RTriangle);  break; // Triangle pointing right.
+			case 'x': sym->setStyle(QwtSymbol::Cross);  break; // Cross (+)
+			case 's': sym->setStyle(QwtSymbol::Star1);  break; // X combined with +.
+			case 'q': sym->setStyle(QwtSymbol::Star2);  break; // Six-pointed star.
+			case 'w': sym->setStyle(QwtSymbol::XCross);  break; // Diagonal cross (X)
+			case 'u': sym->setStyle(QwtSymbol::UTriangle);  break; // Triangle pointing upwards.
+			case 'h': sym->setStyle(QwtSymbol::Hexagon);  break; // Hexagon.
+			case 'a': sym->setStyle(QwtSymbol::HLine);  break; // Horizontal line.
+			case 'b': sym->setStyle(QwtSymbol::VLine);  break; // Vertical line.
 			};
-
 		}
-
 	}
 
 	cl->setCurveFitter(NULL);
@@ -1480,8 +1487,8 @@ void Figure2::removeVMarker(int id_) {
 		if (a->id == id_) {
 			a->detach();
 			//vmList.remove(a);
-			vmList.erase(it++);
 			delete a;
+			it = vmList.erase(it);
 			//  do not break here
 		} else {
 			++it;
@@ -1510,8 +1517,8 @@ void Figure2::addAMarker() {
 				AMarker* a = *it;
 				if (a->id == mid) {
 					a->detach();
-					amList.erase(it++);
 					delete a;
+					it = amList.erase(it);
 				} else {
 					++it;
 				}

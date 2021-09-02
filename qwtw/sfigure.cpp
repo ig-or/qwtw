@@ -64,6 +64,7 @@ int xmprintf(int level, const char * _Format, ...);
 #include <stdexcept>
 #include <boost/bind.hpp>
 #include "xmutils.h"
+#include "settings.h"
 
 
 #ifdef ENABLE_UDP_SYNC
@@ -79,31 +80,49 @@ struct BroadcastMessage {
 #pragma pack()
 class BCUdpClient {
 public:
-	BCUdpClient() : resolver(io_service), q(udp::v4(), "127.0.0.1", "49561"), socket(io_service) {
-
-		destination = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 49561);
+	BCUdpClient() : resolver(io_context), /*q(udp::v4(), "127.0.0.1", "49561"),*/ socket(io_context) {
+		ok = false;
+		int port = qwSettings.udp_client_port;
+		try {
+			destination = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port);
+		}	catch (const std::exception& ex) {
+			xmprintf(0, "ERROR: BCUdpClient(): cannot create UDP endpoint on port %d (%s)\n", port, ex.what());
+			return;
+		}
 
 		//receiver_endpoint = *resolver.resolve(q);
-		socket.open(udp::v4());
+		try {
+			socket.open(udp::v4());
+		}  catch (const std::exception& ex) {
+			xmprintf(0, "ERROR: BCUdpClient(): cannot open UDP port %d (%s)\n", port, ex.what());
+			return;
+		}
 
+		ok = true;
+		xmprintf(5, "BCUdpClient() created;  UDP port %d \n", port);
 	}
+
 	void bcSend(unsigned char* buf, int size) {
+		if (!ok) {
+			return;
+		}
 		//boost::array<char, 256> send_buf;
 		//socket.send_to(boost::asio::buffer(buf), receiver_endpoint);
 		try {
 			socket.send_to(boost::asio::buffer(buf, size), destination);
 		} catch (const std::exception& ex) {
-			xm_printf("exception: %s\n", ex.what());
+			xmprintf(1, "bcSend: exception: %s\n", ex.what());
 		}
 	}
 
 private: 
-	boost::asio::io_service io_service;
+	boost::asio::io_context io_context;
 	udp::resolver resolver;
-	udp::resolver::query q;
+	//udp::resolver::query q;
 	boost::asio::ip::udp::endpoint destination;
 	udp::endpoint receiver_endpoint;
 	udp::socket socket;
+	bool ok;
 };
 
 class BCUdpServer {
@@ -116,14 +135,15 @@ private:
 	//std::thread st;
 	boost::thread st;
 	volatile bool pleaseStop;
-	boost::asio::io_service io_service;
+	boost::asio::io_context io_context;
 	udp::socket socket_;
 	udp::endpoint remote_endpoint_;
+	int portNumber;
 	unsigned char	rb[256];
 	std::function<void(double[3])> onPointF;
 
 public:
-	BCUdpServer() : socket_(io_service, udp::endpoint(udp::v4(), 49562)) {
+	BCUdpServer(int port) : portNumber(port), socket_(io_context, udp::endpoint(udp::v4(), port)) {
 		created = false;
 		createdMarker = false;
 		somethingWasChanged = false;
@@ -147,11 +167,11 @@ public:
 			return;
 		}
 		// wait for the task to finish??
-		boost::asio::io_service io_service1;
+		boost::asio::io_context io_service1;
 		udp::socket s1(io_service1);
 		s1.open(udp::v4());
 		unsigned char b[5];
-		boost::asio::ip::udp::endpoint destination = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), 49562);
+		boost::asio::ip::udp::endpoint destination = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), portNumber);
 		try {
 			s1.send_to(boost::asio::buffer(b, 5), destination);
 			s1.send_to(boost::asio::buffer(b, 5), destination);
@@ -170,8 +190,8 @@ public:
 	void tcpThread() {
 		try {
 			start_receive();
-			xm_printf("BCUdpServer tcpThread started\n");
-			io_service.run();
+			xmprintf(2, "BCUdpServer tcpThread started; port %d\n", qwSettings.udp_server_port);
+			io_context.run();
 		} catch (std::exception& e) {
 			std::cerr << e.what() << std::endl;
 			xm_printf("TRACE: RDFramerDebugGuiUpdateCallback  exception: %s  \n", e.what());
@@ -188,6 +208,7 @@ public:
 
 	void handle_receive(const boost::system::error_code& error, std::size_t bytes_transferred) {
 		if (!error || error == boost::asio::error::message_size) {
+			xmprintf(9, "UDP server handle_receive: bytes_transferred = %d \n", bytes_transferred);
 			
 			if ((bytes_transferred == 4) && ((memcmp(rb, "XXXX", 4) == 0))) {
 				mu.lock();
@@ -208,6 +229,7 @@ public:
 						somethingWasChanged = true;
 						onPointF(pos);
 						mu.unlock();
+						xmprintf(9, "UDP server handle_receive: got CRDS message \n");
 					}		else {
 						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got %s \n", rb);
 					}
@@ -776,7 +798,11 @@ int XQPlots::removeLine(int key) {
 	}
 	LineHandler& h = i->second;
 	h.plot->removeLine(h.line);
-	lines.erase(key);
+	try {
+		lines.erase(key);
+	} catch (const std::exception& ex) {
+		xmprintf(1, "lines.erase(key) failed (%s)\n", ex.what());
+	}
 
 	return 0;
 }
@@ -803,7 +829,14 @@ void XQPlots::enableCoordBroadcast(double* x, double* y, double* z, double* time
 	}
 
 	if (bServer == 0) {
-		bServer = new BCUdpServer();
+		try {
+			bServer = new BCUdpServer(qwSettings.udp_server_port);
+		}	catch (const std::exception& ex) {
+			xmprintf(0, "ERROR: XQPlots::enableCoordBroadcast: cannot create UDP server on address %d; check if this port in available\n",
+				qwSettings.udp_server_port);
+			return;
+		}
+		xmprintf(2, "BCUdpServer probably started with port number %d \n", qwSettings.udp_server_port);
 		bServer->bStart([&](double p[3]) { on3DMarker(p); });
 		//(&XQPlots::on3DMarker);
 	}
@@ -881,9 +914,11 @@ void XQPlots::onFigureClosed(const std::string& key) {
 		f = it->second;  //  DO WE NEED THIS???
 		
 		//    remove all the lines from 'lines':
-		for (const auto i : lines) {
-			if (i.second.plot == f) {
-				lines.erase(i.first);
+		for (auto i = lines.begin(); i != lines.end(); ) { //  according to https://en.cppreference.com/w/cpp/container/map/erase
+			if (i->second.plot == f) {
+				i = lines.erase(i);
+			} else {
+				++i;
 			}
 		}
 

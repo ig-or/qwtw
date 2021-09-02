@@ -76,6 +76,8 @@ void JustAplot::removeLine(LineItemInfo* line) {
 	}	else {
 		if (cInfo == line) {
 			cInfo = linesInfo.back();
+		} else { // do not touch it
+
 		}
 	}
 }
