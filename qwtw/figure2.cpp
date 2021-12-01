@@ -1300,7 +1300,7 @@ void Figure2::onPickerSelection(const QPolygon& pa) {
 	int y = pa.at(0).y();
 
 	onPickerSignal(x, y);
-	setWindowTitle(sTitle.c_str());
+	// do we need to see corrected title after mouse was released ? setWindowTitle(sTitle.c_str());
 }
 
 void Figure2::onPickerMove(const QPoint& pos) {
@@ -1578,10 +1578,18 @@ void Figure2::onPickerSignal(int x, int y) {
 	//std::ostringstream s; 
 	//s << xxm << ", " << yym << ", (" << mfi->info->legend << ")";
 	char s[256];
-	snprintf(s, 256, "%.6f, %.6f (%s), index=%lld", 
+	char s0[128];
+	int dn = qwSettings.pickerDigitsNumber;  // how many digits to traw for each number
+	if (mfi->info->mode == 3) {
+		snprintf(s0, 128, "[%%.%df, %%.%df] t=%%.3f (%%s), index=%%lld", dn, dn);
+		snprintf(s, 256, s0,
+			lastXselected, lastYselected, t, mfi->info->legend.c_str(), minIndex);
+	} else {
+		snprintf(s0, 128, "%%.%df, %%.%df (%%s), index=%%lld", dn, dn);
+		snprintf(s, 256, s0,
 			lastXselected, lastYselected, mfi->info->legend.c_str(), minIndex);
+	}
 
-   // setWindowTitle(s.str().c_str());
 	setWindowTitle(s);
 	
 	if(ok) {
