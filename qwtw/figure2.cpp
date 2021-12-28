@@ -1593,8 +1593,11 @@ void Figure2::onPickerSignal(int x, int y) {
 	setWindowTitle(s);
 	
 	if(ok) {
-	   pf->drawAllMarkers(t);
+	   //pf->drawAllMarkers(t);
+		pf->drawAllMarkers2(iKey, mfi->info->id, minIndex, x, y, lastXselected, lastYselected, t, mfi->info->legend);
 	}
+
+	//xmprintf(8, "Figure2::onPickerSigna: time = %f  \n", t);
 }
 
 void Figure2::drawMarker(double X, double Y, int type) {

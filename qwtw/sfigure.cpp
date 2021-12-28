@@ -559,7 +559,11 @@ void XQPlots::on3DMarker(double p[3]) {
 				}
 			}
 			double time = broadCastInfo->time[index];
-			QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(double, time));
+			//QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(double, time));
+			QMetaObject::invokeMethod(this, "drawAllMarkers1", Qt::QueuedConnection, 
+				Q_ARG(int, index),
+				Q_ARG(double, broadCastInfo->x[index]), Q_ARG(double, broadCastInfo->y[index]), Q_ARG(double, broadCastInfo->z[index]),
+				Q_ARG(double, time));
 		}
 	}
 }
@@ -580,6 +584,64 @@ Q_INVOKABLE void XQPlots::removeVMarkerEverywhere(int id_) {
     }
 	for (it = figures.begin(); it != figures.end(); it++) {
 		it->second->replot();
+	}
+}
+
+void XQPlots::setUdpCallback(OnUdpCallback  cb) {
+	onUdpCallback = cb;
+}
+void XQPlots::setPickerCallback(OnPickerCallback cb) {
+	xmprintf(8, "XQPlots::setPickerCallback!\n ");
+	onPickerCallback = cb;
+}
+
+Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double z, double t) {
+	drawAllMarkers(t);
+
+	if (onPickerCallback != 0) {
+		CBPickerInfo cbi;
+		cbi.index = index;
+		//strncpy(cbi.label, legend.c_str(), cbi.lSize);
+		cbi.label[0] = 0;
+		cbi.lineID = 0;
+		cbi.plotID = 0;
+		cbi.time = t;
+		cbi.type = 2;
+		cbi.x = x;
+		cbi.y = y;
+		cbi.xx = 0;
+		cbi.yy = 0;
+		cbi.z = z;
+
+		//xmprintf(8, "XQPlots::drawAllMarkers2: onPickerCallback, time = %f \n", cbi.time);
+		onPickerCallback(cbi);
+	}
+
+
+	//if (onUdpCallback != 0) {
+	//	onUdpCallback(index, x, y, z, t);
+	//}
+}
+
+Q_INVOKABLE void XQPlots::drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend) {
+	//xmprintf(8, "drawAllMarkers2!\n ");
+	drawAllMarkers(t);
+	if (onPickerCallback != 0) {
+		CBPickerInfo cbi;
+		cbi.index = index;
+		strncpy(cbi.label, legend.c_str(), cbi.lSize);
+		cbi.lineID = lineID;
+		cbi.plotID = figureID;
+		cbi.time = t;
+		cbi.type = 1;
+		cbi.x = x;
+		cbi.y = y;
+		cbi.xx = fx;
+		cbi.yy = fy;
+		cbi.z = 0.0;
+
+		//xmprintf(8, "XQPlots::drawAllMarkers2: onPickerCallback, time = %f \n", cbi.time);
+		onPickerCallback(cbi);
 	}
 }
 

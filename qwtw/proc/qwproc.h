@@ -4,8 +4,10 @@
 
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/interprocess_condition.hpp>
+#include "qwtypes.h"
 
 #pragma pack(8)
+
 struct CmdHeader {
 	enum QWCmd {
 		nothing = 0,
@@ -31,6 +33,8 @@ struct CmdHeader {
 		qMglLine, // 18
 		qMglMesh, // 19
 		qSetClipGroup, // 20
+		qSetUdpCallback,  //  21
+		qSetPickerCallback,  // 22 
 
 		qwcmdSize
 	};
@@ -53,10 +57,16 @@ struct CmdHeader {
 	double xMin, xMax, yMin, yMax;
 
 	int timeIsGood, zIsGood;
+	//void* fTest;
 
 	boost::interprocess::interprocess_mutex      mutex;
 	boost::interprocess::interprocess_condition  cmdWait;
 	boost::interprocess::interprocess_condition  workDone;
+
+
+	CBPickerInfo   cbInfo;
+	boost::interprocess::interprocess_mutex      cbInfoMutex;
+	boost::interprocess::interprocess_condition  cbWait;  ///   callback wait
 	CmdHeader() {}
 };
 

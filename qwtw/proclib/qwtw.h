@@ -19,6 +19,11 @@ QWT-based 2D plotting library.
 #ifdef __cplusplus
 	extern "C" {
 #endif
+// int figureID, int lineID, int index, int fx, int fy, double x, double y, double z, double t, const std::string& legend
+typedef  void (*OnPCallback)(int, int, int, int, int, double, double, double, double, const char*);
+
+typedef  void (*CBTest_1)();
+typedef  void (*CBTest_2)(int);
 
 /**  this is just for testing
  *  \return 42
@@ -34,6 +39,10 @@ qwtwc_API 	int get42(int n);
  **/ 
 #ifdef USEMARBLE
 qwtwc_API	int qtstart(const char* mdp, const char* mpp);
+
+qwtwc_API   void setcallback(OnPCallback pCallback);
+qwtwc_API   void setcallback_t1(CBTest_1 pCallback);
+qwtwc_API   void setcallback_t2(CBTest_2 pCallback);
 
 /** starting  QT proc, if not started yet.
  * 	return 0 if all is OK, 

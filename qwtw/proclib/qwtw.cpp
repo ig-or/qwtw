@@ -60,6 +60,17 @@ qwtwc_API	int qtstart(const char* mdp, const char* mpp) {
 	return test.testInit(mdPath, mpPath);  //  default level == 1 ?
 }
 
+qwtwc_API void setcallback(OnPCallback pCallback) {
+	test.setCB(pCallback);
+}
+
+qwtwc_API   void setcallback_t1(CBTest_1 pCallback) {
+	test.setCBTest1(pCallback);
+}
+qwtwc_API   void setcallback_t2(CBTest_2 pCallback) {
+	test.setCBTest2(pCallback);
+}
+
 qwtwc_API	int qtstart_debug(const char* mdp, const char* mpp, int level) {
 	std::string mdPath;
 	std::string mpPath;

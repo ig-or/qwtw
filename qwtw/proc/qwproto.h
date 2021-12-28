@@ -7,6 +7,11 @@
 // therer are problems on mingw with this #include <thread>
 #include <memory>
 #include <boost/thread/thread.hpp>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include <thread>
+#include <condition_variable>
 
 namespace boost { 
     namespace interprocess {
@@ -36,6 +41,8 @@ public:
      * \return true if already running
     **/
     static bool runningAlready();
+
+    void onCB(const CBPickerInfo& cbi_);
     
 
 private:
@@ -57,6 +64,7 @@ private:
     bool needStopThread;
     //std::thread  wThread;
     std::shared_ptr<boost::thread> wThread;
+    std::thread cbFilterThread;
 
     QWorker& worker;
     QApplication& app;
@@ -64,6 +72,14 @@ private:
     /// stop the thread
     void stop();
     void run();
+    void cbFilterThreadF();
+    std::mutex cbFilterMutex;
+    CBPickerInfo cbi; 
+    //std::chrono::time_point< std::chrono::system_clock > cbiTime;
+    bool haveNewCallbackInfo = false;
+    //std::condition_variable cbiReady;
+
+
     void processCommand(int cmd);
     //void setupSHM1(long long size, boost::interprocess::shared_memory_object* shm, boost::interprocess::mapped_region* reg);
 

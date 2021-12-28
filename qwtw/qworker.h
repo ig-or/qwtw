@@ -5,6 +5,7 @@
 #include <QObject>
 #include <mutex>
 #include <condition_variable>
+#include "qwtypes.h"
 //#include <QPointer>
 //#include <QThread>
 
@@ -33,6 +34,9 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtclearImpl();
 	Q_INVOKABLE void qwtRemoveLineImpl(int key);
 	Q_INVOKABLE int qwtChangeLineImpl(int id, double* x, double* y, double* z, double* time, int size);
+
+	Q_INVOKABLE void qwtSetUdpCallbackImpl(OnUdpCallback cb);
+	Q_INVOKABLE void qwtSetPickerCallbackImpl(OnPickerCallback cb);
 
 #ifdef USEMATHGL
 	Q_INVOKABLE int mglPlotImpl(int n);
@@ -66,6 +70,8 @@ public:
 	void qwtxlabel(const char* s);
 	void qwtylabel(const char* s);
 	void qwtclear();
+	void qwtSetUdpCallback(OnUdpCallback cb);
+	void qwtSetPickerCallback(OnPickerCallback cb);
 	int qwtfigure(int n, unsigned int flags);
 	void qwtSetClipGroup(int gr);
 	void qwtRemoveLine(int key);

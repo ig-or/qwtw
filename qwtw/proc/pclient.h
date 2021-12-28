@@ -3,8 +3,12 @@
 
 #include "qwproc.h"
 #include "qwtypes.h"
+#include "qwtw.h"
 #include <boost/interprocess/shared_memory_object.hpp>
 #include <boost/interprocess/mapped_region.hpp>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 struct SHMTest {
 
@@ -57,6 +61,9 @@ struct SHMTest {
 #endif
 
 	void qwtshowmw(); 
+	void setCB(OnPCallback cb);
+	void setCBTest1(CBTest_1 cb);
+	void setCBTest2(CBTest_2 cb);
 
 private:    
 
@@ -65,6 +72,22 @@ private:
 	void resize(long long size);
 	void resizeData(long long size);
 
+	bool needStopCallbackThread = false;
+	std::thread cbThread;
+	/// <summary>
+	/// callback thread. callbacks will be called from here.
+	/// </summary>
+	void cbThreadF();
+	OnPCallback pCallback = 0;
+	CBTest_1    cbTest1 = 0;
+	CBTest_2	cbTest2 = 0;
+
+	std::thread cbThread_2;
+	CBPickerInfo cpInfo;
+	void cbThreadF_2();
+	std::mutex cbiMutex_2;
+	std::mutex cbiMutex_3;
+	std::condition_variable cbiReady;
 	/**\param params proc parameters
 	 * \return 0 if all is OK
 	 * 

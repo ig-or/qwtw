@@ -219,6 +219,25 @@ void QWorker::qwtclear() {
 	}
 }
 
+
+void QWorker::qwtSetUdpCallback(OnUdpCallback cb) {
+	if (!QMetaObject::invokeMethod(this, "qwtSetUdpCallbackImpl", Qt::BlockingQueuedConnection)) {
+		std::cout << " cannot invoke qwtSetUdpCallbackImpl" << std::endl;
+	}
+}
+
+void QWorker::qwtSetPickerCallback(OnPickerCallback cb) {
+	xmprintf(8, "QWorker::qwtSetPickerCallback!\n");
+	if (!QMetaObject::invokeMethod(this, "qwtSetPickerCallbackImpl", Qt::BlockingQueuedConnection, Q_ARG(OnPickerCallback, cb))) {
+		xmprintf(8, "QWorker::qwtSetPickerCallback ERROR\n");
+		std::cout << " cannot invoke qwtSetPickerCallbackImpl" << std::endl;
+
+		qwtSetPickerCallbackImpl(cb); // %|
+	}	else {
+		xmprintf(8, "QWorker::qwtSetPickerCallback OK\n");
+	}
+}
+
 int QWorker::qwtfigure(int n, unsigned int flags) {
 	int rv = 0;
 	if (!QMetaObject::invokeMethod(this, "qwtfigureImpl", Qt::BlockingQueuedConnection, 
@@ -320,7 +339,19 @@ Q_INVOKABLE int QWorker::qwtplotImpl(double* x, double* y, int size, const char*
 	return test;
 }
 
+Q_INVOKABLE void QWorker::qwtSetUdpCallbackImpl(OnUdpCallback cb) {
+	if (pf != 0) {
+		pf->setUdpCallback(cb);
+	}
+}
 
+Q_INVOKABLE void QWorker::qwtSetPickerCallbackImpl(OnPickerCallback cb) {
+	xmprintf(8, "QWorker::qwtSetPickerCallbackImpl! \n");
+	if (pf != 0) {
+		xmprintf(8, "QWorker::qwtSetPickerCallbackImpl!!!! \n");
+		pf->setPickerCallback(cb);
+	}
+}
 
 Q_INVOKABLE int QWorker::qtstartImpl() {
 	int test = qwSettings.qwLoad();

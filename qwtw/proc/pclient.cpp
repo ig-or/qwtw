@@ -270,6 +270,17 @@ int SHMTest::testInit(int level) {
 	xmprintf(2, "starting SHMTest::testInit() making qsetloglevel..\n");
 	qsetloglevel(level);
 
+	//  start the callback thread:
+	needStopCallbackThread = false;
+	if (!cbThread.joinable()) { //   running already??	
+		std::thread ttmp(&SHMTest::cbThreadF, this);
+		cbThread.swap(ttmp);
+	}
+	if (!cbThread_2.joinable()) {
+		std::thread ttmp2(&SHMTest::cbThreadF_2, this);
+		cbThread_2.swap(ttmp2);
+	}
+
 	xmprintf(2, "starting SHMTest::testInit() finished\n");
 	return 0;
 }
@@ -277,6 +288,7 @@ int SHMTest::testInit(int level) {
 void SHMTest::stopQt() {
 	if (status != 0) return;
 	using namespace boost::interprocess;
+	
 	xmprintf(3, "SHMTest::stopQt();  locking.. \n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	xmprintf(3, "\tSHMTest::stopQt();  locked \n");
@@ -285,6 +297,25 @@ void SHMTest::stopQt() {
 	xmprintf(3, "\tSHMTest::stopQt();  start waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 	status = 4; //   stopped
+
+	//  stop two callback threads
+	needStopCallbackThread = true;
+	if (cbThread.joinable()) { //   stop callback thread?
+		xmprintf(8, "\tstopping cbThread  \n");
+		
+		//pd.hdr->cbInfoMutex.lock();
+		// 
+		//pd.hdr->cbInfoMutex.unlock();
+		pd.hdr->cbWait.notify_all();
+
+		cbThread.join();
+		xmprintf(8, "\tcbThread finished \n");
+	}
+	if (cbThread_2.joinable()) {
+		cbiReady.notify_all();
+		cbThread_2.join();
+	}
+
 	xmprintf(3, "\tSHMTest::stopQt();  done\n");
 }
 
@@ -354,6 +385,75 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	int test = pd.hdr->test;
 	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): test = %d\n", static_cast<int>(cmd), v, test);
 	return test;
+}
+
+void SHMTest::cbThreadF() {
+	using namespace boost::interprocess;
+	CBPickerInfo cpi;
+	scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex);
+	while (!needStopCallbackThread) {
+		pd.hdr->cbWait.wait(lock);
+		if (needStopCallbackThread) {
+			break;
+		}
+
+		memcpy(&cpi, &pd.hdr->cbInfo, sizeof(cpi));
+		//xmprintf(5, "cbThreadF   time = %f \n", cpi.time);
+
+		cbiMutex_3.lock();
+		memcpy(&cpInfo, &cpi, sizeof(cpi));
+		cbiMutex_3.unlock();
+
+		cbiReady.notify_all();
+	}
+}
+
+void SHMTest::cbThreadF_2() {
+	std::unique_lock<std::mutex> lock(cbiMutex_2);
+	CBPickerInfo cpi;
+	while (!needStopCallbackThread) {
+		cbiReady.wait(lock);
+		if (needStopCallbackThread) {
+			break;
+		}
+
+		if (pCallback != 0) {
+			cbiMutex_3.lock();
+			memcpy(&cpi, &cpInfo, sizeof(cpi));
+			cbiMutex_3.unlock();
+
+			// int figureID, int lineID, int index, int fx, int fy, double x, double y, double z, double t, const std::string& legend
+			//pCallback(cpInfo.plotID, cpInfo.lineID, cpInfo.index, cpInfo.xx, cpInfo.yy, cpInfo.x, cpInfo.y, cpInfo.z, cpInfo.time, cpInfo.label);
+
+			xmprintf(4, "cbThreadF_2! time = %.3f \n", cpInfo.time);
+		}
+		if (cbTest1 != 0) {
+			try {
+				cbTest1();
+			}	catch (const std::exception& ex) {
+				xmprintf(4, "cbThreadF_2: exception {%s} \n", ex.what());
+			}
+		}
+
+		if (cbTest2 != 0) {
+			cbiMutex_3.lock();
+			memcpy(&cpi, &cpInfo, sizeof(cpi));
+			cbiMutex_3.unlock();
+
+			cbTest2(cpi.index);
+		}
+	}
+}
+
+void SHMTest::setCB(OnPCallback cb) {
+	pCallback = cb;
+}
+void SHMTest::setCBTest1(CBTest_1 cb) {
+	cbTest1 = cb;
+}
+
+void SHMTest::setCBTest2(CBTest_2 cb) {
+	cbTest2 = cb;
 }
 
 #ifdef ENABLE_UDP_SYNC

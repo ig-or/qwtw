@@ -52,6 +52,7 @@ class PlotsInterfaceModel: public QStandardItemModel {
 
 };
 */
+//typedef void (*printer_t)(int);
 
 struct LineHandler {
 	LineItemInfo* line;
@@ -119,11 +120,38 @@ public:
 	*/
 	void drawMarker(const std::string& key_, double X, double Y, int type = 1);
 
+	/// <summary>
+	///  callback from UDP
+	/// </summary>
+	/// <param name="x"></param>
+	/// <param name="y"></param>
+	/// <param name="z"></param>
+	/// <param name="t"></param>
+	/// <returns></returns>
+	Q_INVOKABLE void drawAllMarkers1(int index, double x, double y, double z, double t);
+
+	/// <summary>
+	/// callback from plot picker (mouse click)
+	/// </summary>
+	/// <param name="figureID"> figure ID (iKey)  </param>
+	/// <param name="lineID">    line ID (static.... not threadsafe)</param>
+	/// <param name="index"> index of the selected  point </param>
+	/// <param name="fx"> x plot coord</param>
+	/// <param name="fy"></param>
+	/// <param name="x"></param>
+	/// <param name="y"></param>
+	/// <param name="t"></param>
+	/// <param name="legend"> legend of the selected line </param>
+	/// <returns></returns>
+	Q_INVOKABLE void drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend);
+
 	Q_INVOKABLE void drawAllMarkers(double t);
 	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0);
 	Q_INVOKABLE void removeVMarkerEverywhere(int id_);
 
 	void clipAll(double t1, double t2, int clipGroup);
+	void setUdpCallback(OnUdpCallback  cb);
+	void setPickerCallback(OnPickerCallback cb);
 
 
 	//void figure3(int n);
@@ -166,6 +194,8 @@ private:
 	void on3DMarker(double p[3]);
 //	QStandardItem* jp2SI
 	std::map<int, LineHandler> lines;
+	OnUdpCallback onUdpCallback = 0;
+	OnPickerCallback onPickerCallback = 0;
 
 private slots:
 	void onFigureClosed(const std::string& key);

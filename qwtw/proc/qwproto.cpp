@@ -3,6 +3,7 @@
 #include "qwproto.h"
 #include "qwproc.h"
 #include "qworker.h"
+#include <functional>
 #include <QApplication>
 
 #include <boost/interprocess/shared_memory_object.hpp>
@@ -122,6 +123,9 @@ void QProcInterface::start() {
 	//ttmp.swap(wThread);
 	xmprintf(3, "\tQProcInterface::start() starting interface thread.. \n");
 	wThread = std::make_shared<boost::thread>(&QProcInterface::run, this);
+
+	std::thread ttmp(&QProcInterface::cbFilterThreadF, this);
+	cbFilterThread.swap(ttmp);
 	
 	started = true;
 	xmprintf(3, "\tQProcInterface::start()  finished\n");
@@ -130,8 +134,8 @@ void QProcInterface::start() {
 void QProcInterface::stop() {
 	using namespace boost::interprocess;
 	xmprintf(3, "QProcInterface::stop()  \n");
+	needStopThread = true;
 	if (wThread->joinable()) {
-		needStopThread = true;
 		xmprintf(3, "\t QProcInterface::stop()  locking..\n");
 		pd.hdr->mutex.lock();
 		xmprintf(3, "\t QProcInterface::stop()  locked\n");
@@ -145,12 +149,20 @@ void QProcInterface::stop() {
 	} else {
 		xmprintf(3, "\tQProcInterface::stop()  thread not joinable \n");
 	}
+
+	if (cbFilterThread.joinable()) {
+		cbFilterThread.join();
+	}
 	xmprintf(3, "\tQProcInterface::stop() finished \n");
 }
 
 void QProcInterface::run() {
 	using namespace boost::interprocess;
 	xmprintf(2, "QProcInterface::run() starting\n");
+
+	OnPickerCallback cbf = std::bind(&QProcInterface::onCB, this, std::placeholders::_1);
+	worker.qwtSetPickerCallback(cbf);
+
 	xmprintf(5, "\tQProcInterface::run() locking..\n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	xmprintf(6, "\tQProcInterface::run() locked\n");
@@ -166,6 +178,40 @@ void QProcInterface::run() {
 		xmprintf(6, "\tQProcInterface::run() after notify_all\n");
 	}
 	xmprintf(2, "QProcInterface::run() exiting \n");
+}
+
+void QProcInterface::onCB(const CBPickerInfo& cbi_) {
+	//xmprintf(6, "\tQProcInterface::onCB() time = %f\n", cbi.time);
+	std::lock_guard<std::mutex> lock(cbFilterMutex);
+	//cbiTime = std::chrono::system_clock::now();
+	memcpy(&cbi, &cbi_, sizeof(cbi));
+	//cbiReady.notify_all();
+	haveNewCallbackInfo = true;
+}
+
+void QProcInterface::cbFilterThreadF() {
+	using namespace std::chrono_literals;
+	//std::unique_lock<std::mutex> lock(cbFilterMutex);
+	auto now =	std::chrono::system_clock::now();
+	while (!needStopThread) {
+		//cbiReady.wa
+		//now = std::chrono::system_clock::now();
+		cbFilterMutex.lock();
+		if (haveNewCallbackInfo) {
+			cbFilterMutex.unlock(); // !!!!
+			//long long dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - cbiTime).count();
+			//if (dt > )
+
+			using namespace boost::interprocess;
+			scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex); //   we can wait here a very long time..
+			cbFilterMutex.lock(); //   lock this again  only after cbInfoMutex!
+			memcpy(&pd.hdr->cbInfo, &cbi, sizeof(cbi));
+			pd.hdr->cbWait.notify_all();
+			haveNewCallbackInfo = false;
+		}
+		cbFilterMutex.unlock();
+		std::this_thread::sleep_for(100ms);
+	}
 }
 
 void QProcInterface::changeDataSize(long long newSize) {
@@ -349,6 +395,13 @@ void QProcInterface::processCommand(int cmd) {
 
 		case CmdHeader::qDisableBC:
 			worker.qwtDisableCoordBroadcast();
+			break;
+
+		case CmdHeader::qSetUdpCallback:
+//			worker.qwtSetUdpCallback(pd.hdr->fTest);
+			break;
+		case CmdHeader::qSetPickerCallback:
+			//		
 			break;
 
 		case CmdHeader::qSetLogLevel:
