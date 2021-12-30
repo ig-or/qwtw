@@ -30,22 +30,29 @@ struct MeshInfo {
 	SurfDataType sd;
 };
 
-struct CBPickerInfo {
-	static const int lSize = 64;
-	double time = 0.0;
-	double x = 0.0;
-	double y = 0.0;
-	double z = 0.0;
+#pragma pack()
 
-	int index = 0;
-	int xx = 0;
-	int yy = 0;
+#pragma pack(1)
+
+/// picker info
+struct CBPickerInfo {
+	static const int lSize = 24;
+	double time = 0.0;  ///< closest point
+	double x = 0.0;  ///< closest point
+	double y = 0.0;  ///< closest point
+	double z = 0.0;  ///< closest point
+
+	int index = 0; ///< index of the closest point
+	int xx = 0;	///< window coords
+	int yy = 0; ///< window coords
 	int plotID = 0;
 	int lineID = 0;
-	int type = 0;
-	char label[lSize];
+	int type = 0; 	///< signal source ID
+	char label[lSize];   ///< line label
 };
+
 #pragma pack()
+
 
 typedef  void (*OnUdpCallback)(int, double, double, double, double);
 

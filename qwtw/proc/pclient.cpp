@@ -12,9 +12,12 @@
 #include <cstdlib>
 
 SHMTest::SHMTest(): status(5) {
-
+	cmdSync = std::make_shared<CmdSync>();
 }
 
+SHMTest::~SHMTest() {
+	cmdSync.reset();
+}
 #ifdef USEMARBLE
 int SHMTest::qwtmap(int n) {
 	if (status != 0) return 0;
@@ -306,8 +309,8 @@ void SHMTest::stopQt() {
 		//pd.hdr->cbInfoMutex.lock();
 		// 
 		//pd.hdr->cbInfoMutex.unlock();
-		pd.hdr->cbWait.notify_all();
-
+		//pd.hdr->cbWait.notify_all();
+		cmdSync->cbWait.notify_all();
 		cbThread.join();
 		xmprintf(8, "\tcbThread finished \n");
 	}
@@ -390,9 +393,11 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 void SHMTest::cbThreadF() {
 	using namespace boost::interprocess;
 	CBPickerInfo cpi;
-	scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex);
+	//scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex);
+	scoped_lock<named_mutex> lock(cmdSync->cbInfoMutex);
 	while (!needStopCallbackThread) {
-		pd.hdr->cbWait.wait(lock);
+		//pd.hdr->cbWait.wait(lock);
+		cmdSync->cbWait.wait(lock); //   wait for the picker info
 		if (needStopCallbackThread) {
 			break;
 		}

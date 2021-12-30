@@ -117,8 +117,9 @@ void QProcInterface::start() {
 	pd.t = static_cast<double*>(tDataReg->get_address());
 	pd.data = static_cast<double*>(dataDataReg->get_address());
 
-	needStopThread = false;
+	cmdSync = std::make_shared<CmdSync>();
 
+	needStopThread = false;
 	//std::thread ttmp(&QProcInterface::run, this);
 	//ttmp.swap(wThread);
 	xmprintf(3, "\tQProcInterface::start() starting interface thread.. \n");
@@ -135,13 +136,16 @@ void QProcInterface::stop() {
 	using namespace boost::interprocess;
 	xmprintf(3, "QProcInterface::stop()  \n");
 	needStopThread = true;
-	if (wThread->joinable()) {
+	if (wThread->joinable()) {//   stop the 'run()'
+		/*   looks like we do not need this code below
+		     since notify_all   supposed to make everything we need
 		xmprintf(3, "\t QProcInterface::stop()  locking..\n");
 		pd.hdr->mutex.lock();
 		xmprintf(3, "\t QProcInterface::stop()  locked\n");
 		pd.hdr->cmd = CmdHeader::exit;
 		pd.hdr->mutex.unlock();
 		xmprintf(3, "\t QProcInterface::stop()  unlocked\n");
+		*/
 		pd.hdr->cmdWait.notify_all();
 	
 		wThread->join();
@@ -171,6 +175,10 @@ void QProcInterface::run() {
 		xmprintf(5, "\tQProcInterface::run() waiting.. \n");
 		pd.hdr->cmdWait.wait(lock);
 		xmprintf(3, "\tQProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
+		if (needStopThread) {
+			xmprintf(5, "QProcInterface::run(): needStopThread! \n");
+			break;
+		}
 		int cmd = pd.hdr->cmd;
 		processCommand(cmd);
 		xmprintf(6, "\tQProcInterface::run() before notify_all\n");
@@ -191,26 +199,51 @@ void QProcInterface::onCB(const CBPickerInfo& cbi_) {
 
 void QProcInterface::cbFilterThreadF() {
 	using namespace std::chrono_literals;
-	//std::unique_lock<std::mutex> lock(cbFilterMutex);
-	auto now =	std::chrono::system_clock::now();
+	using namespace std::chrono;
+
 	while (!needStopThread) {
-		//cbiReady.wa
-		//now = std::chrono::system_clock::now();
 		cbFilterMutex.lock();
 		if (haveNewCallbackInfo) {
 			cbFilterMutex.unlock(); // !!!!
-			//long long dt = std::chrono::duration_cast<std::chrono::milliseconds>(now - cbiTime).count();
-			//if (dt > )
 
 			using namespace boost::interprocess;
-			scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex); //   we can wait here a very long time..
+//			scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex); //   we can wait here a very long time..
+			auto now = system_clock::now();
+			bool test = cmdSync->cbInfoMutex.timed_lock(now+milliseconds(800));
+			if (test)  { // good!
+			
+			} else { //  something is wrong
+				auto now2 = system_clock::now();
+				int ms = duration_cast<milliseconds>(now2 - now).count();
+				xmprintf(5, "cmdSync->cbInfoMutex.timed_lock failed in %d ms \n", ms);
+
+				cmdSync.reset();
+				cmdSync = std::make_shared<CmdSync>();
+				test = cmdSync->cbInfoMutex.timed_lock(now2 + milliseconds(800));
+				if (test) {
+
+				}	else { //  failed again?
+					auto now3 = system_clock::now();
+					int ms = duration_cast<milliseconds>(now3 - now2).count();
+					xmprintf(5, "cmdSync->cbInfoMutex.timed_lock failed again in %d ms \n", ms);
+					// give up
+					return;
+				}
+			}
+			// cmdSync->cbInfoMutex is locked now
+
 			cbFilterMutex.lock(); //   lock this again  only after cbInfoMutex!
 			memcpy(&pd.hdr->cbInfo, &cbi, sizeof(cbi));
-			pd.hdr->cbWait.notify_all();
 			haveNewCallbackInfo = false;
+			cbFilterMutex.unlock();
+
+			cmdSync->cbInfoMutex.unlock();
+			cmdSync->cbWait.notify_all();
+			
+		} 	else {
+			cbFilterMutex.unlock();
 		}
-		cbFilterMutex.unlock();
-		std::this_thread::sleep_for(100ms);
+		std::this_thread::sleep_for(50ms);
 	}
 }
 

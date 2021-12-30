@@ -21,6 +21,8 @@
 #include <QWidget>
 #include <QDialog>
 #include <map>
+#include <thread>
+#include <mutex>
 //#include <QMainWindow>
 #include <QAbstractItemModel>
 #include <QStandardItemModel>
@@ -172,6 +174,10 @@ protected:
 	BCUdpClient*	bc;
 	BCUdpServer*	bServer;
 	void sendBroadcast(double x, double y, double z);
+	
+	///   this will send a 'picker info' over UDP 
+	/// 	(to the local host and some port)
+	void sendPickerInfo(const CBPickerInfo& cpi);
 #endif
 	JustAplot*	cf;	
 	QWidget* parent;
@@ -196,6 +202,15 @@ private:
 	std::map<int, LineHandler> lines;
 	OnUdpCallback onUdpCallback = 0;
 	OnPickerCallback onPickerCallback = 0;
+
+	/// special picker filtering things
+	std::thread pFilterThread; ///< filtering thread handler
+	std::mutex  pFilterMutex;  ///< for access cbi and haveNewPickerInfo
+	CBPickerInfo cbi;	///< filtering info container
+	bool pleaseStopFilterThread = false;
+	bool haveNewPickerInfo = false; ///< new picker info to the filtering thread flag
+	void pFilterThreadF(); ///< filtering thread function
+
 
 private slots:
 	void onFigureClosed(const std::string& key);

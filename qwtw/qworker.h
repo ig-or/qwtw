@@ -96,7 +96,7 @@ public slots:
 
 private:
 	
-	XQPlots* pf;
+	XQPlots* pf = 0;
 	#ifdef USEMARBLE
 	std::string mdPath; ///< marble data path
 	std::string mpPath; ///< marble plugin path

@@ -228,3 +228,12 @@ int checkProcRunning() {
 	return 0; //  not running
 }
 
+CmdSync::CmdSync() :	cbInfoMutex(boost::interprocess::open_or_create,  "qwtw_cbInfoMutex"),
+						cbWait(boost::interprocess::open_or_create, "qwtw_cbWait")  {
+
+}
+CmdSync::~CmdSync() {
+	cbInfoMutex.remove("qwtw_cbInfoMutex");
+	cbWait.remove("qwtw_cbWait");
+}
+

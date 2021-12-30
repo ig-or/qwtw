@@ -26,6 +26,7 @@
 //#include <QApplication>
 #include <QDialog>
 #include <QTimer>
+#include <chrono>
 //#include <QWindow>
 //#include <QtPlatformHeaders/QWindowsWindowFunctions>
 
@@ -77,10 +78,17 @@ struct BroadcastMessage {
 	char tail[4];
 };
 
+///   UDP message about the picker info
+struct PickerMessage {
+	char head[4];
+	CBPickerInfo cpi;
+	char tail[4];
+};
+
 #pragma pack()
 class BCUdpClient {
 public:
-	BCUdpClient() : resolver(io_context), /*q(udp::v4(), "127.0.0.1", "49561"),*/ socket(io_context) {
+	BCUdpClient() : resolver(io_context), socket(io_context) {
 		ok = false;
 		int port = qwSettings.udp_client_port;
 		try {
@@ -92,7 +100,9 @@ public:
 
 		//receiver_endpoint = *resolver.resolve(q);
 		try {
+			//socket.set_option(udp::socket::broadcast)
 			socket.open(udp::v4());
+			socket.set_option(udp::socket::reuse_address(true));
 		}  catch (const std::exception& ex) {
 			xmprintf(0, "ERROR: BCUdpClient(): cannot open UDP port %d (%s)\n", port, ex.what());
 			return;
@@ -106,10 +116,9 @@ public:
 		if (!ok) {
 			return;
 		}
-		//boost::array<char, 256> send_buf;
-		//socket.send_to(boost::asio::buffer(buf), receiver_endpoint);
 		try {
-			socket.send_to(boost::asio::buffer(buf, size), destination);
+			size_t bs = socket.send_to(boost::asio::buffer(buf, size), destination);
+			//xmprintf(9, "bcSend %d bytes \n", bs);
 		} catch (const std::exception& ex) {
 			xmprintf(1, "bcSend: exception: %s\n", ex.what());
 		}
@@ -118,7 +127,6 @@ public:
 private: 
 	boost::asio::io_context io_context;
 	udp::resolver resolver;
-	//udp::resolver::query q;
 	boost::asio::ip::udp::endpoint destination;
 	udp::endpoint receiver_endpoint;
 	udp::socket socket;
@@ -290,8 +298,15 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 	connect(ui.tbShowSimple, SIGNAL(clicked(bool)), this, SLOT(onShowAllSimple(bool)));
 #ifdef ENABLE_UDP_SYNC
 	broadCastInfo = 0;
-	bc = 0;
+	//bc = 0;
+	///  start UDP client 
+	// since we'd send out picker info anyway
+	bc = new BCUdpClient();
 	bServer = 0;
+
+	//  start picker info filter thread
+	std::thread ttmp = std::thread(&XQPlots::pFilterThreadF, this);
+	pFilterThread.swap(ttmp);
 #endif
 	QTimer::singleShot(500, this, &XQPlots::onTest);
 }
@@ -597,25 +612,30 @@ void XQPlots::setPickerCallback(OnPickerCallback cb) {
 
 Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double z, double t) {
 	drawAllMarkers(t);
+		
+	CBPickerInfo cbi;
+	cbi.index = index;
+	cbi.label[0] = 0;
+	cbi.lineID = 0;
+	cbi.plotID = 0;
+	cbi.time = t;
+	cbi.type = 2;
+	cbi.x = x;
+	cbi.y = y;
+	cbi.xx = 0;
+	cbi.yy = 0;
+	cbi.z = z;
 
 	if (onPickerCallback != 0) {
-		CBPickerInfo cbi;
-		cbi.index = index;
-		//strncpy(cbi.label, legend.c_str(), cbi.lSize);
-		cbi.label[0] = 0;
-		cbi.lineID = 0;
-		cbi.plotID = 0;
-		cbi.time = t;
-		cbi.type = 2;
-		cbi.x = x;
-		cbi.y = y;
-		cbi.xx = 0;
-		cbi.yy = 0;
-		cbi.z = z;
-
 		//xmprintf(8, "XQPlots::drawAllMarkers2: onPickerCallback, time = %f \n", cbi.time);
+		
+		//  all this is called from inside QT GUI thread
 		onPickerCallback(cbi);
 	}
+
+#ifdef ENABLE_UDP_SYNC
+	sendPickerInfo(cbi);
+#endif
 
 
 	//if (onUdpCallback != 0) {
@@ -623,26 +643,64 @@ Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double 
 	//}
 }
 
+void XQPlots::pFilterThreadF() {
+	using namespace std::chrono_literals;
+	CBPickerInfo cbiLocal;
+
+	while (!pleaseStopFilterThread) {
+		pFilterMutex.lock();
+		if (haveNewPickerInfo) {
+			haveNewPickerInfo = false;
+			memcpy(&cbiLocal, &cbi, sizeof(cbi));
+			pFilterMutex.unlock();
+
+			//drawAllMarkers(cbiLocal.time);
+			QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(double, cbiLocal.time));
+
+			if (onPickerCallback != 0) {
+				onPickerCallback(cbiLocal);
+			}
+#ifdef ENABLE_UDP_SYNC
+			sendPickerInfo(cbi);
+
+			if (broadCastInfo != 0) {
+				mxat(broadCastInfo->size > 0);
+				long long i = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, cbiLocal.time);
+				broadCastInfo->ma.index = i;
+				if ((i >= 0) && (i < broadCastInfo->size)) {
+					sendBroadcast(broadCastInfo->x[i], broadCastInfo->y[i], broadCastInfo->z[i]);
+				}
+			}
+#endif
+		}	else {
+			pFilterMutex.unlock();
+		}
+
+		std::this_thread::sleep_for(100ms);
+	}
+
+}
+
 Q_INVOKABLE void XQPlots::drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend) {
 	//xmprintf(8, "drawAllMarkers2!\n ");
-	drawAllMarkers(t);
-	if (onPickerCallback != 0) {
-		CBPickerInfo cbi;
-		cbi.index = index;
-		strncpy(cbi.label, legend.c_str(), cbi.lSize);
-		cbi.lineID = lineID;
-		cbi.plotID = figureID;
-		cbi.time = t;
-		cbi.type = 1;
-		cbi.x = x;
-		cbi.y = y;
-		cbi.xx = fx;
-		cbi.yy = fy;
-		cbi.z = 0.0;
 
-		//xmprintf(8, "XQPlots::drawAllMarkers2: onPickerCallback, time = %f \n", cbi.time);
-		onPickerCallback(cbi);
-	}
+		CBPickerInfo cbi1;
+		cbi1.index = index;
+		strncpy(cbi1.label, legend.c_str(), cbi1.lSize);
+		cbi1.lineID = lineID;
+		cbi1.plotID = figureID;
+		cbi1.time = t;
+		cbi1.type = 1;
+		cbi1.x = x;
+		cbi1.y = y;
+		cbi1.xx = fx;
+		cbi1.yy = fy;
+		cbi1.z = 0.0;
+
+		pFilterMutex.lock();
+		haveNewPickerInfo = true;
+		memcpy(&cbi, &cbi1, sizeof(cbi));
+		pFilterMutex.unlock();
 }
 
 Q_INVOKABLE void XQPlots::drawAllMarkers(double t) {
@@ -654,17 +712,6 @@ Q_INVOKABLE void XQPlots::drawAllMarkers(double t) {
 	for (it = figures.begin(); it != figures.end(); it++) {
 		it->second->replot();
 	}
-
-#ifdef ENABLE_UDP_SYNC
-	if (broadCastInfo != 0) {
-		mxat(broadCastInfo->size > 0);
-		long long i = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, t);
-		broadCastInfo->ma.index = i; 
-		if ((i >= 0) && (i < broadCastInfo->size)) {
-			sendBroadcast(broadCastInfo->x[i], broadCastInfo->y[i], broadCastInfo->z[i]);
-		}
-	}
-#endif
 }
 #ifdef ENABLE_UDP_SYNC
 void XQPlots::sendBroadcast(double x, double y, double z) {
@@ -681,6 +728,17 @@ void XQPlots::sendBroadcast(double x, double y, double z) {
 	bc->bcSend((unsigned char*)(&m), sizeof(BroadcastMessage));
 
 
+}
+void XQPlots::sendPickerInfo(const CBPickerInfo& cpi) {
+	if (bc == 0) {
+		return;
+	}
+	PickerMessage m;
+	memset(m.head, 'P', 4);
+	memset(m.tail, 'T', 4);
+	memcpy(&m.cpi, &cpi, sizeof(cpi));
+
+	bc->bcSend((unsigned char*)(&m), sizeof(m));
 }
 #endif
 
@@ -917,6 +975,13 @@ void XQPlots::disableCoordBroacast() {
 #endif
 
 void XQPlots::onExit() {
+	//  stop picker info filter thread
+	//  takes about 0.1 seconds
+	pleaseStopFilterThread = true;
+	if (pFilterThread.joinable()) {
+		pFilterThread.join();
+	}
+
 	clearFigures();
 	
 #ifdef ENABLE_UDP_SYNC

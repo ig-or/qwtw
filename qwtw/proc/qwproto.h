@@ -66,6 +66,9 @@ private:
     std::shared_ptr<boost::thread> wThread;
     std::thread cbFilterThread;
 
+	///  callback function sync
+    std::shared_ptr<CmdSync> cmdSync;
+
     QWorker& worker;
     QApplication& app;
 

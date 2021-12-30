@@ -4,6 +4,8 @@
 
 #include <boost/interprocess/sync/interprocess_mutex.hpp>
 #include <boost/interprocess/sync/interprocess_condition.hpp>
+#include <boost/interprocess/sync/named_mutex.hpp>
+#include <boost/interprocess/sync/named_condition.hpp>
 #include "qwtypes.h"
 
 #pragma pack(8)
@@ -65,9 +67,17 @@ struct CmdHeader {
 
 
 	CBPickerInfo   cbInfo;
-	boost::interprocess::interprocess_mutex      cbInfoMutex;
-	boost::interprocess::interprocess_condition  cbWait;  ///   callback wait
+	//boost::interprocess::interprocess_mutex      cbInfoMutex;
+	//boost::interprocess::interprocess_condition  cbWait;  ///   callback wait
 	CmdHeader() {}
+};
+
+///    this is for callback function sync
+struct CmdSync {
+	boost::interprocess::named_mutex		cbInfoMutex;
+	boost::interprocess::named_condition	cbWait;
+	CmdSync();
+	~CmdSync();
 };
 
 

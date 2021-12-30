@@ -8,11 +8,13 @@
 #include <boost/interprocess/mapped_region.hpp>
 #include <thread>
 #include <mutex>
+//#include <sha
 #include <condition_variable>
 
 struct SHMTest {
 
 	SHMTest();
+	~SHMTest();
 
 	/**  init and start everything.
 	 * \param mdp marble data path
@@ -88,6 +90,9 @@ private:
 	std::mutex cbiMutex_2;
 	std::mutex cbiMutex_3;
 	std::condition_variable cbiReady;
+
+	std::shared_ptr<CmdSync> cmdSync;
+
 	/**\param params proc parameters
 	 * \return 0 if all is OK
 	 * 
