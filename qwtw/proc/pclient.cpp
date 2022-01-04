@@ -202,7 +202,9 @@ int SHMTest::testInit(int level) {
 			xmprintf(3, "\tSHMTest::testInit() connected to SHM; attemptCount = %d\n", attemptCount);
 			break;
 		} catch(interprocess_exception &ex) { // proc not started?  something is not OK
-			exPlanation.assign(ex.what());
+			//exPlanation.assign(ex.what());
+			exPlanation.assign(" proc not started?  something is not OK");
+
 			xmprintf(3, "\tSHMTest::testInit() proc not started? (attemptCount = %d)  something is not OK; (%s)\n", 
 				attemptCount, exPlanation.c_str());
 			std::this_thread::sleep_for(275ms);
@@ -239,7 +241,8 @@ int SHMTest::testInit(int level) {
 		try {
 			scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		} catch (interprocess_exception &ex) { 
-			xmprintf(0, "ERROR SHMTest::testInit() (124): (%s) \n", ex.what());
+			//xmprintf(0, "ERROR SHMTest::testInit() (124): (%s) \n", ex.what());
+			xmprintf(0, "ERROR SHMTest::testInit() (124)\n");
 			return 8;
 		}
 		long long segSize = pd.hdr->segSize;

@@ -60,7 +60,8 @@ bool QProcInterface::runningAlready() {
 		shared_memory_object shmCommandTest(open_only, ProcData::shmNames[0], read_write);
 		ret = true;
 	} catch(interprocess_exception &ex) { 
-		xmprintf(2, "QProcInterface::runningAlready(): cannot create shared_memory_object (%s)\n", ex.what());
+		//xmprintf(2, "QProcInterface::runningAlready(): cannot create shared_memory_object (%s)\n", ex.what());
+		xmprintf(2, "QProcInterface::runningAlready(): cannot create shared_memory_object\n");
 	}
 	return ret;
 }
@@ -85,7 +86,8 @@ void QProcInterface::start() {
 		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
 		shmDataData =  new shared_memory_object(create_only, ProcData::shmNames[5], read_write);
 	} catch (interprocess_exception &ex){
-		xmprintf(0, "QProcInterface::start()  cannot create shared memory: %s \n", ex.what());
+		//xmprintf(0, "QProcInterface::start()  cannot create shared memory: %s \n", ex.what());
+		xmprintf(0, "QProcInterface::start()  cannot create shared memory:\n");
 		return;
 	}
 	shmCommand->truncate(sizeof(CmdHeader));
