@@ -12,11 +12,11 @@
 #include <cstdlib>
 
 SHMTest::SHMTest(): status(5) {
-	cmdSync = std::make_shared<CmdSync>();
+	
 }
 
 SHMTest::~SHMTest() {
-	cmdSync.reset();
+
 }
 #ifdef USEMARBLE
 int SHMTest::qwtmap(int n) {
@@ -214,6 +214,9 @@ int SHMTest::testInit(int level) {
 			status = 2;
 			return 2;
 	}
+	if (cmdSync == nullptr) {
+		cmdSync = std::make_unique<CmdSync>();
+	}
 	std::this_thread::sleep_for(27ms);
 
 	xmprintf(4, "creating shared_memory_object's.... \n");
@@ -321,6 +324,10 @@ void SHMTest::stopQt() {
 	if (cbThread_2.joinable()) {
 		cbiReady.notify_all();
 		cbThread_2.join();
+	}
+	if (cmdSync != nullptr) {
+		cmdSync.reset();
+		cmdSync = nullptr;
 	}
 
 	xmprintf(3, "\tSHMTest::stopQt();  done\n");

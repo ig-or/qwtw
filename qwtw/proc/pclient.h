@@ -92,7 +92,7 @@ private:
 	std::mutex cbiMutex_3;
 	std::condition_variable cbiReady;
 
-	std::shared_ptr<CmdSync> cmdSync;
+	std::unique_ptr<CmdSync> cmdSync = nullptr;
 
 	/**\param params proc parameters
 	 * \return 0 if all is OK
