@@ -355,6 +355,7 @@ Q_INVOKABLE void QWorker::qwtSetPickerCallbackImpl(OnPickerCallback cb) {
 
 Q_INVOKABLE int QWorker::qtstartImpl() {
 	int test = qwSettings.qwLoad();
+	int test1 = qwSettings.qwSave();
 	xmprintf(7, "starting QWorker::qtstartImpl()\n");
 	if (pf == nullptr) {
 		xmprintf(3, "PATH inside qtstartImpl: %s\n\n", std::getenv("PATH"));

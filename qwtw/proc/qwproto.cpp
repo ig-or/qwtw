@@ -209,17 +209,19 @@ void QProcInterface::cbFilterThreadF() {
 			using namespace boost::interprocess;
 //			scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex); //   we can wait here a very long time..
 			auto now = system_clock::now();
-			bool test = cmdSync->cbInfoMutex.timed_lock(now+milliseconds(800));
+			boost::posix_time::ptime bNow = boost::get_system_time();
+			bool test = cmdSync->cbInfoMutex.timed_lock(bNow+boost::posix_time::milliseconds(800));
 			if (test)  { // good!
 			
 			} else { //  something is wrong
 				auto now2 = system_clock::now();
+				bNow = boost::get_system_time();
 				int ms = duration_cast<milliseconds>(now2 - now).count();
 				xmprintf(5, "cmdSync->cbInfoMutex.timed_lock failed in %d ms \n", ms);
 
 				cmdSync.reset();
 				cmdSync = std::make_shared<CmdSync>();
-				test = cmdSync->cbInfoMutex.timed_lock(now2 + milliseconds(800));
+				test = cmdSync->cbInfoMutex.timed_lock(bNow+boost::posix_time::milliseconds(800));
 				if (test) {
 
 				}	else { //  failed again?

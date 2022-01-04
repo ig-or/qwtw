@@ -77,7 +77,7 @@ int QWSettings::qwLoad() {
 		pickerDigitsNumber = root.get<int>("pickerDigitsNumber", 6);
 	}	catch (const std::exception& ex){
 		pickerDigitsNumber = 6;
-		xmprintf(9, "QWSettings::qwLoad() cannot load  pickerDigitsNumber from the configuration file  \n");
+		xmprintf(9, "QWSettings::qwLoad() cannot load  pickerDigitsNumber from the configuration file  \n");	
 	}
 
 	try {
