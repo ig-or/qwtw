@@ -202,7 +202,7 @@ public:
 			io_context.run();
 		} catch (std::exception& e) {
 			std::cerr << e.what() << std::endl;
-			xm_printf(" BCUdpServer exception: %s  \n", e.what());
+			xm_printf("TRACE: RDFramerDebugGuiUpdateCallback  exception: %s  \n", e.what());
 		}
 		return;
 	}
