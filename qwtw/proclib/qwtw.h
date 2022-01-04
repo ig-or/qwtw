@@ -106,6 +106,8 @@ qwtwc_API 	void qwtfigure3d(int n);
  * */
 qwtwc_API 	int qwtmgl(int n);
 
+qwtwc_API 	int qwtservice(int x);
+
 /**  Add 3D line.
  * \param style if 0, then use something default
  * */

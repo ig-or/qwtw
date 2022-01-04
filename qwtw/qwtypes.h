@@ -53,6 +53,11 @@ struct CBPickerInfo {
 
 #pragma pack()
 
+enum ServiceCode {
+	qsCallbackStarted = 1,
+	qsCallbackFinished = 2
+};
+
 
 typedef  void (*OnUdpCallback)(int, double, double, double, double);
 

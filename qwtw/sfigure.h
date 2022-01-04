@@ -79,6 +79,7 @@ public:
 	void title(const std::string& s);
 	void footer(const std::string& s);
 	void xlabel(const std::string& s);
+	int service(int x);
 	void ylabel(const std::string& s);
 	void setClipGroup(int cg);
 	/** change marker mode for new plots
@@ -173,6 +174,7 @@ protected:
 	LineItemInfo* broadCastInfo;
 	BCUdpClient*	bc;
 	BCUdpServer*	bServer;
+	bool callbackWorking = false;
 	void sendBroadcast(double x, double y, double z);
 	
 	///   this will send a 'picker info' over UDP 

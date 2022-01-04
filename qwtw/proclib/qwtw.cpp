@@ -150,6 +150,10 @@ qwtwc_API 	int qwtmgl(int n){
 	return test.qwtmgl(n);
 }
 
+qwtwc_API 	int qwtservice(int x) {
+	return test.qwtservice(x);
+}
+
 qwtwc_API 	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {
 	test.qwtmgl_line(size, x, y, z, name, style);
 }

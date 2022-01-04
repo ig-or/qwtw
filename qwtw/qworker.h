@@ -29,6 +29,7 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtxlabelImpl(const char* s);
 	Q_INVOKABLE void qwtylabelImpl(const char* s);
 	Q_INVOKABLE int qwtfigureImpl(int n, unsigned int flags);
+	Q_INVOKABLE int qwtserviceImpl(int x);
 	Q_INVOKABLE void qwtSetClipGroupImpl(int gr);
 	Q_INVOKABLE int qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 	Q_INVOKABLE void qwtclearImpl();
@@ -73,6 +74,7 @@ public:
 	void qwtSetUdpCallback(OnUdpCallback cb);
 	void qwtSetPickerCallback(OnPickerCallback cb);
 	int qwtfigure(int n, unsigned int flags);
+	int qwtservice(int x);
 	void qwtSetClipGroup(int gr);
 	void qwtRemoveLine(int key);
 	int qwtChangeLine(int id, double* x, double* y, double* z, double* time, int size);

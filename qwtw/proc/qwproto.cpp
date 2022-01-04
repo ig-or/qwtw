@@ -331,6 +331,11 @@ void QProcInterface::processCommand(int cmd) {
 			}
 			break;
 
+		case CmdHeader::qService: {
+			int ret = worker.qwtservice(pd.hdr->test);
+			pd.hdr->test = ret;
+		}
+
 		case CmdHeader::qSetClipGroup:
 			worker.qwtSetClipGroup(pd.hdr->test);
 			break;

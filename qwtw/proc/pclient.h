@@ -37,6 +37,7 @@ struct SHMTest {
 	#ifdef USEMARBLE
 	int qwtmap(int n);
 	#endif
+	int qwtservice(int x);
 	#ifdef USEMATHGL
 	int qwtmgl(int n);
 	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style);

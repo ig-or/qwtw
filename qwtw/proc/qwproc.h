@@ -37,6 +37,7 @@ struct CmdHeader {
 		qSetClipGroup, // 20
 		qSetUdpCallback,  //  21
 		qSetPickerCallback,  // 22 
+		qService,			// 23
 
 		qwcmdSize
 	};

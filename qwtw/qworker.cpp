@@ -247,6 +247,15 @@ int QWorker::qwtfigure(int n, unsigned int flags) {
 	return rv;
 }
 
+int QWorker::qwtservice(int x) {
+	int rv = 0;
+	if (!QMetaObject::invokeMethod(this, "qwtserviceImpl", Qt::BlockingQueuedConnection, 
+			Q_RETURN_ARG(int, rv), Q_ARG(int, x))) {
+		std::cout << " cannot invoke qwtserviceImpl" << std::endl;
+	}
+	return rv;
+}
+
 void QWorker::qwtSetClipGroup(int gr) {
 	if (!QMetaObject::invokeMethod(this, "qwtSetClipGroupImpl", Qt::QueuedConnection, Q_ARG(int, gr))) {
 		std::cout << " cannot invoke qwtSetClipGroupImpl" << std::endl;
@@ -319,6 +328,11 @@ Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 Q_INVOKABLE int QWorker::qwtfigureImpl(int n, unsigned int flags) {
 	JustAplot*  test = pf->figure(n, jQWT, flags);
 	return (test == 0) ? 0 : test->iKey;
+}
+
+Q_INVOKABLE int QWorker::qwtserviceImpl(int x) {
+	int test = pf->service(x);
+	return test;
 }
 
 Q_INVOKABLE void QWorker::qwtSetClipGroupImpl(int gr) {

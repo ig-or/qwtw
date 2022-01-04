@@ -445,11 +445,13 @@ void XQPlots::onTvItemClicked(QModelIndex mi) {
 		return;
 	}
 		
-	cf = it->second;
-	cf->activateWindow();
-	cf->raise();
-	//cf->showMaximized();
-	cf->showNormal();
+	if (!callbackWorking) {
+		cf = it->second;
+		cf->activateWindow();
+		cf->raise();
+		//cf->showMaximized();
+		cf->showNormal();
+	}
 
 	/*
 	JustAplot* p = getPlotByName(i->text().toUtf8().toStdString());
@@ -805,6 +807,18 @@ void XQPlots::xlabel(const std::string& s) {
 	cf->xlabel(s);
 }
 
+int XQPlots::service(int x) {
+	switch (x) {
+		case qsCallbackStarted: 
+			callbackWorking = true;
+		break;
+		case qsCallbackFinished:
+			callbackWorking = false;
+		break;
+	};
+	return 0;
+}
+
 void XQPlots::ylabel(const std::string& s) {
 	if (cf == 0) {
 		return;
@@ -1018,6 +1032,10 @@ void XQPlots::clearFigures() {
 }
 
 void XQPlots::onSelection(const std::string& key) {
+	if (callbackWorking) {
+		return;
+	}
+	
 	std::map<std::string,  JustAplot*>::iterator it = figures.find(key);
 	if (it != figures.end()) {
 		cf = it->second;

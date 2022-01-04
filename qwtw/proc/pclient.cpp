@@ -25,7 +25,11 @@ int SHMTest::qwtmap(int n) {
 	return test;
 }
 #endif
-
+int SHMTest::qwtservice(int x) {
+	if (status != 0) return 0;
+	int test = sendCommand(CmdHeader::qService, x);
+	return test;
+}
 
 int SHMTest::qwtfigure(int n, unsigned int flags) {
 	if (status != 0) return 0;
