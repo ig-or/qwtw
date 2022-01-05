@@ -577,10 +577,13 @@ void XQPlots::on3DMarker(double p[3]) {
 			}
 			double time = broadCastInfo->time[index];
 			//QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(double, time));
-			QMetaObject::invokeMethod(this, "drawAllMarkers1", Qt::QueuedConnection, 
+			bool test  =  QMetaObject::invokeMethod(this, "drawAllMarkers1", Qt::QueuedConnection, 
 				Q_ARG(int, index),
 				Q_ARG(double, broadCastInfo->x[index]), Q_ARG(double, broadCastInfo->y[index]), Q_ARG(double, broadCastInfo->z[index]),
 				Q_ARG(double, time));
+			if (!test) {
+				xmprintf(2, "XQPlots::on3DMarker() drawAllMarkers1 failed \n");
+			}
 		}
 	}
 }
@@ -636,13 +639,11 @@ Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double 
 	}
 
 #ifdef ENABLE_UDP_SYNC
-	sendPickerInfo(cbi);
+	sendPickerInfo(cbi);		//  send UDP info
+	if (broadCastInfo != 0) {  //  send one more UDP?
+		sendBroadcast(x, y, z);
+	}
 #endif
-
-
-	//if (onUdpCallback != 0) {
-	//	onUdpCallback(index, x, y, z, t);
-	//}
 }
 
 void XQPlots::pFilterThreadF() {
@@ -659,13 +660,13 @@ void XQPlots::pFilterThreadF() {
 			//drawAllMarkers(cbiLocal.time);
 			QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(double, cbiLocal.time));
 
-			if (onPickerCallback != 0) {
+			if (onPickerCallback != 0) {  //  call the callback function?
 				onPickerCallback(cbiLocal);
 			}
 #ifdef ENABLE_UDP_SYNC
-			sendPickerInfo(cbi);
+			sendPickerInfo(cbi);  // send out UDP about the callback
 
-			if (broadCastInfo != 0) {
+			if (broadCastInfo != 0) {  //  send one more UDP?
 				mxat(broadCastInfo->size > 0);
 				long long i = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, cbiLocal.time);
 				broadCastInfo->ma.index = i;
