@@ -64,6 +64,10 @@ qwtwc_API void setcallback(OnPCallback pCallback) {
 	test.setCB(pCallback);
 }
 
+qwtwc_API   void setclipcallback(OnClipCallback pCallback) {
+	test.setClipCallback(pCallback);
+}
+
 qwtwc_API   void setcallback_t1(CBTest_1 pCallback) {
 	test.setCBTest1(pCallback);
 }

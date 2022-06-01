@@ -65,6 +65,13 @@ struct SHMTest {
 
 	void qwtshowmw(); 
 	void setCB(OnPCallback cb);
+	
+	/**
+		setup a function which will be csalled when we do a 'clip'.
+		not working because of many reasons.
+	*/
+	void setClipCallback(OnClipCallback cb);
+
 	void setCBTest1(CBTest_1 cb);
 	void setCBTest2(CBTest_2 cb);
 
@@ -82,6 +89,8 @@ private:
 	/// </summary>
 	void cbThreadF();
 	OnPCallback pCallback = 0;
+	OnClipCallback pClipCallback = 0;
+
 	CBTest_1    cbTest1 = 0;
 	CBTest_2	cbTest2 = 0;
 

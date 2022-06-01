@@ -180,6 +180,9 @@ protected:
 	///   this will send a 'picker info' over UDP 
 	/// 	(to the local host and some port)
 	void sendPickerInfo(const CBPickerInfo& cpi);
+	///   this will send a 'clip info' over UDP 
+	/// 	(to the local host and some port)
+	void sendClipInfo(double t1, double t2, int clipGroup);
 #endif
 	JustAplot*	cf;	
 	QWidget* parent;

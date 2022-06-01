@@ -77,7 +77,7 @@ int QWSettings::qwLoad() {
 		pickerDigitsNumber = root.get<int>("pickerDigitsNumber", 6);
 	}	catch (const std::exception& ex){
 		pickerDigitsNumber = 6;
-		xmprintf(9, "QWSettings::qwLoad() cannot load  pickerDigitsNumber from the configuration file  \n");	
+		xmprintf(9, "QWSettings::qwLoad() cannot load  pickerDigitsNumber from the configuration file (%s)  \n", ex.what());	
 	}
 
 	try {
@@ -87,7 +87,7 @@ int QWSettings::qwLoad() {
 	catch (const std::exception& ex) {
 		udp_server_port = 49562;
 		udp_client_port = 49561;
-		xmprintf(9, "QWSettings::qwLoad() cannot load  udp_server_port or udp_client_port from the configuration file  \n");
+		xmprintf(9, "QWSettings::qwLoad() cannot load  udp_server_port or udp_client_port from the configuration file (%s)  \n", ex.what());
 	}
 
 	xmprintf(9, "QWSettings::qwLoad() file loaded    \n");

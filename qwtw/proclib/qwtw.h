@@ -21,6 +21,8 @@ QWT-based 2D plotting library.
 #endif
 // int figureID, int lineID, int index, int fx, int fy, double x, double y, double z, double t, const std::string& legend
 typedef  void (*OnPCallback)(int, int, int, int, int, double, double, double, double, const char*);
+// t1, t2, clipGroup
+typedef  void (*OnClipCallback)( double, double, int);
 
 typedef  void (*CBTest_1)();
 typedef  void (*CBTest_2)(int);
@@ -40,10 +42,6 @@ qwtwc_API 	int get42(int n);
 #ifdef USEMARBLE
 qwtwc_API	int qtstart(const char* mdp, const char* mpp);
 
-qwtwc_API   void setcallback(OnPCallback pCallback);
-qwtwc_API   void setcallback_t1(CBTest_1 pCallback);
-qwtwc_API   void setcallback_t2(CBTest_2 pCallback);
-
 /** starting  QT proc, if not started yet.
  * 	return 0 if all is OK, 
  *  not 0 means nothing is working.
@@ -57,6 +55,14 @@ qwtwc_API	int qtstart_debug(const char* mdp, const char* mpp, int level);
 qwtwc_API	int qtstart();
 qwtwc_API	int qtstart_debug(int level);
 #endif
+
+///  probably this is not working
+qwtwc_API   void setcallback(OnPCallback pCallback);
+///  probably this is not working
+qwtwc_API   void setclipcallback(OnClipCallback pCallback);
+qwtwc_API   void setcallback_t1(CBTest_1 pCallback);
+qwtwc_API   void setcallback_t2(CBTest_2 pCallback);
+
 
 /**  print version info string (with 'snprintf')
 	@param[out] vstr string with version info

@@ -137,7 +137,7 @@ int checkProcRunning() {
 #endif
 			if (test) { // ....
 				if (status == STILL_ACTIVE) {
-					xmprintf(3, "\something is running. GetExitCodeProcess for %d returned 'STILL_ACTIVE'\n", pid);
+					xmprintf(3, "\tsomething is running. GetExitCodeProcess for %d returned 'STILL_ACTIVE'\n", pid);
 
 					//  lets check what we have here:
 					char fName[512];

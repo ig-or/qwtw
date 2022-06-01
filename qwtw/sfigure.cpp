@@ -85,6 +85,22 @@ struct PickerMessage {
 	char tail[4];
 };
 
+/**
+ UDP message about 'clip'
+*/
+struct ClipUdpMessage {
+	char head[4]; ///< "CCCC" ?
+	double t1;   ///< time 1
+	double t2;  ///< time 2
+	int clipGroup = 0;    ///< clip group
+	int havePos = 0;   ///< 1 if pos1 and pos2 are valid
+	///  if we have some 3D line corresponding to all this,
+	///  then this will be the point closest to 't1'
+	double pos1[3];    
+	double pos2[3];
+	char tail[4];
+};
+
 #pragma pack()
 class BCUdpClient {
 public:
@@ -743,6 +759,38 @@ void XQPlots::sendPickerInfo(const CBPickerInfo& cpi) {
 
 	bc->bcSend((unsigned char*)(&m), sizeof(m));
 }
+void XQPlots::sendClipInfo(double t1, double t2, int clipGroup) {
+	if (bc == 0) {
+		return;
+	}
+	ClipUdpMessage m;
+	memset(m.head, 'C', 4);
+	memset(m.tail, 'L', 4);
+	m.t1 = t1;
+	m.t2 = t2;
+	m.clipGroup = clipGroup;
+	for (int i = 0; i < 3; i++) {
+		m.pos1[i] = 0;
+		m.pos2[i] = 0;
+	}
+	m.havePos = 0;
+	if ((broadCastInfo != 0) && (broadCastInfo->size > 0)) {  
+		long long i1 = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, t1);
+		long long i2 = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, t2);
+		if ((i1 >= 0) && (i1 < broadCastInfo->size) && (i2 >= 0) && (i2 < broadCastInfo->size)) {
+			m.pos1[0] = broadCastInfo->x[i1];
+			m.pos1[1] = broadCastInfo->y[i1];
+			m.pos1[2] = broadCastInfo->z[i1];
+
+			m.pos2[0] = broadCastInfo->x[i2];
+			m.pos2[1] = broadCastInfo->y[i2];
+			m.pos2[2] = broadCastInfo->z[i2];
+			m.havePos = 1;
+		}
+	}
+
+	bc->bcSend((unsigned char*)(&m), sizeof(m));
+}
 #endif
 
 void XQPlots::clipAll(double t1, double t2, int clipGroup) {
@@ -753,6 +801,9 @@ void XQPlots::clipAll(double t1, double t2, int clipGroup) {
 			jsp->onClip(t1, t2);
 		}
 	}
+#ifdef ENABLE_UDP_SYNC
+	sendClipInfo(t1, t2, clipGroup);
+#endif
 }
 
 JustAplot* XQPlots::figure(int n, JPType type, unsigned int flags) {
@@ -967,8 +1018,8 @@ void XQPlots::enableCoordBroadcast(double* x, double* y, double* z, double* time
 		try {
 			bServer = new BCUdpServer(qwSettings.udp_server_port);
 		}	catch (const std::exception& ex) {
-			xmprintf(0, "ERROR: XQPlots::enableCoordBroadcast: cannot create UDP server on address %d; check if this port in available\n",
-				qwSettings.udp_server_port);
+			xmprintf(0, "ERROR: XQPlots::enableCoordBroadcast: cannot create UDP server on address %d; check if this port in available (%s)\n",
+				qwSettings.udp_server_port, ex.what());
 			return;
 		}
 		xmprintf(2, "BCUdpServer probably started with port number %d \n", qwSettings.udp_server_port);

@@ -240,11 +240,15 @@ int SHMTest::testInit(int level) {
 	{
 		xmprintf(4, "trying to adjust the memory according to header info ... \n");
 		try {
-			scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+			xmprintf(5, "\t entering lock on  pd.hdr->mutex..\n");
+			pd.hdr->mutex.lock();
+			//scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		} catch (interprocess_exception &ex) { 
+			pd.hdr->mutex.unlock();
 			xmprintf(0, "ERROR SHMTest::testInit() (124): (%s) \n", ex.what());
 			return 8;
 		}
+		xmprintf(5, "\t locked!\n");
 		long long segSize = pd.hdr->segSize;
 		long long dataSize = pd.hdr->dataSize;
 		shmX.truncate(segSize * sizeof(double));
@@ -252,6 +256,7 @@ int SHMTest::testInit(int level) {
 		shmZ.truncate(segSize * sizeof(double));
 		shmT.truncate(segSize * sizeof(double));
 		shmData.truncate(dataSize * sizeof(double));
+		pd.hdr->mutex.unlock();
 		xmprintf(4, "memory adjusted \n");
 	}
 
@@ -463,6 +468,9 @@ void SHMTest::cbThreadF_2() {
 
 void SHMTest::setCB(OnPCallback cb) {
 	pCallback = cb;
+}
+void SHMTest::setClipCallback(OnClipCallback cb) {
+	pClipCallback = cb;
 }
 void SHMTest::setCBTest1(CBTest_1 cb) {
 	cbTest1 = cb;
