@@ -50,6 +50,9 @@ public:
 	virtual void replot() {}
 	virtual void addVMarker(double t, const char* label = 0, int id_ = 0) {}
 	virtual void removeVMarker(int id_) {}
+	bool looksLikeTopView() {
+		return maybeTopView; 
+	}
 
 signals:
 	void exiting(const std::string&);
@@ -57,6 +60,7 @@ signals:
 	void onPicker(const std::string& key_, double X, double Y);
 
 protected:
+	bool maybeTopView = false;
 	std::list<LineItemInfo*> linesInfo;
 	XQPlots* pf;
 	LineItemInfo* cInfo; ///< current line info

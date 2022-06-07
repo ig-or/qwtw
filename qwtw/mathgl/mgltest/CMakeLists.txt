@@ -9,7 +9,7 @@ set (NO_VERSION_INFO 1)
 #set (NO_VERSION_INFO 1)
 set(PROJECT_NAME mgltest)
 #set (NEED_BOOST  thread system filesystem date_time chrono)
-set (NEED_BOOST system filesystem date_time  program_options)
+set (NEED_BOOST system filesystem date_time  program_options thread)
 
 commonStart()
 addQT(USE_CMD YES)

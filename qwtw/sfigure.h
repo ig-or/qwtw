@@ -149,7 +149,7 @@ public:
 	Q_INVOKABLE void drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend);
 
 	Q_INVOKABLE void drawAllMarkers(double t);
-	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0);
+	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0, JustAplot* p = nullptr);
 	Q_INVOKABLE void removeVMarkerEverywhere(int id_);
 
 	void clipAll(double t1, double t2, int clipGroup);

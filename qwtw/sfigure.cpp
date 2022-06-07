@@ -604,23 +604,25 @@ void XQPlots::on3DMarker(double p[3]) {
 	}
 }
 
-Q_INVOKABLE void XQPlots::addVMarkerEverywhere(double t, const char* label, int id_) {
+Q_INVOKABLE void XQPlots::addVMarkerEverywhere(double t, const char* label, int id_, JustAplot* p) {
     std::map<std::string, JustAplot*>::iterator it;
     for(it = figures.begin(); it != figures.end(); it++) {
-	   it->second->addVMarker(t, label, id_);
-    }
-	for (it = figures.begin(); it != figures.end(); it++) {
+		if (p && (p->clipGroup != it->second->clipGroup)) {
+			continue;
+		}
+		if (it->second->looksLikeTopView()) {
+			continue;
+		}
+		it->second->addVMarker(t, label, id_);
 		it->second->replot();
-	}
+    }
 }
 Q_INVOKABLE void XQPlots::removeVMarkerEverywhere(int id_) {
     std::map<std::string, JustAplot*>::iterator it;
     for(it = figures.begin(); it != figures.end(); it++) {
 	   it->second->removeVMarker(id_);
+	   it->second->replot();
     }
-	for (it = figures.begin(); it != figures.end(); it++) {
-		it->second->replot();
-	}
 }
 
 void XQPlots::setUdpCallback(OnUdpCallback  cb) {

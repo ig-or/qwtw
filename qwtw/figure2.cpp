@@ -953,6 +953,10 @@ void Figure2::addLine(LineItemInfo* line) {
 	plot1->setAutoReplot(doReplot);
 	plot1->replot();
 	zoomer->setZoomBase(false);
+
+	if (line->mode == 3) {
+		maybeTopView = true;
+	}
 }
 
 void Figure2::removeLine(LineItemInfo* line) {
@@ -1445,15 +1449,13 @@ void Figure2::addGlobalVMarker() {
 	switch(test) {
 	case 1:  
 		markerID++;
-		//addVMarker(lastXselected, label.c_str(), markerID);
-		pf->addVMarkerEverywhere(lastXselected, label.c_str(), markerID);
+		pf->addVMarkerEverywhere(lastXselected, label.c_str(), markerID, this);
 		break;
 	case 2:
-		//removeVMarker(mid);
 		pf->removeVMarkerEverywhere(mid);
 		break;
 	};
-	xmprintf(3, "Figure2::addVMarker(): OK \n");
+	xmprintf(3, "Figure2::addGlobalVMarker(): OK \n");
 }
 
 void Figure2::addVMarker() {
