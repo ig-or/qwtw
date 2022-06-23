@@ -22,22 +22,22 @@ struct CmdHeader {
 		qMap, 
 		qPlot,
 		qPlot2, 
-		qChangeLine,
+		qChangeLine,   // 10
 		qTitle, 
-		qXlabel, // 10
+		qXlabel, 
 		qYlabel,
 		qClear,
 		qImpStatus,
 		qEnableBC,
 		qDisableBC,
 		qSetLogLevel,
-		qMglPlot, // 17
-		qMglLine, // 18
-		qMglMesh, // 19
-		qSetClipGroup, // 20
-		qSetUdpCallback,  //  21
-		qSetPickerCallback,  // 22 
-		qService,			// 23
+		qMglPlot, // 
+		qMglLine, // 20
+		qMglMesh, // 
+		qSetClipGroup, // 
+		qSetUdpCallback,  //  
+		qSetPickerCallback,  // 
+		qService,			// 25
 
 		qwcmdSize
 	};

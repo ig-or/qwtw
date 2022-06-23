@@ -109,6 +109,7 @@ public:
 		int port = qwSettings.udp_client_port;
 		try {
 			destination = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port);
+			xmprintf(0, "INFO: BCUdpClient(): using port %d as destination \n");
 		}	catch (const std::exception& ex) {
 			xmprintf(0, "ERROR: BCUdpClient(): cannot create UDP endpoint on port %d (%s)\n", port, ex.what());
 			return;
@@ -134,6 +135,10 @@ public:
 		}
 		try {
 			size_t bs = socket.send_to(boost::asio::buffer(buf, size), destination);
+			int itmp = 0;
+			if (bs != size) {
+				xmprintf(9, "bcSend bs = %d bytes; size = %d \n", bs, size);
+			}
 			//xmprintf(9, "bcSend %d bytes \n", bs);
 		} catch (const std::exception& ex) {
 			xmprintf(1, "bcSend: exception: %s\n", ex.what());
@@ -177,6 +182,7 @@ public:
 	void bStart(std::function<void(double[3])> aPoint) {
 		onPointF = aPoint;
 		pleaseStop = false;
+		xmprintf(0, "INFO: BCUdpServer::bStart(): using port %d \n", portNumber);
 		//std::thread tr([&] { tcpThread(); });
 		boost::thread tr([&] { tcpThread(); });
 		st.swap(tr);
@@ -207,8 +213,9 @@ public:
 		} catch (const std::exception& ex) {
 			xmprintf(2, "exception: %s\n", ex.what());
 		}
-
+		xmprintf(2, "~BCUdpServer(): stopping UDP server .... ");
 		st.join();
+		xmprintf(2, " stopped! \n");
 		int itmp = 0;
 	}
 	void tcpThread() {
