@@ -148,14 +148,14 @@ qwtwc_API 	int qwtmap(int n) {
 qwtwc_API 	void qwtfigure3d(int n);
 #endif
 
+qwtwc_API 	int qwtservice(int x) {
+	return test.qwtservice(x);
+}
+
 #ifdef USEMATHGL
 
 qwtwc_API 	int qwtmgl(int n){
 	return test.qwtmgl(n);
-}
-
-qwtwc_API 	int qwtservice(int x) {
-	return test.qwtservice(x);
 }
 
 qwtwc_API 	void qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {

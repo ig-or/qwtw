@@ -29,6 +29,7 @@ struct SHMTest {
 	void qwtClipGroup(int gr);
 
 	void stopQt();
+	void onClose();
 
 	void qwttitle(const char* s);
 	void qwtxlabel(const char* s);
@@ -83,7 +84,7 @@ private:
 	void resizeData(long long size);
 
 	bool needStopCallbackThread = false;
-	std::thread cbThread;
+	std::thread cbThread;  //  callback thread
 	/// <summary>
 	/// callback thread. callbacks will be called from here.
 	/// </summary>

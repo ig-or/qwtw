@@ -181,6 +181,7 @@ void test(int n) {
 	//  some of the function prototypes are below:
 	typedef void(*pQSimple)();
 	typedef void(*pQSimple1)(int);
+	typedef void(*pQSimple3)(int, unsigned int);
 	typedef void(*pQSimple2)(const char*);
 	typedef int(*pVersion)(char*, int);
 #ifdef USEMARBLE
@@ -213,7 +214,7 @@ void test(int n) {
 	pMglLine qmglLine = (pMglLine)GetProcAddress(hQWTW_DLL, "qwtmgl_line");
 	pMglMesh qmglMesh = (pMglMesh)GetProcAddress(hQWTW_DLL, "qwtmgl_mesh");
 #endif
-	pQSimple1 qFigure = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtfigure");
+	pQSimple3 qFigure = (pQSimple3)GetProcAddress(hQWTW_DLL, "qwtfigure");
 	pQSimple2 qTitle = (pQSimple2)GetProcAddress(hQWTW_DLL, "qwttitle");
 	pPlot2 qPlot2 = (pPlot2)GetProcAddress(hQWTW_DLL, "qwtplot2");
 	pPlot qPlot = (pPlot)GetProcAddress(hQWTW_DLL, "qwtplot");
@@ -237,7 +238,7 @@ void test(int n) {
 	pMglMesh qmglMesh = (pMglMesh)dlsym(lib_handle, "qwtmgl_mesh");
 #endif
 
-	pQSimple1 qFigure = (pQSimple1)dlsym(lib_handle, "qwtfigure");
+	pQSimple3 qFigure = (pQSimple3)dlsym(lib_handle, "qwtfigure");
 	pQSimple2 qTitle = (pQSimple2)dlsym(lib_handle, "qwttitle");
 	pPlot2 qPlot2 = (pPlot2)dlsym(lib_handle, "qwtplot2");
 	pPlot qPlot = (pPlot)dlsym(lib_handle, "qwtplot");
@@ -295,7 +296,7 @@ void test(int n) {
 #endif
 	
 	// ------------- create first plot: ---------------------
-	qFigure(14);	//  set up ID for current plot
+	qFigure(14, 0);	//  set up ID for current plot
 
 	qXLabel("x axis label"); //  put X axis label
 	qYLabel("Y axis label"); // put Y label
@@ -309,21 +310,21 @@ void test(int n) {
 	qPlot(x4, y4, n4, "x_sinusData_2 plot", "-M", 1, 1);
 
 	// --------------- one more plot --------------------------------
-	qFigure(7);
+	qFigure(7, 0);
 	qPlot(x_sinusData_2, y_sinusData_2, n3, "one more plot", "-r", 1, 1); //  thin line, red color
 	qPlot(x4, y4, n4, "x4 plot", "-r", 2, 1);
 	qPlot(x4, y5, n4, "x5 plot", "-k", 2, 1);
 	qTitle("qwtw  testing");     qXLabel("[seconds ?]");     qYLabel("sinuses %)");
 
 	// ----- sinus and circle together on this plot ----------
-	qFigure(3);
+	qFigure(3, 0);
 	qPlot(x4, y6, n4, "x6 plot", "-b", 22, 1);
 	//  add a circle "-m" (magenta color) to the same plot
 	qPlot(circleData_x1, circleData_y1, nc, "circle", "-qm", 2, 16);
 	qXLabel("[seconds ?]"); 	qYLabel("y axis!"); 	qTitle("sinus and circle");
 
 	// play with a marker here on this plot
-	qFigure(10);
+	qFigure(10, 0);
 	qPlot2(circleData_x1, circleData_y1, nc, "circle", "-qm", 1, 12, circleTime_1);
 	qTitle("'top view' test");
 
@@ -385,19 +386,21 @@ void test(int n) {
 	#endif
 	//
 
-	std::this_thread::sleep_for(400ms);
+	std::this_thread::sleep_for(250ms);
 	std::cout << "closing the library " << std::endl;
-	std::this_thread::sleep_for(400ms);
+	std::this_thread::sleep_for(250ms);
+	qClose();
+	std::this_thread::sleep_for(250ms);
 
 	#ifdef WIN32
-	BOOL test = FreeLibrary(hQWTW_DLL);
-	if (test == 0) {
-		std::cout << "FreeLibrary failed; error = " << GetLastError() << std::endl;
-	}
-	hQWTW_DLL = 0;
+		BOOL test = FreeLibrary(hQWTW_DLL);
+		if (test == 0) {
+			std::cout << "FreeLibrary failed; error = " << GetLastError() << std::endl;
+		}
+		hQWTW_DLL = 0;
 	#else
-	dlclose(lib_handle);
-	lib_handle = 0;
+		dlclose(lib_handle);
+		lib_handle = 0;
 	#endif
 	std::cout << "library unloaded! " << std::endl;
 }
@@ -433,14 +436,12 @@ void createInfo() {
 		y_sinusData_2[i] = cos(x_sinusData_2[i] * 0.9) * sin(x_sinusData_2[i] * 1.1);
 	}
 
-
 	for (i = 0; i < n4; i++) {
 		x4[i] = (i*maxIks) / n4;
 		y4[i] = cos(x4[i] * 0.9) + sin(x4[i] * 1.1);
 		y5[i] = cos(x4[i] * 0.4) - sin(x4[i] * 1.5);
 		y6[i] = cos(x4[i] * 0.2) + sin(x4[i] * 1.15);
 	}
-
 
 	x3d = new double[n3d * 4];
 	double r = 5.;

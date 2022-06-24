@@ -16,7 +16,7 @@ SHMTest::SHMTest(): status(5) {
 }
 
 SHMTest::~SHMTest() {
-
+	onClose();
 }
 #ifdef USEMARBLE
 int SHMTest::qwtmap(int n) {
@@ -300,6 +300,35 @@ int SHMTest::testInit(int level) {
 	return 0;
 }
 
+void SHMTest::onClose() {
+	//  stop two callback threads
+	xmprintf(9, "SHMTest::onClose() starting  \n");
+	needStopCallbackThread = true;
+	if (cbThread.joinable()) { //   stop callback thread?
+		xmprintf(8, "\t stopping cbThread  \n");
+		
+		//pd.hdr->cbInfoMutex.lock();
+		// 
+		//pd.hdr->cbInfoMutex.unlock();
+		//pd.hdr->cbWait.notify_all();
+		cmdSync->cbWait.notify_all();
+		cbThread.join();
+		xmprintf(8, "\t cbThread finished \n");
+	}
+	if (cbThread_2.joinable()) {
+		cbiReady.notify_all();
+		xmprintf(8, "\t stopping cbThread_2  \n");
+		cbThread_2.join();
+		xmprintf(8, "\t cbThread_2 finished \n");
+	}
+
+	if (cmdSync != nullptr) {
+		cmdSync.reset();
+		cmdSync = nullptr;
+	}
+	xmprintf(9, "SHMTest::onClose() finished  \n");
+}
+
 void SHMTest::stopQt() {
 	if (status != 0) return;
 	using namespace boost::interprocess;
@@ -313,27 +342,8 @@ void SHMTest::stopQt() {
 	pd.hdr->workDone.wait(lock);
 	status = 4; //   stopped
 
-	//  stop two callback threads
-	needStopCallbackThread = true;
-	if (cbThread.joinable()) { //   stop callback thread?
-		xmprintf(8, "\tstopping cbThread  \n");
-		
-		//pd.hdr->cbInfoMutex.lock();
-		// 
-		//pd.hdr->cbInfoMutex.unlock();
-		//pd.hdr->cbWait.notify_all();
-		cmdSync->cbWait.notify_all();
-		cbThread.join();
-		xmprintf(8, "\tcbThread finished \n");
-	}
-	if (cbThread_2.joinable()) {
-		cbiReady.notify_all();
-		cbThread_2.join();
-	}
-	if (cmdSync != nullptr) {
-		cmdSync.reset();
-		cmdSync = nullptr;
-	}
+	onClose();
+
 
 	xmprintf(3, "\tSHMTest::stopQt();  done\n");
 }

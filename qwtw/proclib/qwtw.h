@@ -105,14 +105,14 @@ qwtwc_API 	int qwtmap(int n);
 qwtwc_API 	void qwtfigure3d(int n);
 #endif
 
+qwtwc_API 	int qwtservice(int x);
+
 #ifdef USEMATHGL
 /** add new MathGL plot.
  * \param n plot ID
  * @return ID of the created plot; this is useful when n == 0
  * */
 qwtwc_API 	int qwtmgl(int n);
-
-qwtwc_API 	int qwtservice(int x);
 
 /**  Add 3D line.
  * \param style if 0, then use something default
