@@ -83,7 +83,7 @@ private:
 	void resize(long long size);
 	void resizeData(long long size);
 
-	bool needStopCallbackThread = false;
+	volatile bool needStopCallbackThread = false;
 	std::thread cbThread;  //  callback thread
 	/// <summary>
 	/// callback thread. callbacks will be called from here.

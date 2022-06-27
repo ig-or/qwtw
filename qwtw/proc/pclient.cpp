@@ -7,6 +7,7 @@
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/process/spawn.hpp>
 #include <boost/process/search_path.hpp>
+#include <boost/chrono.hpp>
 #include <thread>
 #include <chrono>
 #include <cstdlib>
@@ -16,7 +17,9 @@ SHMTest::SHMTest(): status(5) {
 }
 
 SHMTest::~SHMTest() {
+//#ifndef WIN32   // in Windows it sometimes hangs on boost::interprocess::interprocess_condition::notify_all
 	onClose();
+//#endif
 }
 #ifdef USEMARBLE
 int SHMTest::qwtmap(int n) {
@@ -305,21 +308,18 @@ void SHMTest::onClose() {
 	xmprintf(9, "SHMTest::onClose() starting  \n");
 	needStopCallbackThread = true;
 	if (cbThread.joinable()) { //   stop callback thread?
-		xmprintf(8, "\t stopping cbThread  \n");
-		
-		//pd.hdr->cbInfoMutex.lock();
-		// 
-		//pd.hdr->cbInfoMutex.unlock();
-		//pd.hdr->cbWait.notify_all();
-		cmdSync->cbWait.notify_all();
+		//xmprintf(8, "\t stopping cbThread  \n");
+
+		//cmdSync->cbWait.notify_all();  //  this may hang forever
+
 		cbThread.join();
-		xmprintf(8, "\t cbThread finished \n");
+		//xmprintf(8, "\t cbThread finished \n");
 	}
 	if (cbThread_2.joinable()) {
-		cbiReady.notify_all();
-		xmprintf(8, "\t stopping cbThread_2  \n");
+		//cbiReady.notify_all();
+		//xmprintf(8, "\t stopping cbThread_2  \n");
 		cbThread_2.join();
-		xmprintf(8, "\t cbThread_2 finished \n");
+		//xmprintf(8, "\t cbThread_2 finished \n");
 	}
 
 	if (cmdSync != nullptr) {
@@ -332,6 +332,9 @@ void SHMTest::onClose() {
 void SHMTest::stopQt() {
 	if (status != 0) return;
 	using namespace boost::interprocess;
+//#ifndef WIN32    // in Windows it sometimes hangs on boost::interprocess::interprocess_condition::notify_all
+	onClose();
+//#endif
 	
 	xmprintf(3, "SHMTest::stopQt();  locking.. \n");
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
@@ -342,7 +345,7 @@ void SHMTest::stopQt() {
 	pd.hdr->workDone.wait(lock);
 	status = 4; //   stopped
 
-	onClose();
+	
 
 
 	xmprintf(3, "\tSHMTest::stopQt();  done\n");
@@ -419,12 +422,20 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 void SHMTest::cbThreadF() {
 	using namespace boost::interprocess;
 	CBPickerInfo cpi;
+	cv_status status;
 	//scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex);
 	scoped_lock<named_mutex> lock(cmdSync->cbInfoMutex);
 	while (!needStopCallbackThread) {
-		//pd.hdr->cbWait.wait(lock);
-		cmdSync->cbWait.wait(lock); //   wait for the picker info
+		//cmdSync->cbWait.wait(lock); //   wait for the picker info
+		if ((status = cmdSync->cbWait.wait_for(lock, boost::chrono::milliseconds(200))) == cv_status::timeout) { //   wait for the picker info
+			if (needStopCallbackThread) {
+				cbiReady.notify_all();
+				break;
+			}
+			continue;
+		}
 		if (needStopCallbackThread) {
+			cbiReady.notify_all();
 			break;
 		}
 
@@ -442,8 +453,14 @@ void SHMTest::cbThreadF() {
 void SHMTest::cbThreadF_2() {
 	std::unique_lock<std::mutex> lock(cbiMutex_2);
 	CBPickerInfo cpi;
+	std::cv_status status; 
 	while (!needStopCallbackThread) {
-		cbiReady.wait(lock);
+		if ((status = cbiReady.wait_for(lock, std::chrono::milliseconds(200))) == std::cv_status::timeout) {
+			if (needStopCallbackThread) {
+				break;
+			}
+			continue;
+		}
 		if (needStopCallbackThread) {
 			break;
 		}

@@ -22,18 +22,8 @@ QProcInterface::QProcInterface(QWorker& worker_, QApplication& app_):
 }
 
 QProcInterface::~QProcInterface() {
-	
-
 	stop();
-
-	//    looks like we do not need it here:
-	//if (wThread.joinable()) {
-	//	wThread.join();
-	//}
-
-	//if (shmCommand != 0) {
-		removeSHM();
-	//}
+	removeSHM();
 }
 
 void QProcInterface::removeSHM() {
