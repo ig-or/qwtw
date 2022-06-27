@@ -8,6 +8,7 @@
 #include <boost/process/spawn.hpp>
 #include <boost/process/search_path.hpp>
 #include <boost/chrono.hpp>
+#include <boost/thread/thread_time.hpp>
 #include <thread>
 #include <chrono>
 #include <cstdlib>
@@ -422,12 +423,23 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 void SHMTest::cbThreadF() {
 	using namespace boost::interprocess;
 	CBPickerInfo cpi;
-	cv_status status;
+	//cv_status status;   //    will be OK since boost 1.78 probably
+
+	//   fix for old BOOST
+	bool noTimeout = true;
+	boost::system_time timeout;
+
 	//scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex);
 	scoped_lock<named_mutex> lock(cmdSync->cbInfoMutex);
 	while (!needStopCallbackThread) {
 		//cmdSync->cbWait.wait(lock); //   wait for the picker info
-		if ((status = cmdSync->cbWait.wait_for(lock, boost::chrono::milliseconds(200))) == cv_status::timeout) { //   wait for the picker info
+
+		  //    will be OK since boost 1.78 probably
+		//if ((status = cmdSync->cbWait.wait_for(lock, boost::chrono::milliseconds(200))) == cv_status::timeout) { //   wait for the picker info
+
+		//  fix for old BOOST
+		timeout=boost::get_system_time() + boost::posix_time::milliseconds(200);
+		if (noTimeout = cmdSync->cbWait.timed_wait(lock, timeout)) { //   wait for the picker info
 			if (needStopCallbackThread) {
 				cbiReady.notify_all();
 				break;
