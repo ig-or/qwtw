@@ -12,6 +12,9 @@
 #include <thread>
 #include <chrono>
 #include <cstdlib>
+#ifdef WIN32
+	#include <windows.h>
+#endif
 
 SHMTest::SHMTest(): status(5) {
 	
@@ -81,8 +84,23 @@ int SHMTest::startProc(int level) {
 		xmprintf(2, "exception: %s\n", ex.what());
 		qwProcPath.clear();
 	}
-#ifdef WIN32
-
+#ifdef WIN32      //   check the location near the DLL
+	try {
+		extern HMODULE qwtwLibModule;
+		char dllPath[MAX_PATH];
+		DWORD dw = GetModuleFileNameA((HMODULE)(qwtwLibModule), dllPath, MAX_PATH);
+		dllPath[MAX_PATH - 1] = 0; dllPath[MAX_PATH - 2] = 0;
+		pa = path(dllPath).parent_path() / procName;
+		xmprintf(2, "\tlooking at %s .. \n", pa.string().c_str());
+		if (exists(pa)) {
+			qwProcPath = pa.string();
+			xmprintf(2, "\tlocated!\n");
+		}
+	} catch (std::exception& ex) {
+		xmprintf(2, "exception: %s\n", ex.what());
+		qwProcPath.clear();
+	}
+	
 #else
 	if (qwProcPath.empty()) { //   near current EXE?
 		char result[ PATH_MAX ];
@@ -390,15 +408,27 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	if (text != 0) {
 		strncpy(pd.hdr->name, text, CmdHeader::nameSize);
 	}
-	pd.hdr->cmdWait.notify_all();
-	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): start waiting ..\n", static_cast<int>(cmd), text);
-	pd.hdr->workDone.wait(lock);
-	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): complete\n", static_cast<int>(cmd), text);
+	cv_status wResult;
+	for (int nCounter = 25; nCounter > 0; nCounter--) {
+		pd.hdr->cmdWait.notify_all();
+		pd.hdr->cmdWait.notify_all();
+		xmprintf(4, "\t  SHMTest::sendCommand(%d, %s): start waiting (%d) ..\n", static_cast<int>(cmd), text, nCounter);
+		//pd.hdr->workDone.wait(lock);
+		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(50));
+		if (wResult == cv_status::no_timeout) {
+			break;
+		}
+	}
+	if (wResult == cv_status::no_timeout) {
+		xmprintf(4, "\tSHMTest::sendCommand(%d, %s): complete\n", static_cast<int>(cmd), text);
 
-	int test = pd.hdr->test;
-	xmprintf(4, "\tSHMTest::sendCommand(%d, %s): test = %d\n", static_cast<int>(cmd), text, test);
-	return test;
-
+		int test = pd.hdr->test;
+		xmprintf(4, "\tSHMTest::sendCommand(%d, %s): test = %d\n", static_cast<int>(cmd), text, test);
+		return test;
+	} else {
+		xmprintf(4, "\tSHMTest::sendCommand(%d, %s): TIMEOUT 1\n");
+		return -1;
+	}
 }
 int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	if (status != 0) return 0;
@@ -410,14 +440,26 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	pd.hdr->test = v;
 	pd.hdr->flags = flags;
 
-	pd.hdr->cmdWait.notify_all();
-	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): start waiting ..\n", static_cast<int>(cmd), v);
-	pd.hdr->workDone.wait(lock);
-	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): finished\n", static_cast<int>(cmd), v);
-
-	int test = pd.hdr->test;
-	xmprintf(4, "\tSHMTest::sendCommand(%d, %d): test = %d\n", static_cast<int>(cmd), v, test);
-	return test;
+	cv_status wResult;
+	for (int nCounter = 25; nCounter > 0; nCounter--) {
+		pd.hdr->cmdWait.notify_all();
+		pd.hdr->cmdWait.notify_all();
+		xmprintf(4, "\t %d SHMTest::sendCommand(%d, %d): start waiting ..\n", nCounter, static_cast<int>(cmd), v);
+		//pd.hdr->workDone.wait(lock);
+		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(50));
+		if (wResult == cv_status::no_timeout) {
+			break;
+		}
+	}
+	if (wResult == cv_status::no_timeout) {
+		xmprintf(4, "\tSHMTest::sendCommand(%d, %d): finished\n", static_cast<int>(cmd), v);
+		int test = pd.hdr->test;
+		xmprintf(4, "\tSHMTest::sendCommand(%d, %d): test = %d\n", static_cast<int>(cmd), v, test);
+		return test;
+	} else {
+		xmprintf(4, "\tSHMTest::sendCommand(%d, %s) 2: TIMEOUT\n");
+		return -1;
+	}
 }
 
 void SHMTest::cbThreadF() {

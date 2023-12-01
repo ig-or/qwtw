@@ -1,5 +1,6 @@
 .vscode
 .bac
+.vs
 *.o
 *.pbi
 *.cout

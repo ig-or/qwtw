@@ -16,6 +16,7 @@ QWSettings::QWSettings() {
 	pickerDigitsNumber = 6;
 	udp_server_port = 49562;
 	udp_client_port = 49561;
+	smip.assign("239.255.0.1");
 }
 int QWSettings::qwSave() {
 	char folder[512];
@@ -35,6 +36,7 @@ int QWSettings::qwSave() {
 	root.put("pickerDigitsNumber", pickerDigitsNumber);
 	root.put("udp_server_port", udp_server_port);
 	root.put("udp_client_port", udp_client_port);
+	root.put("smip", smip.c_str());
 	std::ostringstream oss;
 	pt::write_json(oss, root);
 	try {
@@ -83,10 +85,12 @@ int QWSettings::qwLoad() {
 	try {
 		udp_server_port = root.get<int>("udp_server_port", 49562);
 		udp_client_port = root.get<int>("udp_client_port", 49561);
+		smip = root.get<std::string>("smip", "239.255.0.1");
 	}
 	catch (const std::exception& ex) {
 		udp_server_port = 49562;
 		udp_client_port = 49561;
+		smip.assign("239.255.0.1");
 		xmprintf(9, "QWSettings::qwLoad() cannot load  udp_server_port or udp_client_port from the configuration file (%s)  \n", ex.what());
 	}
 

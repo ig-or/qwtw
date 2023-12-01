@@ -30,7 +30,7 @@ struct CmdHeader {
 		qImpStatus,
 		qEnableBC,
 		qDisableBC,
-		qSetLogLevel,
+		qSetLogLevel,     // 18
 		qMglPlot, // 
 		qMglLine, // 20
 		qMglMesh, // 

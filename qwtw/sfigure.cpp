@@ -104,29 +104,22 @@ struct ClipUdpMessage {
 #pragma pack()
 class BCUdpClient {
 public:
-	BCUdpClient() : resolver(io_context), socket(io_context) {
+	BCUdpClient(const QWSettings& settings) : multicast_address(boost::asio::ip::make_address_v4(settings.smip.c_str())),
+			endpoint_(multicast_address, settings.udp_client_port),
+			socket_(io_context, endpoint_.protocol()) {
 		ok = false;
-		int port = qwSettings.udp_client_port;
+	
 		try {
-			destination = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), port);
-			xmprintf(0, "INFO: BCUdpClient(): using port %d as destination \n");
-		}	catch (const std::exception& ex) {
-			xmprintf(0, "ERROR: BCUdpClient(): cannot create UDP endpoint on port %d (%s)\n", port, ex.what());
-			return;
-		}
-
-		//receiver_endpoint = *resolver.resolve(q);
-		try {
-			//socket.set_option(udp::socket::broadcast)
-			socket.open(udp::v4());
-			socket.set_option(udp::socket::reuse_address(true));
+			//socket_.open(udp::v4());
+			socket_.set_option(udp::socket::reuse_address(true));
+			socket_.set_option(udp::socket::broadcast(true));
 		}  catch (const std::exception& ex) {
-			xmprintf(0, "ERROR: BCUdpClient(): cannot open UDP port %d (%s)\n", port, ex.what());
+			xmprintf(0, "ERROR: BCUdpClient(): socket_.set_option failed (%s)\n", ex.what());
 			return;
 		}
 
 		ok = true;
-		xmprintf(5, "BCUdpClient() created;  UDP port %d \n", port);
+		xmprintf(5, "BCUdpClient() created;  UDP port %d \n", settings.udp_client_port);
 	}
 
 	void bcSend(unsigned char* buf, int size) {
@@ -134,28 +127,28 @@ public:
 			return;
 		}
 		try {
-			size_t bs = socket.send_to(boost::asio::buffer(buf, size), destination);
+			size_t bs = socket_.send_to(boost::asio::buffer(buf, size), endpoint_);
 			int itmp = 0;
 			if (bs != size) {
 				xmprintf(9, "bcSend bs = %d bytes; size = %d \n", bs, size);
 			}
 			//xmprintf(9, "bcSend %d bytes \n", bs);
 		} catch (const std::exception& ex) {
-			xmprintf(1, "bcSend: exception: %s\n", ex.what());
+			xmprintf(1, "BCUdpClient::bcSend: exception: %s\n", ex.what());
 		}
 	}
 
 private: 
+	boost::asio::ip::address multicast_address;
 	boost::asio::io_context io_context;
-	udp::resolver resolver;
-	boost::asio::ip::udp::endpoint destination;
-	udp::endpoint receiver_endpoint;
-	udp::socket socket;
-	bool ok;
+	udp::endpoint endpoint_;
+	udp::socket socket_;
+	bool ok = false;
 };
 
-class BCUdpServer {
 
+
+class BCUdpServer {
 private:
 	volatile bool created, createdMarker, somethingWasChanged;
 	volatile int cmd;
@@ -165,25 +158,31 @@ private:
 	boost::thread st;
 	volatile bool pleaseStop;
 	boost::asio::io_context io_context;
+	udp::endpoint sender_endpoint_;
+	boost::asio::ip::address listen_address;
+	boost::asio::ip::address multicast_address;
 	udp::socket socket_;
-	udp::endpoint remote_endpoint_;
-	int portNumber;
+	int udp_server_port;
+	
 	unsigned char	rb[256];
 	std::function<void(double[3])> onPointF;
 
 public:
-	BCUdpServer(int port) : portNumber(port), socket_(io_context, udp::endpoint(udp::v4(), port)) {
+	BCUdpServer(const QWSettings& settings) : socket_(io_context) {
 		created = false;
 		createdMarker = false;
 		somethingWasChanged = false;
 		cmd = 0;
+		udp_server_port = settings.udp_server_port;
+		listen_address = boost::asio::ip::address::from_string("0.0.0.0");
+		multicast_address = boost::asio::ip::address::from_string(settings.smip.c_str());
+		// Create the socket so that multiple may be bound to the same address.
 	}
 
 	void bStart(std::function<void(double[3])> aPoint) {
 		onPointF = aPoint;
 		pleaseStop = false;
-		xmprintf(0, "INFO: BCUdpServer::bStart(): using port %d \n", portNumber);
-		//std::thread tr([&] { tcpThread(); });
+		xmprintf(0, "INFO: BCUdpServer::bStart() \n");
 		boost::thread tr([&] { tcpThread(); });
 		st.swap(tr);
 		created = true;
@@ -196,48 +195,64 @@ public:
 		if (!created) {
 			return;
 		}
-		// wait for the task to finish??
-		boost::asio::io_context io_service1;
-		udp::socket s1(io_service1);
-		s1.open(udp::v4());
-		unsigned char b[5];
-		boost::asio::ip::udp::endpoint destination = boost::asio::ip::udp::endpoint(boost::asio::ip::address::from_string("127.0.0.1"), portNumber);
-		try {
-			s1.send_to(boost::asio::buffer(b, 5), destination);
-			s1.send_to(boost::asio::buffer(b, 5), destination);
-			s1.send_to(boost::asio::buffer(b, 5), destination);
-			//Sleep(10);
-			//std::this_thread::sleep_for(10ms);
-			boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-			s1.send_to(boost::asio::buffer(b, 5), destination);
-		} catch (const std::exception& ex) {
-			xmprintf(2, "exception: %s\n", ex.what());
+		
+		if (st.joinable()) {
+			boost::asio::io_context io_service1;
+			boost::asio::ip::udp::endpoint ep(multicast_address, udp_server_port);
+			udp::socket s1(io_service1, ep.protocol());
+			s1.set_option(udp::socket::reuse_address(true));
+			s1.set_option(udp::socket::broadcast(true));
+			unsigned char b[5];
+			try {
+				s1.send_to(boost::asio::buffer(b, 5), ep);
+				s1.send_to(boost::asio::buffer(b, 5), ep);
+				s1.send_to(boost::asio::buffer(b, 5), ep);
+				//Sleep(10);
+				//std::this_thread::sleep_for(10ms);
+				boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
+				s1.send_to(boost::asio::buffer(b, 5), ep);
+			} catch (const std::exception& ex) {
+				xmprintf(2, "~BCUdpServer() exception: %s\n", ex.what());
+			}
+			io_context.stop();
+			xmprintf(2, "~BCUdpServer(): stopping UDP server .... ");
+			st.join(); // wait for the task to finish??
+			xmprintf(2, " stopped! \n");
 		}
-		xmprintf(2, "~BCUdpServer(): stopping UDP server .... ");
-		st.join();
-		xmprintf(2, " stopped! \n");
 		int itmp = 0;
 	}
 	void tcpThread() {
 		try {
+			// Create the socket so that multiple may be bound to the same address.
+			boost::asio::ip::udp::endpoint listen_endpoint(listen_address, udp_server_port);
+			socket_.open(listen_endpoint.protocol());
+			socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
+			socket_.bind(listen_endpoint);
+
+			// Join the multicast group.
+			socket_.set_option(boost::asio::ip::multicast::join_group(multicast_address));
+
 			start_receive();
 			xmprintf(2, "BCUdpServer tcpThread started; port %d\n", qwSettings.udp_server_port);
 			io_context.run();
 		} catch (std::exception& e) {
 			std::cerr << e.what() << std::endl;
-			xm_printf("TRACE: RDFramerDebugGuiUpdateCallback  exception: %s  \n", e.what());
+			xm_printf("TRACE: RDFramerDebugGuiUpdateCallback  exception 3: %s  \n", e.what());
 		}
 		return;
 	}
 	void start_receive() {
 		socket_.async_receive_from(
-			boost::asio::buffer(rb), remote_endpoint_,
-			boost::bind(&BCUdpServer::handle_receive, this,
-				boost::asio::placeholders::error,
-				boost::asio::placeholders::bytes_transferred));
+			boost::asio::buffer(rb), sender_endpoint_,
+				boost::bind(&BCUdpServer::handle_receive, this,
+					boost::asio::placeholders::error,
+					boost::asio::placeholders::bytes_transferred));
 	}
 
 	void handle_receive(const boost::system::error_code& error, std::size_t bytes_transferred) {
+		if (pleaseStop) {
+			return;
+		}
 		if (!error || error == boost::asio::error::message_size) {
 			xmprintf(9, "UDP server handle_receive: bytes_transferred = %d \n", bytes_transferred);
 			
@@ -266,10 +281,8 @@ public:
 					}
 				}
 			}
-
-			if (pleaseStop) {
-				return;
-			}
+			start_receive();
+		} else {
 			start_receive();
 		}
 	}
@@ -324,7 +337,11 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 	//bc = 0;
 	///  start UDP client 
 	// since we'd send out picker info anyway
-	bc = new BCUdpClient();
+	try {
+		bc = new BCUdpClient(qwSettings);
+	} catch (std::exception& ex) {
+		xmprintf(1, "ERROR while creating UDP client: {%s} \n", ex.what());
+	}
 	bServer = 0;
 
 	//  start picker info filter thread
@@ -706,7 +723,6 @@ void XQPlots::pFilterThreadF() {
 
 		std::this_thread::sleep_for(100ms);
 	}
-
 }
 
 Q_INVOKABLE void XQPlots::drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend) {
@@ -1020,14 +1036,14 @@ void XQPlots::enableCoordBroadcast(double* x, double* y, double* z, double* time
 	}
 	broadCastInfo = new LineItemInfo(x, y, z, size, "broadcast", time);
 	if (bc == 0) {
-		bc = new BCUdpClient();
+		bc = new BCUdpClient(qwSettings);
 	}
 
 	if (bServer == 0) {
 		try {
-			bServer = new BCUdpServer(qwSettings.udp_server_port);
+			bServer = new BCUdpServer(qwSettings);
 		}	catch (const std::exception& ex) {
-			xmprintf(0, "ERROR: XQPlots::enableCoordBroadcast: cannot create UDP server on address %d; check if this port in available (%s)\n",
+			xmprintf(0, "ERROR: XQPlots::enableCoordBroadcast: cannot create UDP server on port %d; check if this port in available (%s)\n",
 				qwSettings.udp_server_port, ex.what());
 			return;
 		}

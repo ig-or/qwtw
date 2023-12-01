@@ -1581,7 +1581,7 @@ void Figure2::onPickerSignal(int x, int y) {
 	//s << xxm << ", " << yym << ", (" << mfi->info->legend << ")";
 	char s[256];
 	char s0[128];
-	int dn = qwSettings.pickerDigitsNumber;  // how many digits to traw for each number
+	int dn = qwSettings.pickerDigitsNumber;  // how many digits to draw for each number
 	if (mfi->info->mode == 3) {
 		snprintf(s0, 128, "[%%.%df, %%.%df] t=%%.3f (%%s), index=%%lld", dn, dn);
 		snprintf(s, 256, s0,
