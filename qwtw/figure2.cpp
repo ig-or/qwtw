@@ -373,6 +373,7 @@ SelectMarkerParamsDlg::SelectMarkerParamsDlg(QWidget *parent, const char* name) 
 
 	QPalette pal = cpb->palette();
 	pal.setColor(QPalette::Button, co);
+	selectedColor = co;
 	cpb->setAutoFillBackground(true);
 	cpb->setPalette(pal);
 	cpb->update();
@@ -1479,6 +1480,7 @@ void Figure2::addVMarker(double t, const char* label, int id_) {
 	VLineMarker* vm = new VLineMarker(label, t, id_);
 	vm->attach(plot1);
 	vmList.push_back(vm);
+	replot();
 }
 
 void Figure2::removeVMarker(int id_) {
@@ -1528,7 +1530,7 @@ void Figure2::addAMarker() {
 		}
 		break;
 	};
-
+	replot();
 	xmprintf(3, "Figure2::addAMarker(): OK \n");
 }
 
