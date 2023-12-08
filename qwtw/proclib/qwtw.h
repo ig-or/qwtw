@@ -82,6 +82,8 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size);
     @return ID of the created plot; this is useful when n == 0
 */
 qwtwc_API 	int qwtfigure(int n, unsigned int flags);
+qwtwc_API 	int qwtspectrogram(int n, unsigned int flags);
+qwtwc_API   int spectrogram_info(int nx, int ny, double xmin, double xmax, double ymin, double ymax, double* z);
 
 /**
 set current 'clip group';

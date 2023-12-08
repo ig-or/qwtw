@@ -48,6 +48,7 @@
 #include "qmgl.h"
 #include <mgl2/qmathgl.h>
 #endif
+#include "spectrogram.h"
 
 
 int xmprintf(int level, const char * _Format, ...);
@@ -430,7 +431,11 @@ JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 				xmprintf(5, "XQPlots::figure creating QMglPlot done\n");
 				cf = q4;
 			}
+			break;
 #endif
+		case jQwSpectrogram: 
+			cf = new QSpectrogramPlot(name_, this, parent, flags);
+			break;
 		};
 		bool test = true;
 		cf->clipGroup = currentClipGroup;
@@ -468,6 +473,17 @@ JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 	}
 	xmprintf(5, "XQPlots::figure finish \n");
 	return cf;
+}
+
+void XQPlots::setSpectrogramInfo(const SpectrogramInfo& info) {
+	if (cf == nullptr) {
+		return;
+	}
+	if (cf->type != jQwSpectrogram) {
+		return;
+	}
+	QSpectrogramPlot* sp = (QSpectrogramPlot*)cf;
+	sp->setInfo(info);
 }
 
 void XQPlots::onTvItemClicked(QModelIndex mi) {

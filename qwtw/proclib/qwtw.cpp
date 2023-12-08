@@ -132,6 +132,13 @@ qwtwc_API 	int qwtfigure(int n, unsigned int flags) {
 	return test.qwtfigure(n, flags);
 }
 
+qwtwc_API 	int qwtspectrogram(int n, unsigned int flags) {
+	return test.qwtspectrogram(n, flags);
+}
+qwtwc_API   int spectrogram_info(int nx, int ny, double xmin, double xmax, double ymin, double ymax, double* z) {
+	return test.spectrogram_info(SpectrogramInfo{nx, ny, xmin, xmax, ymin, ymax, z});
+}
+
 qwtwc_API 	void qwtclipgroup(int gr) {
 	test.qwtClipGroup(gr);
 }

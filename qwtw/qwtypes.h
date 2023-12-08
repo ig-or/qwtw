@@ -14,7 +14,8 @@ enum JPType {
 	jQWT = 1,
 	jMarble = 2,
 	jQT3D = 3,
-	jMathGL = 4
+	jMathGL = 4,
+	jQwSpectrogram = 5
 };
 
 struct MeshInfo {
@@ -30,6 +31,15 @@ struct MeshInfo {
 	SurfDataType sd;
 };
 
+struct SpectrogramInfo {
+	int nx = 0;
+	int ny = 0;
+	double xmin = 0.0;
+	double xmax = 0.0;
+	double ymin = 0.0;
+	double ymax = 0.0;
+	double* z = 0;
+};
 #pragma pack()
 
 #pragma pack(1)

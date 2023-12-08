@@ -11,6 +11,8 @@
 //#include <sha
 #include <condition_variable>
 
+struct SpectrogramInfo;
+
 struct SHMTest {
 
 	SHMTest();
@@ -26,6 +28,8 @@ struct SHMTest {
 	int testInit(int level = 0);
 #endif
 	int qwtfigure(int n, unsigned int flags);
+	int qwtspectrogram(int n, unsigned int flags);
+	int spectrogram_info(const SpectrogramInfo& info);
 	void qwtClipGroup(int gr);
 
 	void stopQt();

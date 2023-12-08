@@ -321,10 +321,17 @@ void QProcInterface::processCommand(int cmd) {
 			}
 			break;
 
+		case CmdHeader::qSpectrogram : {
+			int k = worker.qwtSpectrogram(pd.hdr->test, pd.hdr->flags);
+			pd.hdr->test = k; //    return the result
+			}
+			break;
+
 		case CmdHeader::qService: {
 			int ret = worker.qwtservice(pd.hdr->test);
 			pd.hdr->test = ret;
-		}
+			}
+			break;
 
 		case CmdHeader::qSetClipGroup:
 			worker.qwtSetClipGroup(pd.hdr->test);
@@ -368,6 +375,16 @@ void QProcInterface::processCommand(int cmd) {
 			}
 			break;
 #endif
+		case CmdHeader::qSpectrogramInfo:
+			if ((pd.hdr->xSize * pd.hdr->ySize) <= pd.hdr->dataSize) {
+				worker.spectrogram_info(SpectrogramInfo{
+					pd.hdr->xSize,pd.hdr->ySize, pd.hdr->xMin, pd.hdr->xMax,
+					pd.hdr->yMin, pd.hdr->yMax, pd.data });
+			} else {
+				xmprintf(0, "CmdHeader::qSpectrogramInfo: data size error; xSize = %d; ySize = %d; dataSize = %d\n",
+					pd.hdr->xSize, pd.hdr->ySize, pd.hdr->dataSize);
+			}
+			break;
 
 		case CmdHeader::qTitle:
 			worker.qwttitle(pd.hdr->name);

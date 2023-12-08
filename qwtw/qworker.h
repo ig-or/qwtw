@@ -10,6 +10,7 @@
 //#include <QThread>
 
 class XQPlots;
+struct SpectrogramInfo;
 
 // https://stackoverflow.com/questions/25025168/event-loop-in-qt-based-dll-in-a-non-qt-application
 class QWorker : public QObject {
@@ -29,6 +30,7 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtxlabelImpl(const char* s);
 	Q_INVOKABLE void qwtylabelImpl(const char* s);
 	Q_INVOKABLE int qwtfigureImpl(int n, unsigned int flags);
+	Q_INVOKABLE int qwtSpectrogramImpl(int n, unsigned int flags);
 	Q_INVOKABLE int qwtserviceImpl(int x);
 	Q_INVOKABLE void qwtSetClipGroupImpl(int gr);
 	Q_INVOKABLE int qwtplotImpl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
@@ -47,6 +49,7 @@ class QWorker : public QObject {
 		double* data, const char* name,
 		const char* style,
 		int type);
+	Q_INVOKABLE int spectrogram_info_impl(int nx, int ny, double xmin, double xmax, double ymin, double ymax, double* z);
 #endif
 
 public:
@@ -74,6 +77,7 @@ public:
 	void qwtSetUdpCallback(OnUdpCallback cb);
 	void qwtSetPickerCallback(OnPickerCallback cb);
 	int qwtfigure(int n, unsigned int flags);
+	int qwtSpectrogram(int n, unsigned int flags);
 	int qwtservice(int x);
 	void qwtSetClipGroup(int gr);
 	void qwtRemoveLine(int key);
@@ -93,6 +97,7 @@ public:
 		const char* style,
 		int type);
 #endif
+	void spectrogram_info(const SpectrogramInfo& info);
 public slots:
 	void onQtAppClosing();
 

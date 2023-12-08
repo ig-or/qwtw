@@ -14,7 +14,7 @@ addQT()
 set(INC_DIR_LIST "../" "../c_lib"  "../../../common" "../../../xmatrix2" )
 	
 addSourceFiles("source" "." qwproc qwproto main)	
-addSourceFiles("qwtw" "../" qworker  sfigure figure2 justaplot qwtypes line settings)
+addSourceFiles("qwtw" "../" qworker  sfigure figure2 justaplot qwtypes line settings spectrogram)
 addSourceFiles("qrc" "../../img" plib1.qrc)	
 addSourceFiles("common" "../../common"
 	xstdef xqbytebuffer xmutils queue_block  xmroundbuf
@@ -29,6 +29,7 @@ if (WITH_UDP_SYNC)
 endif()
 
 add_definitions(-DXMPRINTF_TO_FILE)
+add_definitions( /std:c++20 )
 
 if (USE_MGL)
 	add_definitions(-DUSEMATHGL)

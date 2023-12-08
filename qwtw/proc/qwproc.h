@@ -18,11 +18,13 @@ struct CmdHeader {
 		changeDataSize,
 		qMW,
 		qFigure,
+		qSpectrogram,
+		qSpectrogramInfo,
 		qRemoveLine,
 		qMap, 
 		qPlot,
 		qPlot2, 
-		qChangeLine,   // 10
+		qChangeLine,   // 
 		qTitle, 
 		qXlabel, 
 		qYlabel,
@@ -30,14 +32,14 @@ struct CmdHeader {
 		qImpStatus,
 		qEnableBC,
 		qDisableBC,
-		qSetLogLevel,     // 18
+		qSetLogLevel,     // 
 		qMglPlot, // 
-		qMglLine, // 20
+		qMglLine, // 
 		qMglMesh, // 
 		qSetClipGroup, // 
 		qSetUdpCallback,  //  
 		qSetPickerCallback,  // 
-		qService,			// 25
+		qService,			// 
 
 		qwcmdSize
 	};

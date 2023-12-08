@@ -43,6 +43,48 @@ int SHMTest::qwtfigure(int n, unsigned int flags) {
 	int test = sendCommand(CmdHeader::qFigure, n, flags);
 	return test;
 }
+int SHMTest::qwtspectrogram(int n, unsigned int flags) {
+	if (status != 0) return 0;
+	int test = sendCommand(CmdHeader::qSpectrogram, n, flags);
+	return test;
+}
+int SHMTest::spectrogram_info(const SpectrogramInfo& info) {
+	if (status != 0) return 0;
+	using namespace boost::interprocess;
+
+	//   check max size on the other side:
+	pd.hdr->mutex.lock();
+	long long a = pd.hdr->dataSize;
+	pd.hdr->mutex.unlock();
+	long long size = info.nx * info.ny;
+	if (a < size) {
+		xmprintf(3, "\tSHMTest::spectrogram_info: inc seg size (1); current size = %lld \n", a);
+		resizeData(size);
+	}
+	xmprintf(3, "SHMTest::spectrogram_info(); size = %d;  locking ..\n", size);
+	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(3, "\tSHMTest::spectrogram_info();  locked ..\n");
+
+	//  now lets plot
+	xmprintf(6, "\tSHMTest::spectrogram_info: copying .. \n");
+	pd.hdr->size = size;
+	pd.hdr->xSize = info.nx;
+	pd.hdr->ySize = info.ny;
+	pd.hdr->xMin = info.xmin;
+	pd.hdr->xMax = info.xmax;
+	pd.hdr->yMin = info.ymin;
+	pd.hdr->yMax = info.ymax;
+	memcpy(pd.data, info.z, sizeof(double) * size);
+
+	pd.hdr->cmd = CmdHeader::qSpectrogramInfo;
+
+	xmprintf(3, "\tSHMTest::spectrogram_info(); notifying..\n");
+	pd.hdr->cmdWait.notify_all();
+	xmprintf(3, "\tSHMTest::spectrogram_info();  waiting ..\n");
+	pd.hdr->workDone.wait(lock);
+	xmprintf(3, "\tSHMTest::spectrogram_info();  done\n");
+}
+
 void SHMTest::qwtClipGroup(int gr) {
 	if (status != 0) return;
 	sendCommand(CmdHeader::qSetClipGroup, gr);

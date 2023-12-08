@@ -46,6 +46,7 @@ struct LineItemInfo;
 class BCUdpClient;
 class BCUdpServer;
 #endif
+struct SpectrogramInfo;
 
 /*
 class PlotsInterfaceModel: public QStandardItemModel {
@@ -81,6 +82,7 @@ public:
 	void xlabel(const std::string& s);
 	int service(int x);
 	void ylabel(const std::string& s);
+	void setSpectrogramInfo(const SpectrogramInfo& info);
 	void setClipGroup(int cg);
 	/** change marker mode for new plots
 
@@ -184,7 +186,7 @@ protected:
 	/// 	(to the local host and some port)
 	void sendClipInfo(double t1, double t2, int clipGroup);
 #endif
-	JustAplot*	cf;	
+	JustAplot*	cf = nullptr;	
 	QWidget* parent;
 	int currentClipGroup;
 	/** marker - related stuff

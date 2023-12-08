@@ -143,6 +143,23 @@ Q_INVOKABLE int QWorker::mgl_meshImpl(int xSize, int ySize,
 	return 0;
 }
 #endif
+void QWorker::spectrogram_info(const SpectrogramInfo& info) {
+	int rv;
+	xmprintf(4, "QWorker::spectrogram_info start \n");
+	if (!QMetaObject::invokeMethod(this, "spectrogram_info_impl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
+		Q_ARG(int, info.nx), Q_ARG(int, info.ny),
+		Q_ARG(double, info.xmin), Q_ARG(double, info.xmax), Q_ARG(double, info.ymin), Q_ARG(double, info.ymax),
+		Q_ARG(double*, info.z))) {
+
+		std::cout << " cannot invoke spectrogram_info" << std::endl;
+	}
+	xmprintf(4, "QWorker::spectrogram_info finished \n");
+}
+
+Q_INVOKABLE int  QWorker::spectrogram_info_impl(int nx, int ny, double xmin, double xmax, double ymin, double ymax, double* z) {
+	pf->setSpectrogramInfo(SpectrogramInfo{nx, ny, xmin, xmax, ymin, ymax, z});
+	return 0;
+}
 
 int QWorker::qVersion(char* vstr, int vstr_size) {
 #ifdef WIN32
@@ -246,6 +263,15 @@ int QWorker::qwtfigure(int n, unsigned int flags) {
 	}
 	return rv;
 }
+int QWorker::qwtSpectrogram(int n, unsigned int flags) {
+	int rv = 0;
+	if (!QMetaObject::invokeMethod(this, "qwtSpectrogramImpl", Qt::BlockingQueuedConnection,
+		Q_RETURN_ARG(int, rv), Q_ARG(int, n), Q_ARG(unsigned int, flags))) {
+		std::cout << " cannot invoke qwtSpectrogramImpl" << std::endl;
+	}
+	return rv;
+
+}
 
 int QWorker::qwtservice(int x) {
 	int rv = 0;
@@ -327,6 +353,11 @@ Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 
 Q_INVOKABLE int QWorker::qwtfigureImpl(int n, unsigned int flags) {
 	JustAplot*  test = pf->figure(n, jQWT, flags);
+	return (test == 0) ? 0 : test->iKey;
+}
+
+Q_INVOKABLE int QWorker::qwtSpectrogramImpl(int n, unsigned int flags) {
+	JustAplot* test = pf->figure(n, jQwSpectrogram, flags);
 	return (test == 0) ? 0 : test->iKey;
 }
 
