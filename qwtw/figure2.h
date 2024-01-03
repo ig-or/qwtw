@@ -41,7 +41,6 @@
 #include <qwt_scale_engine.h>
 
 #include "justaplot.h"
-
 #include "ui_lineselect.h"
 
 class QwtPlotCurve;
@@ -209,7 +208,7 @@ public:
 	virtual void replot();
 
 
-	void setAxesEqual();
+	//void setAxesEqual();
 	virtual void removeLine(LineItemInfo* line);
 	virtual void changeLine(LineItemInfo* line, double* x, double* y, double* z, double* time, int size);
 	void addVMarker();

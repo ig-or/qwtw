@@ -7,10 +7,13 @@
 #include <qwt_scale_draw.h>
 #include <qwt_plot_zoomer.h>
 #include <qwt_plot_panner.h>
+#include <qwt_plot_magnifier.h>
 #include <qwt_plot_layout.h>
 #include <qwt_plot_renderer.h>
 #include <qwt_picker_machine.h>
 #include <qwt_interval.h>
+#include <qwt_scale_engine.h>
+#include <qwt_scale_map.h>
 #include <qpen.h>
 #include <qtoolbar.h>
 #include <qstatusbar.h>
@@ -57,6 +60,60 @@ public:
 
         return rect;
     }
+protected:
+    void rescale() {
+        //QwtPlotZoomer::rescale();
+        //return;
+
+        QwtPlot* plt = plot();
+        if (!plt)
+            return;
+
+        const QRectF& rect = zoomRect();
+        if (rect != scaleRect())
+        {
+            const bool doReplot = plt->autoReplot();
+            plt->setAutoReplot(false);
+
+            double x1 = rect.left();
+            double x2 = rect.right();
+            double y1 = rect.top();
+            double y2 = rect.bottom();
+
+            if (shouldKeepAxesEqual == false) {
+                if (!plt->axisScaleDiv(xAxis()).isIncreasing())
+                    qSwap(x1, x2);
+                plt->setAxisScale(xAxis(), x1, x2);
+
+                if (!plt->axisScaleDiv(yAxis()).isIncreasing())
+                    qSwap(y1, y2);
+                plt->setAxisScale(yAxis(), y1, y2);
+            } else {
+                QwtScaleMap smY = plt->canvasMap(QwtPlot::yLeft);
+                QwtScaleMap smX = plt->canvasMap(QwtPlot::xBottom);
+
+                double xScale = smX.pDist() / fabs(x2 - x1);
+                double yScale = smY.pDist() / fabs(y2 - y1);
+
+                if (xScale < yScale) { //  change Y scale
+                    double ysMiddle = (y1 + y2) * 0.5;
+                    double dy = (smY.pDist() / xScale) * 0.5;
+                    plt->setAxisScale(QwtPlot::yLeft, ysMiddle - dy, ysMiddle + dy);
+                    plt->setAxisScale(QwtPlot::xBottom, x1, x2);
+                } else { //  change X scale
+                    double xsMiddle = (x1 + x2) * 0.5;
+                    double dx = (smX.pDist() / yScale) * 0.5;
+                    plt->setAxisScale(QwtPlot::xBottom, xsMiddle - dx, xsMiddle + dx);
+                    plt->setAxisScale(QwtPlot::yLeft, y1, y2);
+                }
+            }
+
+            plt->setAutoReplot(doReplot);
+
+            plt->replot();
+        }
+    }
+
 private:
     bool shouldKeepAxesEqual = false;
     QwtRasterData* rd = nullptr;
@@ -377,6 +434,9 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
 
     setColorMap(QSpectrogram::RGBMap);
 
+    // zoom in/out with the wheel
+    (void) new QwtPlotMagnifier(canvas());
+
     // LeftButton for the zooming
     // MidButton for the panning
     // RightButton: zoom out by 1
@@ -493,6 +553,19 @@ void QSpectrogram::setAlpha(int) {
 void QSpectrogram::setAxesEqual() {
     zoomer->keepAxesEqual(true);
 }
+void QSpectrogram::resizeEvent(QResizeEvent* e) {
+    QwtPlot::resizeEvent(e);
+    if (squareAxis) {
+        doSquareAxis();
+    }
+}
+void QSpectrogram::setAxisSquare(bool square) {
+    squareAxis = square;
+    if (squareAxis) {
+        doSquareAxis();
+    }
+    zoomer->keepAxesEqual(square);
+}
 
 void QSpectrogram::drawItems(QPainter* painter, const QRectF& canvasRect,
     const QwtScaleMap maps[axisCnt]) const
@@ -524,6 +597,35 @@ void QSpectrogram::enablePicker(bool e) {
     picker->setEnabled(e);
     zoomer->setEnabled(!e);
 }
+
+void QSpectrogram::doSquareAxis() {
+    const bool doReplot = autoReplot();
+    setAutoReplot(false);
+
+    QwtScaleMap smY = canvasMap(QwtPlot::yLeft);
+    QwtScaleMap smX = canvasMap(QwtPlot::xBottom);
+
+    double dxS = smX.sDist();
+    double dyS = smY.sDist();
+
+    double xScale = smX.pDist() / smX.sDist();
+    double yScale = smY.pDist() / smY.sDist();
+
+
+    if (xScale < yScale) { //  change Y scale
+        double ysMiddle = (smY.s1() + smY.s2()) * 0.5;
+        double dy = (smY.pDist() / xScale) * 0.5;
+        setAxisScale(QwtPlot::yLeft, ysMiddle - dy, ysMiddle + dy);
+    } else { //  change X scale
+        double xsMiddle = (smX.s1() + smX.s2()) * 0.5;
+        double dx = (smX.pDist() / yScale) * 0.5;
+        setAxisScale(QwtPlot::xBottom, xsMiddle - dx, xsMiddle + dx);
+    }
+
+    setAutoReplot(doReplot);
+    replot();
+}
+
 
 
 QSpectrogramPlot::QSpectrogramPlot(const std::string& key_, XQPlots* pf_, QWidget* parent, unsigned int flags_) : 
@@ -779,10 +881,14 @@ void QSpectrogramPlot::onClip(double t1, double t2) {
 void QSpectrogramPlot::replot() {
     spectrogram->replot();
 }
-
+/*
 void QSpectrogramPlot::setAxesEqual() {
-    
+    squareAxis = square;
+    if (squareAxis) {
+        doSquareAxis();
+    }
 }
+*/
 
 void QSpectrogramPlot::closeEvent(QCloseEvent* event) {
 
@@ -840,8 +946,8 @@ void QSpectrogramPlot::onTbFFT() {
 
     }
 void QSpectrogramPlot::onTbSquareAxis(bool checked) {
-
-    }
+    spectrogram->setAxisSquare(checked);
+}
 
 
 

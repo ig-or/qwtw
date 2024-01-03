@@ -31,6 +31,7 @@ public:
     };
 
     QSpectrogram(QWidget* = NULL, unsigned int flags_ = 0);
+	virtual void resizeEvent(QResizeEvent* e);
 
 Q_SIGNALS:
     void rendered(const QString& status);
@@ -43,13 +44,18 @@ public Q_SLOTS:
     void setColorTableSize(int);
     void setAlpha(int);
 	void setAxesEqual();
+	
+	void setAxisSquare(bool square);
 	void setInfo(const SpectrogramInfo& info);
 	void onPickerSelection(const QPolygon&);
 	void onPickerMove(const QPoint&);
 	void enablePicker(bool);
 private:
+	bool	squareAxis = false;
     virtual void drawItems(QPainter*, const QRectF&,
         const QwtScaleMap maps[axisCnt]) const QWT_OVERRIDE;
+
+	void doSquareAxis();
 
     QwtPlotSpectrogram* d_spectrogram;
 	MyZoomer* zoomer;
@@ -74,7 +80,7 @@ public:
 	virtual void makeMarkersVisible(bool visible);
 	virtual void onClip(double t1, double t2);
 	virtual void replot();
-	void setAxesEqual();
+	//void setAxesEqual();
 	void setInfo(const SpectrogramInfo& info);
 
 	QVBoxLayout* verticalLayout;
@@ -100,7 +106,8 @@ protected:
 	int mouseMode;///< figure gui mode
 	unsigned int flags;
 	bool	tbModeChanging;
-	bool clipperHost;
+	bool	clipperHost;
+	
 	//QwtPlotPanner* panner;
 
 	std::string sTitle;
@@ -114,6 +121,8 @@ protected:
 	void onPickerSignal(int x, int y);
 	void focusInEvent(QFocusEvent* event);
 	void keyPressEvent(QKeyEvent* k);
+	
+	
 
 	
 private:

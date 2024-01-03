@@ -1752,9 +1752,9 @@ void Figure2::onClip(double t1, double t2) {
 	plot1->replot(); // ?
 }
 
-void Figure2::setAxesEqual() {
-	zoomer->keepEqual(true);
-}
+//void Figure2::setAxesEqual() {
+//	zoomer->keepEqual(true);
+//}
 
 SLDialog::SLDialog(std::list<FigureItem*> lines, QWidget *parent) : QDialog(parent) {
 	ui.setupUi(this);
