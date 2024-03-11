@@ -61,6 +61,23 @@ int SHMTest::spectrogram_info(const SpectrogramInfo& info) {
 		xmprintf(3, "\tSHMTest::spectrogram_info: inc seg size (1); current size = %lld \n", a);
 		resizeData(size);
 	}
+
+	// do we have additional info? 
+	bool haveExtInfo = false;
+	if ((info.p != 0) || (info.t != 0)) {
+		haveExtInfo = true;
+	}
+	if (haveExtInfo) {  //  if yes, check the size
+		pd.hdr->mutex.lock();
+		long long a = pd.hdr->segSize;
+		pd.hdr->mutex.unlock();
+
+		if (a < size*3) {
+			xmprintf(3, "\tSHMTest::spectrogram_info: inc seg size (2); current size = %lld \n", a);
+			resize(size*3);
+		}
+	}
+
 	xmprintf(3, "SHMTest::spectrogram_info(); size = %d;  locking ..\n", size);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	xmprintf(3, "\tSHMTest::spectrogram_info();  locked ..\n");
@@ -76,7 +93,20 @@ int SHMTest::spectrogram_info(const SpectrogramInfo& info) {
 	pd.hdr->yMax = info.ymax;
 	memcpy(pd.data, info.z, sizeof(double) * size);
 
+	pd.hdr->flags = 0;
+	if (haveExtInfo) {
+		if (info.t != 0) {
+			pd.hdr->flags |= 1;
+			memcpy(pd.t, info.t, sizeof(double) * size);
+		}
+		if ((info.p != 0)) {
+			pd.hdr->flags |= 2;
+			memcpy(pd.x, info.p, sizeof(double) * size * 3);
+		}
+	}
+
 	pd.hdr->cmd = CmdHeader::qSpectrogramInfo;
+	//  at this point, all the info is copied
 
 	xmprintf(3, "\tSHMTest::spectrogram_info(); notifying..\n");
 	pd.hdr->cmdWait.notify_all();

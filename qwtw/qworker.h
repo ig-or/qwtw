@@ -49,7 +49,7 @@ class QWorker : public QObject {
 		double* data, const char* name,
 		const char* style,
 		int type);
-	Q_INVOKABLE int spectrogram_info_impl(int nx, int ny, double xmin, double xmax, double ymin, double ymax, double* z);
+	Q_INVOKABLE int spectrogram_info_impl(const SpectrogramInfo& info);
 #endif
 
 public:

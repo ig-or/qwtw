@@ -1,5 +1,6 @@
 
 #include "spectrogram.h"
+#include "sfigure.h"
 
 #include <qwt_color_map.h>
 #include <qwt_plot_spectrogram.h>
@@ -14,6 +15,8 @@
 #include <qwt_interval.h>
 #include <qwt_scale_engine.h>
 #include <qwt_scale_map.h>
+#include <qwt_plot_marker.h>
+#include <qwt_symbol.h>
 #include <qpen.h>
 #include <qtoolbar.h>
 #include <qstatusbar.h>
@@ -25,156 +28,123 @@
 #include <cmath>
 
 int xmprintf(int level, const char* _Format, ...);
+class SpectrogramData;
+class QSpectrogramPlot;
 
-class MyZoomer : public QwtPlotZoomer  {
-public:
-    MyZoomer(QWidget* canvas, QwtRasterData* rd_) :
-        QwtPlotZoomer(canvas), rd(rd_)
-    {
-        setTrackerMode(AlwaysOn);
+SpStatInfo::SpStatInfo(const SpectrogramInfo& si, int n1) {
+    double a1 = sqrt((si.nx * si.ny) / ((double)(n1))); //  how many 'ponts' in one spCell ??    sqrt
+    int a = std::roundl(a1);
+    if (a < 1) {
+        a = 1;
     }
-
-    virtual QwtText trackerTextF(const QPointF& pos) const QWT_OVERRIDE    {
-        QColor bg(Qt::white);
-        bg.setAlpha(185);
-        double x = pos.x();
-        double y = pos.y();
-        double z = rd->value(x, y);
-        char stmp[256];
-        snprintf(stmp, 256, "%.4f (%.4f, %4f)", z, x, y);
-        stmp[255] = 0;
-        QwtText text = QString::fromUtf8(stmp);
-        text.setBackgroundBrush(QBrush(bg));
-        QFont font("Helvetica [Cronyx]", 12);
-        text.setFont(font);
-        return text;
-    }
-    void keepAxesEqual(bool e) {
-        shouldKeepAxesEqual = e;
-    }
-    void replaceRasterData(QwtRasterData* rd_) {
-        rd = rd_;
-    }
-    virtual QRect trackerRect(const QFont& f) const QWT_OVERRIDE {
-        QRect rect = QwtPicker::trackerRect(f);
-
-        return rect;
-    }
-protected:
-    void rescale() {
-        //QwtPlotZoomer::rescale();
-        //return;
-
-        QwtPlot* plt = plot();
-        if (!plt)
-            return;
-
-        const QRectF& rect = zoomRect();
-        if (rect != scaleRect())
-        {
-            const bool doReplot = plt->autoReplot();
-            plt->setAutoReplot(false);
-
-            double x1 = rect.left();
-            double x2 = rect.right();
-            double y1 = rect.top();
-            double y2 = rect.bottom();
-
-            if (shouldKeepAxesEqual == false) {
-                if (!plt->axisScaleDiv(xAxis()).isIncreasing())
-                    qSwap(x1, x2);
-                plt->setAxisScale(xAxis(), x1, x2);
-
-                if (!plt->axisScaleDiv(yAxis()).isIncreasing())
-                    qSwap(y1, y2);
-                plt->setAxisScale(yAxis(), y1, y2);
-            } else {
-                QwtScaleMap smY = plt->canvasMap(QwtPlot::yLeft);
-                QwtScaleMap smX = plt->canvasMap(QwtPlot::xBottom);
-
-                double xScale = smX.pDist() / fabs(x2 - x1);
-                double yScale = smY.pDist() / fabs(y2 - y1);
-
-                if (xScale < yScale) { //  change Y scale
-                    double ysMiddle = (y1 + y2) * 0.5;
-                    double dy = (smY.pDist() / xScale) * 0.5;
-                    plt->setAxisScale(QwtPlot::yLeft, ysMiddle - dy, ysMiddle + dy);
-                    plt->setAxisScale(QwtPlot::xBottom, x1, x2);
-                } else { //  change X scale
-                    double xsMiddle = (x1 + x2) * 0.5;
-                    double dx = (smX.pDist() / yScale) * 0.5;
-                    plt->setAxisScale(QwtPlot::xBottom, xsMiddle - dx, xsMiddle + dx);
-                    plt->setAxisScale(QwtPlot::yLeft, y1, y2);
+    int nx = std::floorl(si.nx / a) + 1;
+    int ny = std::floorl(si.ny / a) + 1;
+    n = nx * ny;             // real number of spCell
+    int i, j, k1, k2, k, ky, i1;
+    unsigned int x1, x2, y1, y2;
+    double tMin = 0.0;
+    double tMax = 0.0;
+    double t;
+    unsigned int xTmax, yTmax, xTmin, yTmin, kTmin, kTmax;
+    cells.resize(n);
+    y1 = 0;
+    for (i = 0; i < ny; i++) {
+        y2 = y1 + a - 1;
+        if (y2 >= si.ny) {
+            assert(i == ny - 1);
+            y2 = si.ny - 1;
+            assert(y2 > y1);
+        }
+        x1 = 0;
+        i1 = i * nx;
+        for (j = 0; j < nx; j++) {
+            x2 = x1 + a - 1;
+            if (x2 >= si.nx) {
+                assert(j == nx - 1);
+                x2 = si.nx - 1;
+                assert(x2 > x1);
+            }
+            if (si.t != nullptr) {
+                tMax = -DBL_MAX;
+                tMin = DBL_MAX;
+                xTmax = 0; yTmax = 0; xTmin = 0; yTmin = 0; kTmin = 0;  kTmax = 0;
+                for (k1 = y1; k1 <= y2; k1++) {
+                    ky = k1 * si.nx;
+                    for (k2 = x1; k2 <= x2; k2++) {
+                        k = ky + k2;
+                        t = si.t[k];
+                        if (tMax < t) {
+                            tMax = t;
+                            xTmax = k2;
+                            yTmax = k1;
+                            kTmax = k;
+                        }
+                        if (tMin > t) {
+                            tMin = t;
+                            xTmin = k2;
+                            yTmin = k1;
+                            kTmin = k;
+                        }
+                    }
                 }
             }
+            cells[i1 + j] = SpCell{ x1, x2, y1, y2, tMin, tMax, xTmax, yTmax, xTmin, yTmin, kTmin, kTmax};
+            x1 = x2 + 1;
+        }
+        y1 = y2 + 1;
+    }
+    assert(x2 == si.nx - 1);
+    assert(y2 == si.ny - 1);
+    assert(x2 > x1);
+    assert(y2 > y1);
+}
+/*
+const SpCell& SpStatInfo::findT(double t) {
+    for (const auto& a : cells) {
 
-            plt->setAutoReplot(doReplot);
+    }
+    return cells[0];
+}
+*/
 
-            plt->replot();
+void spStatInfoTest(int nx, int ny) {
+    SpectrogramInfo si;
+    si.nx = nx;
+    si.ny = ny;
+    si.xmin = 0.0;
+    si.xmax = 10.0;
+    si.ymin = -0.1;
+    si.ymax = 15.0;
+
+    si.p = 0;
+    si.t = new double[si.nx * si.ny];
+    int i, j, k;
+    for (i = 0; i < nx; i++) {
+        for (j = 0; j < ny; j++) {
+            k = j * nx + i;
+            si.t[k] = i + j;
         }
     }
-
-private:
-    bool shouldKeepAxesEqual = false;
-    QwtRasterData* rd = nullptr;
-};
+    SpStatInfo test(si, 1000);
+    xmprintf(1, "test.n = %d \n", test.n);
+}
 
 class FSPicker2 : public QwtPlotPicker {
 public:
     FSPicker2(int xAxis, int yAxis, RubberBand rubberBand,
         DisplayMode trackerMode, QWidget*);
     QPointF transform1(const QPoint& pos) 	 const;
-    void setRasterData(QwtRasterData* rd_) {
+    void setRasterData(SpectrogramData* rd_) {
         rd = rd_;
     }
 
 protected:
-    QwtRasterData* rd = nullptr;
+    //QwtRasterData* rd = nullptr;
+    SpectrogramData* rd = nullptr;
 
     virtual QwtText FSPicker2::trackerTextF(const QPointF& pos) const;
 
 };
-
-
-FSPicker2::FSPicker2(int xAxis, int yAxis, RubberBand rubberBand,
-    DisplayMode trackerMode, QWidget* canv) :
-    QwtPlotPicker(xAxis, yAxis, rubberBand, trackerMode, canv) {
-
-    /*  d_picker = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
-    QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
-    d_plot->canvas() );
-d_picker->setStateMachine( new QwtPickerDragPointMachine() );
-d_picker->setRubberBandPen( QColor( Qt::green ) );
-d_picker->setRubberBand( QwtPicker::CrossRubberBand );
-d_picker->setTrackerPen( QColor( Qt::white ) );
-
-    */
-
-}
-
-QPointF FSPicker2::transform1(const QPoint& pos) 	 const {
-    QPointF ret = invTransform(pos);
-    return ret;
-}
-
-QwtText FSPicker2::trackerTextF(const QPointF& pos) const {
-    QColor bg(Qt::white);
-    bg.setAlpha(185);
-    double x = pos.x();
-    double y = pos.y();
-    double z = 0.0;
-    if (rd != nullptr) {
-        z = rd->value(x, y);
-    }
-    char stmp[256];
-    snprintf(stmp, 256, "%.4f (%.4f, %4f)", z, x, y);
-    stmp[255] = 0;
-    QwtText text = QString::fromUtf8(stmp);
-    text.setBackgroundBrush(QBrush(bg));
-    QFont font("Helvetica [Cronyx]", 12);
-    text.setFont(font);
-    return text;
-}
 
 
 class LinearColorMap : public QwtLinearColorMap
@@ -251,14 +221,13 @@ private:
 class SpectrogramData : public QwtRasterData
 {
 public:
-    SpectrogramData(const SpectrogramInfo& info)
-    {
+    SpectrogramData(const SpectrogramInfo& info) : statInfo(info)     {
         // some minor performance improvements when the spectrogram item
         // does not need to check for NaN values
         setAttribute(QwtRasterData::WithoutGaps, true);
         
         if ((info.nx < 2) || (info.ny < 2) || (info.xmin > info.xmax) || (info.ymin > info.ymax) || (info.z == 0)) {
-            xmprintf(1, "SpectrogramData: ERROR in parameters \n");
+            xmprintf(1, "SpectrogramData(const SpectrogramInfo& info): ERROR in parameters \n");
             return;
         }
 
@@ -271,12 +240,16 @@ public:
             zData = new double[nz];
             //xData = new double[info.nx];
         } catch (std::exception& ex) {
-            xmprintf(1, "SpectrogramData: ERROR in memory allocation (%s) \n", ex.what());
+            xmprintf(1, "SpectrogramData(const SpectrogramInfo& info): ERROR in memory allocation (1) (%s) \n", ex.what());
+            return;
+        }
+        if (zData == nullptr) {
+            xmprintf(1, "SpectrogramData(const SpectrogramInfo& info): ERROR in memory allocation (4)  \n");
             return;
         }
         //memcpy(xData, info.x, xSize * sizeof(double));
         //memcpy(yData, info.y, ySize * sizeof(double));
-        memcpy(zData, info.z, nz * sizeof(double));
+        memcpy(zData, info.z, nz * sizeof(double));             //  hope that info.z haz correct size
 
         //  save intervals
         xMin = info.xmin; xMax = info.xmax;
@@ -284,6 +257,7 @@ public:
         d_intervals[Qt::XAxis] = QwtInterval(xMin, xMax);
         d_intervals[Qt::YAxis] = QwtInterval(yMin, yMax);
 
+        // calculate z min and z max..   this might take some time
         zMin = std::numeric_limits<double>::max();
         zMax = std::numeric_limits<double>::min();
         for (int i = 0; i < nz; i++) {
@@ -296,6 +270,28 @@ public:
 
         dx = wx / (info.nx - 1.0);
         dy = wy / (info.ny - 1.0);
+
+        try {
+            if ((info.p != 0)) {
+                p = new double[nz * 3];
+                if ((p != nullptr)) {
+                    memcpy(p, info.p, nz * sizeof(double) * 3);
+                } else {
+                    xmprintf(1, "SpectrogramData(const SpectrogramInfo& info): ERROR in memory allocation (3) (out of memory?)\n");
+                }
+            }
+            if ((info.t != 0)) {
+                tt = new double[nz];
+                if ((tt != nullptr)) {
+                    memcpy(tt, info.t, nz * sizeof(double));
+                } else {
+                    xmprintf(1, "SpectrogramData(const SpectrogramInfo& info): ERROR in memory allocation (4) (out of memory?)\n");
+                }
+            }
+        } catch (std::exception& ex) {
+            xmprintf(1, "SpectrogramData(const SpectrogramInfo& info): ERROR in memory allocation (2) (%s) \n", ex.what());
+            return;
+        }
     }
 
     virtual QwtInterval interval(Qt::Axis axis) const QWT_OVERRIDE
@@ -306,13 +302,16 @@ public:
         return QwtInterval();
     }
 
-    virtual double value(double x, double y) const QWT_OVERRIDE
-    {
-        if ((zData == 0) || (xSize == 0)) {
-            return 0;
-        }
-        int ix = 0;
-        int iy = 0;
+    /**
+    * \param[out] iy    vertical index 
+    * \param[out] ix    horizontal index 
+    * \param[out] z the spectrogramm value
+    * \return true if OK
+    */
+    bool d2i(double x, double y, int& ix, int& iy, double& z) const {
+        ix = 0;
+        iy = 0;
+        z = 0.0;
         if (x >= xMax) {
             ix = xSize - 1;
         } else if (x <= xMin) {
@@ -332,8 +331,20 @@ public:
         if (ix >= xSize) ix = xSize - 1;
         if (iy < 0) iy = 0;
         if (iy >= ySize) iy = ySize - 1;
-        return zData[iy * xSize + ix];
+        z = zData[iy * xSize + ix];
+        return true;
+    }
 
+    virtual double value(double x, double y) const QWT_OVERRIDE
+    {
+        if ((zData == 0) || (xSize == 0)) {
+            return 0;
+        }
+        int ix = 0;
+        int iy = 0;
+        double z;
+        bool test = d2i(x, y, ix, iy, z);
+        return z;
     }
     void clearData() {
         /*
@@ -349,6 +360,85 @@ public:
         }
         xSize = 0;
         ySize = 0;
+        if (p != nullptr) {
+            delete[] p; p = nullptr;
+        }
+        if (tt != nullptr) {
+            delete[] tt; tt = nullptr;
+        }
+    }
+
+    /** 
+    * \param[in] i 'vertical' index (y)
+    * \param[in] j (x)
+    * \return the 't' from the indices of the spectrogramm.
+    */
+    double getT(int i, int j) {
+        if (tt == 0) return 0.0;
+        unsigned int k = i * xSize + j;
+        if (k >= xSize * ySize) {
+            return 0.0;
+        }
+        return tt[k];
+    }
+
+    /**
+    * \param[out] xx horizontal coord
+    * \param[out] yy vertical coord
+    *  \param[out] jj horizontal index     (col #)
+    * \param[out] ii vertical index      (row #)
+    \return true if all is OK
+    */
+    bool findT(double t, double& xx, double& yy, int& jj, int& ii) {
+        if (tt == 0) {
+            return false;
+        }
+        xx = 0.0;
+        yy = 0.0;
+        ii = 0;
+        jj = 0;
+        double mdt = DBL_MAX, dt;
+        int i, j, k, raw;
+        bool u = false;
+        for (const auto& a : statInfo.cells) {              //  for every 'cells'
+            if (a.tMax >= t && a.tMin <= t) {                 // 
+                for (i = a.y1; i <= a.y2; i++) {
+                    raw = i * xSize;
+                    for (j = a.x2; j <= a.x2; j++) {
+                        k = raw + j;
+                        dt = fabs(tt[k] - t);
+                        if (mdt > dt) {
+                            mdt = dt;
+                            ii = i;
+                            jj = j;
+                            u = true;
+                        }
+                    }
+                }
+            } else { // out of bounds for this cell, but anyway:
+                dt = fabs(tt[a.kTmin] - t);
+                if (mdt > dt) {
+                    mdt = dt;
+                    ii = a.yTmin;
+                    jj = a.xTmin;
+                    u = true;
+                }
+                dt = fabs(tt[a.kTmax] - t);
+                if (mdt > dt) {
+                    mdt = dt;
+                    ii = a.yTmax;
+                    jj = a.xTmax;
+                    u = true;
+                }
+            }
+        }
+        if (!u) {
+            return false;
+        }
+        xx = dx * jj + xMin;
+        yy = dy * ii + yMin;
+
+        return true;
     }
 
     ~SpectrogramData() {
@@ -360,11 +450,160 @@ private:
     int ySize = 0;          /// number of vertical points
     //double* xData = 0;      // hor points 
     //double* yData = 0;      // ver points
-    double* zData = nullptr;      // the[ xSize x ySize] matrix of all the points
-    double dx, dy;
-    double zMin, zMax, xMin, xMax, yMin, yMax, wx, wy;
+    double* zData = nullptr;        // the[ xSize x ySize] matrix of all the points
+
+    double* p = nullptr;
+    double* tt = nullptr;
+
+    double dx, dy;                  //      size of one pixel
+    double zMin, zMax, xMin, xMax, yMin, yMax, wx, wy;      // 
+    SpStatInfo statInfo;
 };
 
+
+FSPicker2::FSPicker2(int xAxis, int yAxis, RubberBand rubberBand,
+    DisplayMode trackerMode, QWidget* canv) :
+    QwtPlotPicker(xAxis, yAxis, rubberBand, trackerMode, canv) {
+
+    /*  d_picker = new QwtPlotPicker( QwtPlot::xBottom, QwtPlot::yLeft,
+    QwtPlotPicker::CrossRubberBand, QwtPicker::AlwaysOn,
+    d_plot->canvas() );
+d_picker->setStateMachine( new QwtPickerDragPointMachine() );
+d_picker->setRubberBandPen( QColor( Qt::green ) );
+d_picker->setRubberBand( QwtPicker::CrossRubberBand );
+d_picker->setTrackerPen( QColor( Qt::white ) );
+
+    */
+
+}
+
+QPointF FSPicker2::transform1(const QPoint& pos) 	 const {
+    QPointF ret = invTransform(pos);
+    return ret;
+}
+
+QwtText FSPicker2::trackerTextF(const QPointF& pos) const {
+    QColor bg(Qt::white);
+    bg.setAlpha(185);
+    double x = pos.x();
+    double y = pos.y();
+    double z = 0.0;
+    int ix = 0;
+    int iy = 0;
+    double t = 0.0;
+    if (rd != nullptr) {
+        rd->d2i(x, y, ix, iy, z);
+        t = rd->getT(iy, ix);
+    }
+    char stmp[256];
+    snprintf(stmp, 256, "%.3f (%.3f, %.3f)[%d %d] %.3f", z, x, y, ix, iy, t);
+    stmp[255] = 0;
+    QwtText text = QString::fromUtf8(stmp);
+    text.setBackgroundBrush(QBrush(bg));
+    QFont font("Helvetica [Cronyx]", 12);
+    text.setFont(font);
+    return text;
+}
+
+
+class MyZoomer : public QwtPlotZoomer {
+public:
+    MyZoomer(QWidget* canvas, SpectrogramData* rd_) :
+        QwtPlotZoomer(canvas), rd(rd_)
+    {
+        setTrackerMode(AlwaysOn);
+    }
+
+    virtual QwtText trackerTextF(const QPointF& pos) const QWT_OVERRIDE {
+        QColor bg(Qt::white);
+        bg.setAlpha(185);
+        double x = pos.x();
+        double y = pos.y();
+        double z = 0.0;
+        int ix = 0, iy = 0;
+        double t = 0.0;
+        if (rd != 0) {
+            rd->d2i(x, y, ix, iy, z);
+            t = rd->getT(iy, ix);
+        }
+        char stmp[256];
+        snprintf(stmp, 256, "%.3f (%.3f, %.3f)[%d %d] %.3f", z, x, y, ix, iy, t);
+        stmp[255] = 0;
+        QwtText text = QString::fromUtf8(stmp);
+        text.setBackgroundBrush(QBrush(bg));
+        QFont font("Helvetica [Cronyx]", 12);
+        text.setFont(font);
+        return text;
+    }
+    void keepAxesEqual(bool e) {
+        shouldKeepAxesEqual = e;
+    }
+    void replaceRasterData(SpectrogramData* rd_) {
+        rd = rd_;
+    }
+    virtual QRect trackerRect(const QFont& f) const QWT_OVERRIDE {
+        QRect rect = QwtPicker::trackerRect(f);
+
+        return rect;
+    }
+protected:
+    void rescale() {
+        //QwtPlotZoomer::rescale();
+        //return;
+
+        QwtPlot* plt = plot();
+        if (!plt)
+            return;
+
+        const QRectF& rect = zoomRect();
+        if (rect != scaleRect())
+        {
+            const bool doReplot = plt->autoReplot();
+            plt->setAutoReplot(false);
+
+            double x1 = rect.left();
+            double x2 = rect.right();
+            double y1 = rect.top();
+            double y2 = rect.bottom();
+
+            if (shouldKeepAxesEqual == false) {
+                if (!plt->axisScaleDiv(xAxis()).isIncreasing())
+                    qSwap(x1, x2);
+                plt->setAxisScale(xAxis(), x1, x2);
+
+                if (!plt->axisScaleDiv(yAxis()).isIncreasing())
+                    qSwap(y1, y2);
+                plt->setAxisScale(yAxis(), y1, y2);
+            } else {
+                QwtScaleMap smY = plt->canvasMap(QwtPlot::yLeft);
+                QwtScaleMap smX = plt->canvasMap(QwtPlot::xBottom);
+
+                double xScale = smX.pDist() / fabs(x2 - x1);
+                double yScale = smY.pDist() / fabs(y2 - y1);
+
+                if (xScale < yScale) { //  change Y scale
+                    double ysMiddle = (y1 + y2) * 0.5;
+                    double dy = (smY.pDist() / xScale) * 0.5;
+                    plt->setAxisScale(QwtPlot::yLeft, ysMiddle - dy, ysMiddle + dy);
+                    plt->setAxisScale(QwtPlot::xBottom, x1, x2);
+                } else { //  change X scale
+                    double xsMiddle = (x1 + x2) * 0.5;
+                    double dx = (smX.pDist() / yScale) * 0.5;
+                    plt->setAxisScale(QwtPlot::xBottom, xsMiddle - dx, xsMiddle + dx);
+                    plt->setAxisScale(QwtPlot::yLeft, y1, y2);
+                }
+            }
+
+            plt->setAutoReplot(doReplot);
+
+            plt->replot();
+        }
+    }
+
+private:
+    bool shouldKeepAxesEqual = false;
+    SpectrogramData* rd = nullptr;
+};
 
 
 class Spectrogram : public QwtPlotSpectrogram
@@ -408,10 +647,11 @@ private:
 QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
         QwtPlot(parent),
         d_alpha(255)   {
+    spp = (QSpectrogramPlot*)parent;
     d_spectrogram = new Spectrogram();
     d_spectrogram->setRenderThreadCount(0); // use system specific thread count
     d_spectrogram->setCachePolicy(QwtPlotRasterItem::PaintCache);
-
+    legend = "spectrogramm";
     QList<double> contourLevels;
     for (double level = 0.5; level < 10.0; level += 1.0)
         contourLevels += level;
@@ -442,7 +682,7 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
     // RightButton: zoom out by 1
     // Ctrl+RighButton: zoom out to full size
 
-    zoomer = new MyZoomer(canvas(), data);
+    zoomer = new MyZoomer(canvas(), nullptr);
     zoomer->setMousePattern(QwtEventPattern::MouseSelect2,
         Qt::RightButton, Qt::ControlModifier);
     zoomer->setMousePattern(QwtEventPattern::MouseSelect3,
@@ -476,18 +716,82 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
     const QColor c(Qt::darkBlue);
     zoomer->setRubberBandPen(c);
     zoomer->setTrackerPen(c);
+
+    ma = new QwtPlotMarker();
+    ma->setVisible(false);
+    maIsVisible = false;
+    QPen pen;
+    QColor color = Qt::red;
+    pen.setColor(QColor(Qt::darkBlue));
+    pen.setWidth(3);
+    QwtSymbol* pms = new QwtSymbol();
+    pms->setPen(pen);
+    pms->setStyle(QwtSymbol::Diamond);
+    pen.setColor(Qt::darkBlue);
+    pms->setSize(10, 10);
+    pms->setBrush(color);
+    ma->setSymbol(pms);
+    ma->setXValue(100.0);
+    ma->setYValue(50.0);
+    ma->attach(this);
+
+    replot();
+}
+
+QSpectrogram::~QSpectrogram() {
+    //delete d_spectrogram;   this supposed to be deleted automatically, since it was 'attached' 
+    
+//    if (ma != 0) {
+//        delete ma;
+//    }
+
 }
 
 void QSpectrogram::setInfo(const SpectrogramInfo& info) {
-    QwtRasterData* data = new SpectrogramData(info);
-    d_spectrogram->setData(data);
-    zoomer->replaceRasterData(data);
+    if (d_spectrogram == nullptr) {
+        return;
+    }
+    sData = new SpectrogramData(info);  //  this would COPY (memcpy) all the info from 'info' into the 'data'
+    QwtRasterData* data = sData;
+    d_spectrogram->setData(data);           //  data hopefully would be deleted in d_spectrogram  destructor
+    zoomer->replaceRasterData(sData);
     zoomer->setZoomBase();
 
-    picker->setRasterData(data);
+    picker->setRasterData(sData);
     const QwtInterval zInterval = d_spectrogram->data()->interval(Qt::ZAxis);
     setAxisScale(QwtPlot::yRight, zInterval.minValue(), zInterval.maxValue());
     enableAxis(QwtPlot::yRight);
+}
+
+void QSpectrogram::drawMarker(double t) {
+    //ma->setValue(0.0, 0.0);
+    double xx, yy;
+    int ii, jj;
+    if (sData && sData->findT(t, xx, yy, ii, jj)) {
+        ma->setValue(xx, yy);
+        if (!maIsVisible) {
+            maIsVisible = true;
+            ma->setVisible(true);
+        }
+    }
+    //replot();
+}
+
+void QSpectrogram::onPickerSignal(int x, int y) {
+    if (sData == nullptr) {
+        return;
+    }
+    
+    QPointF p = picker->transform1(QPoint(x, y));
+    double xx = p.x();
+    double yy = p.y();
+
+    int ix, iy;
+    double z;
+    
+    sData->d2i(xx, yy, ix, iy, z);
+    double t = sData->getT(iy, ix);
+    spp->picker_t(t);
 }
 
 void QSpectrogram::showContour(bool on) {
@@ -587,12 +891,16 @@ void QSpectrogram::drawItems(QPainter* painter, const QRectF& canvasRect,
 }
 
 void QSpectrogram::onPickerSelection(const QPolygon& pa) {
+    int x = pa.at(0).x();
+    int y = pa.at(0).y();
 
+    onPickerSignal(x, y);
 }
 
 void QSpectrogram::onPickerMove(const QPoint& p) {
-
+    onPickerSignal(p.x(), p.y());
 }
+
 void QSpectrogram::enablePicker(bool e) {
     picker->setEnabled(e);
     zoomer->setEnabled(!e);
@@ -634,6 +942,7 @@ QSpectrogramPlot::QSpectrogramPlot(const std::string& key_, XQPlots* pf_, QWidge
     flags = flags_;
     tbModeChanging = false;
     clipperHost = false;
+    legend = "QSpectrogramPlot";
     spectrogram = new QSpectrogram(this, flags);
     spectrogram->setObjectName(QString::fromUtf8("spectrogram"));
     spectrogram->setContentsMargins(0, 5, 0, 10);    // ????????
@@ -869,7 +1178,7 @@ void QSpectrogramPlot::drawMarker(double X, double Y, int type) {
 
 }
 void QSpectrogramPlot::drawMarker(double t) {
-
+    spectrogram->drawMarker(t);
 }
 void QSpectrogramPlot::makeMarkersVisible(bool visible) {
 
@@ -892,6 +1201,9 @@ void QSpectrogramPlot::setAxesEqual() {
 
 void QSpectrogramPlot::closeEvent(QCloseEvent* event) {
 
+}
+void QSpectrogramPlot::picker_t(double t) {
+    pf->drawAllMarkers2(iKey, 0, 0, 0, 0, lastXselected, lastYselected, t, legend);
 }
 
 void QSpectrogramPlot::removeLines() {

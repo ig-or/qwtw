@@ -1,3 +1,6 @@
+/** everything about the spectrogramm.
+*/
+
 #pragma once
 
 
@@ -19,7 +22,47 @@ class QwtPlotZoomer;
 class QwtPlotPicker;
 class QwtPlotPanner;
 class MyZoomer;
+class SpectrogramData;
+class QwtPlotMarker;
+class QSpectrogramPlot;
 class FSPicker2;
+
+/**
+* info about some part of the spectrogramm.
+*/
+struct SpCell {
+	/// <summary>
+	/// minimum and maximum indices of this particular spCell inside a SpectrogramInfo
+	/// </summary>
+	unsigned int x1, x2, y1, y2;
+	/// <summary>
+	///   min amd max time for this cell
+	/// </summary>
+	double tMin;
+	double tMax;
+
+	unsigned int xTmax, yTmax, xTmin, yTmin, kTmin, kTmax; ///< coords corresponding to tMax and tMin
+};
+
+/**
+* some meta info about the spectrogramm.
+*/
+class SpStatInfo {
+public:
+	std::vector<SpCell> cells;
+	/// <summary>
+	/// create this meta info.
+	/// </summary>
+	/// <param name="si_"></param>
+	/// <param name="n1"></param> approximate number of spCells to create
+	SpStatInfo(const SpectrogramInfo& si, int n1 = 1000);
+	//const SpCell& findT(double t);
+private:
+	int n = 0;
+	
+	//const SpectrogramInfo& si;
+	friend void spStatInfoTest(int nx, int ny);
+};
 
 class QSpectrogram : public QwtPlot {
     Q_OBJECT
@@ -31,6 +74,7 @@ public:
     };
 
     QSpectrogram(QWidget* = NULL, unsigned int flags_ = 0);
+	virtual ~QSpectrogram();
 	virtual void resizeEvent(QResizeEvent* e);
 
 Q_SIGNALS:
@@ -50,21 +94,32 @@ public Q_SLOTS:
 	void onPickerSelection(const QPolygon&);
 	void onPickerMove(const QPoint&);
 	void enablePicker(bool);
+	void drawMarker(double t);
 private:
 	bool	squareAxis = false;
     virtual void drawItems(QPainter*, const QRectF&,
         const QwtScaleMap maps[axisCnt]) const QWT_OVERRIDE;
 
 	void doSquareAxis();
+	void onPickerSignal(int x, int y);
 
-    QwtPlotSpectrogram* d_spectrogram;
-	MyZoomer* zoomer;
-	FSPicker2* picker;
+    QwtPlotSpectrogram* d_spectrogram = nullptr;
+	QSpectrogramPlot* spp;
+	SpectrogramData* sData = nullptr;
+	MyZoomer* zoomer = nullptr;
+	FSPicker2* picker = nullptr;
+	QwtPlotMarker* ma = nullptr;
+	bool maIsVisible = false;
+	std::string legend;
 
     int d_mapType;
     int d_alpha;
 };
 
+
+/**
+This is a dialog window with a spectrogramm.
+*/
 class QSpectrogramPlot : public JustAplot {
 	Q_OBJECT
 public:
@@ -102,6 +157,8 @@ public:
 	void setupUi();
 	void retranslateUi();
 
+	void picker_t(double t);
+
 protected:
 	int mouseMode;///< figure gui mode
 	unsigned int flags;
@@ -122,12 +179,10 @@ protected:
 	void focusInEvent(QFocusEvent* event);
 	void keyPressEvent(QKeyEvent* k);
 	
-	
-
-	
 private:
 	double lastXselected, lastYselected;
 	bool pointWasSelected;
+	std::string legend;
 
 private slots:
 	void ontbPicker(bool checked);

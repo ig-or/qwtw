@@ -23,12 +23,14 @@
 QWorker::QWorker(const std::string& mdp, const std::string& mpp): pf(nullptr) {
 	mdPath = mdp;
 	mpPath = mpp;
+	int id = qRegisterMetaType<SpectrogramInfo>();
 }
 #else
 
 QWorker::QWorker(): pf(nullptr) {
 
 	/*hello();*/ 
+	int id = qRegisterMetaType<SpectrogramInfo>();
 }
 #endif
 void QWorker::onQtAppClosing() {
@@ -146,18 +148,18 @@ Q_INVOKABLE int QWorker::mgl_meshImpl(int xSize, int ySize,
 void QWorker::spectrogram_info(const SpectrogramInfo& info) {
 	int rv;
 	xmprintf(4, "QWorker::spectrogram_info start \n");
-	if (!QMetaObject::invokeMethod(this, "spectrogram_info_impl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
-		Q_ARG(int, info.nx), Q_ARG(int, info.ny),
-		Q_ARG(double, info.xmin), Q_ARG(double, info.xmax), Q_ARG(double, info.ymin), Q_ARG(double, info.ymax),
-		Q_ARG(double*, info.z))) {
 
-		std::cout << " cannot invoke spectrogram_info" << std::endl;
+
+	if (!QMetaObject::invokeMethod(this, "spectrogram_info_impl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
+		Q_ARG(SpectrogramInfo, info))) {
+
+		xmprintf(1, "cannot invoke spectrogram_info \n");
 	}
 	xmprintf(4, "QWorker::spectrogram_info finished \n");
 }
 
-Q_INVOKABLE int  QWorker::spectrogram_info_impl(int nx, int ny, double xmin, double xmax, double ymin, double ymax, double* z) {
-	pf->setSpectrogramInfo(SpectrogramInfo{nx, ny, xmin, xmax, ymin, ymax, z});
+Q_INVOKABLE int  QWorker::spectrogram_info_impl(const SpectrogramInfo& info) {
+	pf->setSpectrogramInfo(info);
 	return 0;
 }
 

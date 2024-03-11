@@ -82,8 +82,34 @@ qwtwc_API		int qwtversion(char* vstr, int vstr_size);
     @return ID of the created plot; this is useful when n == 0
 */
 qwtwc_API 	int qwtfigure(int n, unsigned int flags);
+
+/**
+prepare a spectrogramm plot.
+*/
 qwtwc_API 	int qwtspectrogram(int n, unsigned int flags);
-qwtwc_API   int spectrogram_info(int nx, int ny, double xmin, double xmax, double ymin, double ymax, double* z);
+
+/** Add an info to the spectrogramm plot.
+\param[in] nx horizontal dimension
+\param[in] ny vertical dimension
+\param[in] xmin minimum horizontal coord
+\param[in] xmax
+\param[in] ymin 
+\param[in] ymax maximum vertical coord
+\param[in] z values for every cell. Should be the matrix [nx x ny]
+*/
+qwtwc_API   int spectrogram_info(int ny, int nx, double ymin, double ymax, double xmin, double xmax, double* z);
+
+/** Add an info to the spectrogramm plot.
+parameters:
+* xmin minimum x coord
+* xmax maximum x coord
+* ymin minimum y coord
+* ymax maximum coord
+* z a spectrogramm info. [ny x nx] matrix _in_c_format_ ; cell with coords [i, j] would be z[i * ny + nx]
+* p a 3D array of points associated with every pixel  [3 x ny x nx] array. px[i, j] = p[(i*ny + nx)*3 + 0], pz[i, j] = p[(i*ny + nx)*3 + 2]
+* tt a parameter (timestamp?) value, assiciated with every pixel; tt[i, j] = tt[i * ny + nx]
+*/
+qwtwc_API   int spectrogram_info2(int ny, int nx, double ymin, double ymax, double xmin, double xmax, double* z, double* p, double* tt);
 
 /**
 set current 'clip group';

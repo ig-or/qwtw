@@ -1646,7 +1646,7 @@ void Figure2::replot() {
 }
 
 void Figure2::drawMarker(double t) {
-	JustAplot::drawMarker(t);
+	JustAplot::drawMarker(t);   //  update markers for all the 'linesInfo'
 
 	if(lines.empty()) {
 	   return;

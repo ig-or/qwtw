@@ -375,16 +375,31 @@ void QProcInterface::processCommand(int cmd) {
 			}
 			break;
 #endif
-		case CmdHeader::qSpectrogramInfo:
-			if ((pd.hdr->xSize * pd.hdr->ySize) <= pd.hdr->dataSize) {
-				worker.spectrogram_info(SpectrogramInfo{
-					pd.hdr->xSize,pd.hdr->ySize, pd.hdr->xMin, pd.hdr->xMax,
-					pd.hdr->yMin, pd.hdr->yMax, pd.data });
-			} else {
-				xmprintf(0, "CmdHeader::qSpectrogramInfo: data size error; xSize = %d; ySize = %d; dataSize = %d\n",
+		case CmdHeader::qSpectrogramInfo: {
+			long long size = pd.hdr->xSize * pd.hdr->ySize;
+			if (size > pd.hdr->dataSize) {
+				xmprintf(0, "CmdHeader::qSpectrogramInfo: data size error (1); xSize = %d; ySize = %d; dataSize = %d\n",
 					pd.hdr->xSize, pd.hdr->ySize, pd.hdr->dataSize);
+				break;
 			}
-			break;
+			if ((pd.hdr->flags != 0) && (pd.hdr->segSize < size*3)) {
+				xmprintf(0, "CmdHeader::qSpectrogramInfo: data size error (2); xSize = %d; ySize = %d; segSize = %dl flags = %d\n",
+					pd.hdr->xSize, pd.hdr->ySize, pd.hdr->segSize, pd.hdr->flags);
+				break;
+			}
+			SpectrogramInfo si = SpectrogramInfo{
+					pd.hdr->xSize,pd.hdr->ySize, pd.hdr->xMin, pd.hdr->xMax,
+					pd.hdr->yMin, pd.hdr->yMax, pd.data, 0, 0};
+			if (pd.hdr->flags & 1) {
+				si.t = pd.t;
+			}
+			if (pd.hdr->flags & 2) {
+				si.p = pd.x;
+			}
+			
+			worker.spectrogram_info(si);
+		}
+		break;
 
 		case CmdHeader::qTitle:
 			worker.qwttitle(pd.hdr->name);

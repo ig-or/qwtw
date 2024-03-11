@@ -724,7 +724,7 @@ void XQPlots::pFilterThreadF() {
 #ifdef ENABLE_UDP_SYNC
 			sendPickerInfo(cbi);  // send out UDP about the callback
 
-			if (broadCastInfo != 0) {  //  send one more UDP?
+			if ((broadCastInfo != 0) && (cbiLocal.time > 1.0e-8) && (cbiLocal.type == 1)) {  //  send one more UDP? this works if we have valid time stamp
 				mxat(broadCastInfo->size > 0);
 				long long i = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, cbiLocal.time);
 				broadCastInfo->ma.index = i;
