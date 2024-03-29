@@ -221,6 +221,12 @@ private:
 class SpectrogramData : public QwtRasterData
 {
 public:
+    double dx, dy;                  //      size of one pixel
+    double zMin, zMax, xMin, xMax, yMin, yMax, wx, wy;      // 
+    double* p = nullptr;
+    double* tt = nullptr;
+
+
     SpectrogramData(const SpectrogramInfo& info) : statInfo(info)     {
         // some minor performance improvements when the spectrogram item
         // does not need to check for NaN values
@@ -381,6 +387,15 @@ public:
         }
         return tt[k];
     }
+    bool getP(int i, int j, double* dst) {
+        if (p == 0) return false;
+        unsigned int k = i * xSize + j;
+        if (k >= xSize * ySize) {
+            return 0.0;
+        }
+        memcpy(dst, p + k * 3, sizeof(double) * 3);
+        return true;
+    }
 
     /**
     * \param[out] xx horizontal coord
@@ -452,11 +467,7 @@ private:
     //double* yData = 0;      // ver points
     double* zData = nullptr;        // the[ xSize x ySize] matrix of all the points
 
-    double* p = nullptr;
-    double* tt = nullptr;
 
-    double dx, dy;                  //      size of one pixel
-    double zMin, zMax, xMin, xMax, yMin, yMax, wx, wy;      // 
     SpStatInfo statInfo;
 };
 
@@ -761,6 +772,7 @@ void QSpectrogram::setInfo(const SpectrogramInfo& info) {
     const QwtInterval zInterval = d_spectrogram->data()->interval(Qt::ZAxis);
     setAxisScale(QwtPlot::yRight, zInterval.minValue(), zInterval.maxValue());
     enableAxis(QwtPlot::yRight);
+    setColorMap(QSpectrogram::RGBMap);
 }
 
 void QSpectrogram::drawMarker(double t) {
@@ -790,8 +802,16 @@ void QSpectrogram::onPickerSignal(int x, int y) {
     double z;
     
     sData->d2i(xx, yy, ix, iy, z);
-    double t = sData->getT(iy, ix);
-    spp->picker_t(t);
+    if (sData->tt != nullptr) {
+        double t = sData->getT(iy, ix);
+        spp->picker_t(t);
+    }
+    if (sData->p != nullptr) {
+        double point[3];
+        if (sData->getP(iy, ix, point)) {
+            spp->picker_p(point);
+        }
+    }
 }
 
 void QSpectrogram::showContour(bool on) {
@@ -913,20 +933,44 @@ void QSpectrogram::doSquareAxis() {
     QwtScaleMap smY = canvasMap(QwtPlot::yLeft);
     QwtScaleMap smX = canvasMap(QwtPlot::xBottom);
 
+    double qsx1 = sData->xMin;
+    double qsx2 = sData->xMax;
+    double qsy1 = sData->yMin;
+    double qsy2 = sData->yMax;
+
+
     double dxS = smX.sDist();
     double dyS = smY.sDist();
 
-    double xScale = smX.pDist() / smX.sDist();
-    double yScale = smY.pDist() / smY.sDist();
+    dxS = qsx2 - qsx1;
+    dyS = qsy2 - qsy1;
+
+    double pxS = smX.pDist();
+    double pyS = smY.pDist();
+
+    double xScale = pxS / dxS;
+    double yScale = pyS / dyS;
 
 
     if (xScale < yScale) { //  change Y scale
-        double ysMiddle = (smY.s1() + smY.s2()) * 0.5;
-        double dy = (smY.pDist() / xScale) * 0.5;
+        double s1 = smY.s1();
+        double s2 = smY.s2();
+
+        s1 = qsy1;
+        s2 = qsy2;
+
+        double ysMiddle = (s1+s2) * 0.5;
+        double dy = (pyS / xScale) * 0.5;
         setAxisScale(QwtPlot::yLeft, ysMiddle - dy, ysMiddle + dy);
     } else { //  change X scale
-        double xsMiddle = (smX.s1() + smX.s2()) * 0.5;
-        double dx = (smX.pDist() / yScale) * 0.5;
+        double s1 = smX.s1();
+        double s2 = smX.s2();
+
+        s1 = qsx1;
+        s2 = qsx2;
+
+        double xsMiddle = (s1 + s2) * 0.5;
+        double dx = (pxS / yScale) * 0.5;
         setAxisScale(QwtPlot::xBottom, xsMiddle - dx, xsMiddle + dx);
     }
 
@@ -1204,6 +1248,9 @@ void QSpectrogramPlot::closeEvent(QCloseEvent* event) {
 }
 void QSpectrogramPlot::picker_t(double t) {
     pf->drawAllMarkers2(iKey, 0, 0, 0, 0, lastXselected, lastYselected, t, legend);
+}
+void QSpectrogramPlot::picker_p(double* p) {
+    pf->draw3DpointMArker(iKey, p);
 }
 
 void QSpectrogramPlot::removeLines() {

@@ -158,6 +158,7 @@ public:
 	void retranslateUi();
 
 	void picker_t(double t);
+	void picker_p(double* p);
 
 protected:
 	int mouseMode;///< figure gui mode

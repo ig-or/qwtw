@@ -149,6 +149,7 @@ public:
 	/// <param name="legend"> legend of the selected line </param>
 	/// <returns></returns>
 	Q_INVOKABLE void drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend);
+	Q_INVOKABLE void draw3DpointMArker(int figureID, double* point);
 
 	Q_INVOKABLE void drawAllMarkers(double t);
 	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0, JustAplot* p = nullptr);

@@ -732,6 +732,9 @@ void XQPlots::pFilterThreadF() {
 					sendBroadcast(broadCastInfo->x[i], broadCastInfo->y[i], broadCastInfo->z[i]);
 				}
 			}
+			if (cbiLocal.type == 4) { //  just the point coords
+				sendBroadcast(cbiLocal.x, cbiLocal.y, cbiLocal.z);
+			}
 #endif
 		}	else {
 			pFilterMutex.unlock();
@@ -739,6 +742,26 @@ void XQPlots::pFilterThreadF() {
 
 		std::this_thread::sleep_for(100ms);
 	}
+}
+
+Q_INVOKABLE void XQPlots::draw3DpointMArker(int figureID, double* point) {
+	CBPickerInfo cbi1;
+	cbi1.index = 0;
+	//strncpy(cbi1.label, legend.c_str(), cbi1.lSize);
+	cbi1.lineID = 0;
+	cbi1.plotID = figureID;
+	cbi1.time = 0.0;
+	cbi1.type = 4;
+	cbi1.x = point[0];
+	cbi1.y = point[1];
+	cbi1.z = point[2];
+	cbi1.xx = 0;
+	cbi1.yy = 0;
+
+	pFilterMutex.lock();
+	haveNewPickerInfo = true;
+	memcpy(&cbi, &cbi1, sizeof(cbi));
+	pFilterMutex.unlock();
 }
 
 Q_INVOKABLE void XQPlots::drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend) {
