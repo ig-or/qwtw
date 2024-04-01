@@ -29,10 +29,15 @@ if (WITH_UDP_SYNC)
 endif()
 
 add_definitions(-DXMPRINTF_TO_FILE)
-if(WIN32)
+
+if(MSVC)
 	add_definitions( /std:c++20 )
 else()
-	add_definitions( -std=c++2a )
+	if(UNIX)
+		add_definitions( -std=c++2a )
+	else() # g++ for Windows ?
+		add_definitions( -std=c++2a )
+	endif()
 endif()
 
 if (USE_MGL)

@@ -26,10 +26,15 @@ addSourceFiles("common" "../../common"
 
 #add_definitions(-DUNICODE -D_UNICODE)
 add_definitions(-DqqwtwEXPORTS -DqwtwcEXPORTS)
-if(WIN32)
+
+if(MSVC)
 	add_definitions( /std:c++20 )
 else()
-	add_definitions( -std=c++2a )
+	if(UNIX)
+		add_definitions( -std=c++2a )
+	else() # g++ for Windows ?
+		add_definitions( -std=c++2a )
+	endif()
 endif()
 
 #add_definitions(-DXMPRINTF_TO_FILE)
