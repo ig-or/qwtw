@@ -144,7 +144,7 @@ protected:
     //QwtRasterData* rd = nullptr;
     SpectrogramData* rd = nullptr;
 
-    virtual QwtText FSPicker2::trackerTextF(const QPointF& pos) const;
+    virtual QwtText trackerTextF(const QPointF& pos) const;
 
 };
 

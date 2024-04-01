@@ -113,6 +113,8 @@ int SHMTest::spectrogram_info(const SpectrogramInfo& info) {
 	xmprintf(3, "\tSHMTest::spectrogram_info();  waiting ..\n");
 	pd.hdr->workDone.wait(lock);
 	xmprintf(3, "\tSHMTest::spectrogram_info();  done\n");
+
+	return 0;
 }
 
 void SHMTest::qwtClipGroup(int gr) {
@@ -466,7 +468,7 @@ void SHMTest::qwtclear() {
 void SHMTest::qsetloglevel(int level) {
 	//int tmp = xmPrintLevel;
 	//xmPrintLevel = 10;
-	sendCommand(CmdHeader::qSetLogLevel, level);
+	int result = sendCommand(CmdHeader::qSetLogLevel, level);
 	//xmPrintLevel = tmp; // level
 }
 
@@ -480,18 +482,35 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	if (text != 0) {
 		strncpy(pd.hdr->name, text, CmdHeader::nameSize);
 	}
-	boost::interprocess::cv_status wResult;
-	for (int nCounter = 25; nCounter > 0; nCounter--) {
+#if (BOOST_VERSION >= 107800)
+	boost::interprocess::cv_status wResult;		//  boost 1.78 ? 
+#else
+	bool wResult76 = false;							//  boost 1.76
+#endif
+
+	for (int nCounter = 16; nCounter > 0; nCounter--) {
 		pd.hdr->cmdWait.notify_all();
 		pd.hdr->cmdWait.notify_all();
 		xmprintf(4, "\t  SHMTest::sendCommand(%d, %s): start waiting (%d) ..\n", static_cast<int>(cmd), text, nCounter);
 		//pd.hdr->workDone.wait(lock);
-		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(50));
-		if (wResult == cv_status::no_timeout) {
+#if (BOOST_VERSION >= 107800)
+		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(75));
+		if (wResult == cv_status::no_timeout) {  //  condition worked, no timeout 
 			break;
 		}
+#else             // boost 1.76:
+		boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(75);
+		wResult76 = pd.hdr->workDone.timed_wait(lock, timeout);
+		if (wResult76) { //  condition worked, no timeout 
+			break;
+		}
+#endif
 	}
-	if (wResult == boost::interprocess::cv_status::no_timeout) {
+#if (BOOST_VERSION >= 107800)
+	if (wResult == cv_status::no_timeout) {
+#else
+	if (wResult76) {
+#endif
 		xmprintf(4, "\tSHMTest::sendCommand(%d, %s): complete\n", static_cast<int>(cmd), text);
 
 		int test = pd.hdr->test;
@@ -501,6 +520,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 		xmprintf(4, "\tSHMTest::sendCommand(%d, %s): TIMEOUT 1\n");
 		return -1;
 	}
+	return 0;
 }
 int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	if (status != 0) return 0;
@@ -512,18 +532,36 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	pd.hdr->test = v;
 	pd.hdr->flags = flags;
 
-	boost::interprocess::cv_status wResult;
-	for (int nCounter = 25; nCounter > 0; nCounter--) {
+	int bv = BOOST_VERSION;
+#if (BOOST_VERSION >= 107800)
+	boost::interprocess::cv_status wResult;		//  boost 1.78 ? 
+#else
+	bool wResult76 = false;							//  boost 1.76
+#endif
+	for (int nCounter = 16; nCounter > 0; nCounter--) {
 		pd.hdr->cmdWait.notify_all();
 		pd.hdr->cmdWait.notify_all();
 		xmprintf(4, "\t %d SHMTest::sendCommand(%d, %d): start waiting ..\n", nCounter, static_cast<int>(cmd), v);
-		//pd.hdr->workDone.wait(lock);
-		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(50));
-		if (wResult == cv_status::no_timeout) {
+		////pd.hdr->workDone.wait(lock);
+		  //    boost 1.78
+#if (BOOST_VERSION >= 107800)
+		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(75));
+		if (wResult == cv_status::no_timeout) {  //  condition worked, no timeout 
 			break;
 		}
+#else             // boost 1.76:
+		boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(75);
+		wResult76 = pd.hdr->workDone.timed_wait(lock, timeout);
+		if (wResult76) { //  condition worked, no timeout 
+			break;
+		}
+#endif
 	}
+#if (BOOST_VERSION >= 107800)
 	if (wResult == cv_status::no_timeout) {
+#else
+	if (wResult76) {
+#endif
 		xmprintf(4, "\tSHMTest::sendCommand(%d, %d): finished\n", static_cast<int>(cmd), v);
 		int test = pd.hdr->test;
 		xmprintf(4, "\tSHMTest::sendCommand(%d, %d): test = %d\n", static_cast<int>(cmd), v, test);
@@ -532,6 +570,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 		xmprintf(4, "\tSHMTest::sendCommand(%d, %s) 2: TIMEOUT\n");
 		return -1;
 	}
+	return 0;
 }
 
 void SHMTest::cbThreadF() {
