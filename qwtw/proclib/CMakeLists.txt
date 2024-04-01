@@ -26,7 +26,12 @@ addSourceFiles("common" "../../common"
 
 #add_definitions(-DUNICODE -D_UNICODE)
 add_definitions(-DqqwtwEXPORTS -DqwtwcEXPORTS)
-add_definitions( /std:c++20 )
+if(WIN32)
+	add_definitions( /std:c++20 )
+else()
+	add_definitions( -std=c++2a )
+endif()
+
 #add_definitions(-DXMPRINTF_TO_FILE)
 if (WITH_UDP_SYNC)
 	add_definitions(-DENABLE_UDP_SYNC)

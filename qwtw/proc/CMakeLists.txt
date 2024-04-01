@@ -29,7 +29,11 @@ if (WITH_UDP_SYNC)
 endif()
 
 add_definitions(-DXMPRINTF_TO_FILE)
-add_definitions( /std:c++20 )
+if(WIN32)
+	add_definitions( /std:c++20 )
+else()
+	add_definitions( -std=c++2a )
+endif()
 
 if (USE_MGL)
 	add_definitions(-DUSEMATHGL)
