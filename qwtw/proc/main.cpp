@@ -34,6 +34,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #ifdef USEMARBLE
 #include <marble/MarbleDebug.h>

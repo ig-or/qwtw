@@ -91,7 +91,9 @@ private:
 
 MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 	maxLat = 0; maxLon = 0; minLat = 0; minLon = 0;
-	
+#ifdef QT_NO_SSL
+	xmprintf(0, "ERROR: looks like SSL support in QT.. not sure if maps will work \n");
+#else
 	bool haveSSL = QSslSocket::supportsSsl();
 
 	if (!haveSSL) {
@@ -103,7 +105,7 @@ MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 		xmprintf(0, "RT version version %d\n\n", QSslSocket::sslLibraryVersionNumber());
 
 	}
-
+#endif
 }
 
 void MWidgetEx::addLine(LineItemInfo* line) {
