@@ -14,6 +14,7 @@
 #ifdef WIN32
 #include <windows.h>
 HMODULE qwtwLibModule = 0;
+char qwtwDllPath[260];
 #endif
 #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
 
@@ -265,6 +266,12 @@ qwtwc_API 	void qwtshowmw() {
 
 
 #ifdef WIN32
+const char* getQwtwDllPath() {
+	DWORD dw = GetModuleFileNameA((HMODULE)(qwtwLibModule), qwtwDllPath, 260);
+	qwtwDllPath[259] = 0; qwtwDllPath[258] = 0;
+	return qwtwDllPath;
+}
+
 BOOL APIENTRY DllMain(HMODULE hModule,
 	DWORD  ul_reason_for_call,
 	LPVOID lpReserved

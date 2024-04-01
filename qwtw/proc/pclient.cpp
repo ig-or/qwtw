@@ -13,7 +13,8 @@
 #include <chrono>
 #include <cstdlib>
 #ifdef WIN32
-	#include <windows.h>
+//	#include <windows.h>  //  cannot use it here
+const char* getQwtwDllPath();
 #endif
 
 SHMTest::SHMTest(): status(5) {
@@ -160,10 +161,7 @@ int SHMTest::startProc(int level) {
 	}
 #ifdef WIN32      //   check the location near the DLL
 	try {
-		extern HMODULE qwtwLibModule;
-		char dllPath[MAX_PATH];
-		DWORD dw = GetModuleFileNameA((HMODULE)(qwtwLibModule), dllPath, MAX_PATH);
-		dllPath[MAX_PATH - 1] = 0; dllPath[MAX_PATH - 2] = 0;
+		const char* dllPath = getQwtwDllPath();
 		pa = path(dllPath).parent_path() / procName;
 		xmprintf(2, "\tlooking at %s .. \n", pa.string().c_str());
 		if (exists(pa)) {
