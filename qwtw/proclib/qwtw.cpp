@@ -266,11 +266,6 @@ qwtwc_API 	void qwtshowmw() {
 
 
 #ifdef WIN32
-const char* getQwtwDllPath() {
-	DWORD dw = GetModuleFileNameA((HMODULE)(qwtwLibModule), qwtwDllPath, 260);
-	qwtwDllPath[259] = 0; qwtwDllPath[258] = 0;
-	return qwtwDllPath;
-}
 
 BOOL APIENTRY DllMain(HMODULE hModule,
 	DWORD  ul_reason_for_call,
@@ -306,6 +301,13 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	}
 #endif
 
+#ifdef WIN32
+const char* getQwtwDllPath() {
+	DWORD dw = GetModuleFileNameA((HMODULE)(qwtwLibModule), qwtwDllPath, 260);
+	qwtwDllPath[259] = 0; qwtwDllPath[258] = 0;
+	return qwtwDllPath;
+}
+#endif
 
 static const int logBufLen = 2048;
 static char logBuf[logBufLen];
