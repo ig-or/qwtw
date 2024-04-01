@@ -480,7 +480,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	if (text != 0) {
 		strncpy(pd.hdr->name, text, CmdHeader::nameSize);
 	}
-	cv_status wResult;
+	boost::interprocess::cv_status wResult;
 	for (int nCounter = 25; nCounter > 0; nCounter--) {
 		pd.hdr->cmdWait.notify_all();
 		pd.hdr->cmdWait.notify_all();
@@ -491,7 +491,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 			break;
 		}
 	}
-	if (wResult == cv_status::no_timeout) {
+	if (wResult == boost::interprocess::cv_status::no_timeout) {
 		xmprintf(4, "\tSHMTest::sendCommand(%d, %s): complete\n", static_cast<int>(cmd), text);
 
 		int test = pd.hdr->test;
@@ -512,7 +512,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	pd.hdr->test = v;
 	pd.hdr->flags = flags;
 
-	cv_status wResult;
+	boost::interprocess::cv_status wResult;
 	for (int nCounter = 25; nCounter > 0; nCounter--) {
 		pd.hdr->cmdWait.notify_all();
 		pd.hdr->cmdWait.notify_all();

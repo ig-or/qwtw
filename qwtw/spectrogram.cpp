@@ -26,6 +26,8 @@
 
 #include <limits>
 #include <cmath>
+#include <math.h>
+#include <cfloat>
 
 int xmprintf(int level, const char* _Format, ...);
 class SpectrogramData;
@@ -37,8 +39,8 @@ SpStatInfo::SpStatInfo(const SpectrogramInfo& si, int n1) {
     if (a < 1) {
         a = 1;
     }
-    int nx = std::floorl(si.nx / a) + 1;
-    int ny = std::floorl(si.ny / a) + 1;
+    int nx = floor(si.nx / a) + 1;
+    int ny = floor(si.ny / a) + 1;
     n = nx * ny;             // real number of spCell
     int i, j, k1, k2, k, ky, i1;
     unsigned int x1, x2, y1, y2;
@@ -412,7 +414,8 @@ public:
         yy = 0.0;
         ii = 0;
         jj = 0;
-        double mdt = DBL_MAX, dt;
+        double mdt = DBL_MAX;
+        double dt;
         int i, j, k, raw;
         bool u = false;
         for (const auto& a : statInfo.cells) {              //  for every 'cells'
