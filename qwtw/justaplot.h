@@ -18,7 +18,7 @@ class JustAplot: public QDialog {
 	Q_OBJECT
 public:
 	std::string key;
-	int iKey;
+	int iKey;		///< plot ID ?
 	std::string name;
 	int clipGroup;  ///< defaults to 0
 	JPType type;
@@ -34,6 +34,7 @@ public:
 	virtual void ylabel(const std::string&  s) = 0;
 	virtual void zlabel(const std::string&  s) {}
 	virtual void drawMarker(double X, double Y, int type = 1) = 0;
+	virtual void draw3DMarker(const CBPickerInfo& cpi) {};
 	virtual void drawMarker(double t);
 	virtual void onClip(double t1, double t2);
 	virtual void removeLine(LineItemInfo* line);

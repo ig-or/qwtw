@@ -34,29 +34,6 @@ struct MeshInfo {
 	SurfDataType sd;
 };
 
-/** A data container for the spectrogramm.
-
-*/
-struct SpectrogramInfo {
-	int nx = 0;				// number of X points\cells
-	int ny = 0;				// number of Y points\cells
-	double xmin = 0.0;		// x minimum
-	double xmax = 0.0;		// x max
-	double ymin = 0.0;		//  y min
-	double ymax = 0.0;		// y maximum
-	double* z = 0;			// spectrogram data itself.  should be a [ny x nx] matrix. 
-
-	/// <summary>
-	///  coordinates of the points, for every spectrogramm cell. Like coords of the center of the spectrogramm cells. might be zeros
-	/// </summary>	
-	double* p = 0;	// [3 x ny x nx] matrix. 
-	double* t = 0; // time info for every cell; [ny x nx] matrix. 
-};
-#ifdef QT_DLL
-Q_DECLARE_METATYPE(SpectrogramInfo);
-#endif
-#pragma pack()
-
 #pragma pack(1)
 
 /// picker info
@@ -76,6 +53,31 @@ struct CBPickerInfo {
 	char label[lSize];   ///< line label
 };
 
+#pragma pack()
+
+/** A data container for the spectrogramm.
+
+*/
+struct SpectrogramInfo {
+	int nx = 0;				// number of X points\cells
+	int ny = 0;				// number of Y points\cells
+	double xmin = 0.0;		// x minimum
+	double xmax = 0.0;		// x max
+	double ymin = 0.0;		// y min
+	double ymax = 0.0;		// y maximum
+	double* z = 0;			// spectrogram data itself.  should be a [ny x nx] matrix. 
+
+	/// <summary>
+	///  coordinates of the points, for every spectrogramm cell. Like coords of the center of the spectrogramm cells. might be zeros
+	/// </summary>	
+	double* p = 0;	// [3 x ny x nx] matrix. 
+	double* t = 0; // time info for every cell; [ny x nx] matrix. 
+};
+
+#ifdef QT_DLL
+Q_DECLARE_METATYPE(SpectrogramInfo);
+Q_DECLARE_METATYPE(CBPickerInfo);
+#endif
 #pragma pack()
 
 enum ServiceCode {

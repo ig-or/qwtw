@@ -15,6 +15,7 @@ set(INC_DIR_LIST "../" "../c_lib"  "../../../common" "../../../xmatrix2" )
 	
 addSourceFiles("source" "." qwproc qwproto main)	
 addSourceFiles("qwtw" "../" qworker  sfigure figure2 justaplot qwtypes line settings spectrogram)
+addSourceFiles("qwtw" "../nanoflann" nanoflann)
 addSourceFiles("qrc" "../../img" plib1.qrc)	
 addSourceFiles("common" "../../common"
 	xstdef xqbytebuffer xmutils queue_block  xmroundbuf

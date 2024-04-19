@@ -24,6 +24,7 @@ QWorker::QWorker(const std::string& mdp, const std::string& mpp): pf(nullptr) {
 	mdPath = mdp;
 	mpPath = mpp;
 	int id = qRegisterMetaType<SpectrogramInfo>();
+	int id1 = qRegisterMetaType<CBPickerInfo>();
 }
 #else
 

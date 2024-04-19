@@ -152,6 +152,7 @@ public:
 	Q_INVOKABLE void draw3DpointMArker(int figureID, double* point);
 
 	Q_INVOKABLE void drawAllMarkers(double t);
+	Q_INVOKABLE void drawAll3DMarkers(const CBPickerInfo& cpi);
 	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0, JustAplot* p = nullptr);
 	Q_INVOKABLE void removeVMarkerEverywhere(int id_);
 

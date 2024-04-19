@@ -716,7 +716,11 @@ void XQPlots::pFilterThreadF() {
 			pFilterMutex.unlock();
 
 			//drawAllMarkers(cbiLocal.time);
-			QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(double, cbiLocal.time));
+			if (cbiLocal.type == 1) {  //  this one might have some time info already!
+				QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::BlockingQueuedConnection, Q_ARG(double, cbiLocal.time));
+			} else if (cbiLocal.type == 4) { // probably, only 3D coords
+				QMetaObject::invokeMethod(this, "drawAll3DMarkers", Qt::BlockingQueuedConnection, Q_ARG(CBPickerInfo, cbiLocal));
+			}
 
 			if (onPickerCallback != 0) {  //  call the callback function?
 				onPickerCallback(cbiLocal);
@@ -796,6 +800,20 @@ Q_INVOKABLE void XQPlots::drawAllMarkers(double t) {
 		it->second->replot();
 	}
 }
+Q_INVOKABLE void XQPlots::drawAll3DMarkers(const CBPickerInfo& cpi) {
+	std::map<std::string, JustAplot*>::iterator it;
+	JustAplot* f;
+	for (it = figures.begin(); it != figures.end(); it++) {
+		f = it->second;
+		if (f->type == jQwSpectrogram) {
+			//if (cpi.plotID != f->iKey) {
+				f->draw3DMarker(cpi);
+				f->replot();  //   do we need it here ????
+			//}
+		}
+	}
+}
+
 #ifdef ENABLE_UDP_SYNC
 void XQPlots::sendBroadcast(double x, double y, double z) {
 	if (bc == 0) {

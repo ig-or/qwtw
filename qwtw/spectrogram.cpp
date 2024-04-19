@@ -23,6 +23,7 @@
 #include <qelapsedtimer.h>
 #include <qcheckbox.h>
 #include "settings.h"
+#include "nanoflann.hpp"
 
 #include <limits>
 #include <cmath>
@@ -32,6 +33,112 @@
 int xmprintf(int level, const char* _Format, ...);
 class SpectrogramData;
 class QSpectrogramPlot;
+
+
+/**
+Info about some 'double' parameter for one single cell.
+*/
+struct SpPosCoordInfo {
+    double pmin, pmax;	///< max and min parameter values
+    // k is the index in a sp cells 'vector'
+    // y is a vertical sp cell coordinate
+    // x is horizontal sp (cell) coordinate
+    unsigned int xmax, xmin, ymax, ymin, kmax, kmin;
+    SpPosCoordInfo();
+    /// <summary>
+    ///  setup everything
+    /// </summary>
+    void pInit();
+    /**
+    update info with another parameter value.
+    \param p the parameter value
+    \param k value for 'k min/max'
+    \param k1  value for y min/max
+    \param k2  value for x  min/max
+    */
+    void pUpdate(double p, int k, int k1, int k2);
+    /**
+    Check if parameter 'p' is 'inside' this cell
+    \return true if inside
+    */
+    bool in(double p) const;
+};
+
+/**
+* info about some part of the spectrogramm.
+*/
+struct SpCell {
+    /// <summary>
+    /// minimum and maximum indices of this particular spCell inside a SpectrogramInfo
+    /// </summary>
+    unsigned int x1, x2, y1, y2;
+    /// <summary>
+    ///   min amd max time for this cell
+    /// </summary>
+    double tMin;
+    double tMax;
+
+    unsigned int xTmax, yTmax, xTmin, yTmin, kTmin, kTmax; ///< coords corresponding to tMax and tMin
+    SpPosCoordInfo px, py, pz;
+};
+
+
+
+/**
+* some meta info about the spectrogramm.
+*/
+class SpStatInfo {
+public:
+    std::vector<SpCell> cells;
+    /// <summary>
+    /// create this meta info.
+    /// </summary>
+    /// <param name="si_"></param>
+    /// <param name="n1"></param> approximate number of spCells to create
+    SpStatInfo(const SpectrogramInfo& si, int n1 = 1000);
+    //const SpCell& findT(double t);
+
+private:
+    int n = 0;
+
+    //const SpectrogramInfo& si;
+    friend void spStatInfoTest(int nx, int ny);
+};
+
+SpPosCoordInfo::SpPosCoordInfo() {
+    pInit();
+}
+void SpPosCoordInfo::pInit() {
+    pmin = DBL_MAX;
+    pmax = -DBL_MAX;
+    xmax = 0;
+    xmin = 0;
+    ymax = 0;
+    ymin = 0;
+    kmax = 0;
+    kmin = 0;
+}
+void SpPosCoordInfo::pUpdate(double p, int k, int k1, int k2) {
+    if (pmax < p) {
+        pmax = p;
+        xmax = k2;
+        ymax = k1;
+        kmax = k;
+    }
+    if (pmin > p) {
+        pmin = p;
+        xmin = k2;
+        ymin = k1;
+        kmin = k;
+    }
+}
+bool SpPosCoordInfo::in(double p) const {
+    if (pmax >= p && pmin <= p) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 SpStatInfo::SpStatInfo(const SpectrogramInfo& si, int n1) {
     double a1 = sqrt((si.nx * si.ny) / ((double)(n1))); //  how many 'ponts' in one spCell ??    sqrt
@@ -43,11 +150,13 @@ SpStatInfo::SpStatInfo(const SpectrogramInfo& si, int n1) {
     int ny = floor(si.ny / a) + 1;
     n = nx * ny;             // real number of spCell
     int i, j, k1, k2, k, ky, i1;
-    unsigned int x1, x2, y1, y2;
+    unsigned int x1 = 0, x2 = 0, y1 = 0, y2 = 0;
     double tMin = 0.0;
     double tMax = 0.0;
     double t;
     unsigned int xTmax, yTmax, xTmin, yTmin, kTmin, kTmax;
+    SpPosCoordInfo px, py, pz;
+    double* pp = 0;
     cells.resize(n);
     y1 = 0;
     for (i = 0; i < ny; i++) {
@@ -66,14 +175,15 @@ SpStatInfo::SpStatInfo(const SpectrogramInfo& si, int n1) {
                 x2 = si.nx - 1;
                 assert(x2 > x1);
             }
-            if (si.t != nullptr) {
-                tMax = -DBL_MAX;
-                tMin = DBL_MAX;
-                xTmax = 0; yTmax = 0; xTmin = 0; yTmin = 0; kTmin = 0;  kTmax = 0;
-                for (k1 = y1; k1 <= y2; k1++) {
-                    ky = k1 * si.nx;
-                    for (k2 = x1; k2 <= x2; k2++) {
-                        k = ky + k2;
+            tMax = -DBL_MAX;
+            tMin = DBL_MAX;
+            xTmax = 0; yTmax = 0; xTmin = 0; yTmin = 0; kTmin = 0;  kTmax = 0;
+            px.pInit(); py.pInit(); pz.pInit();
+            for (k1 = y1; k1 <= y2; k1++) {
+                ky = k1 * si.nx;
+                for (k2 = x1; k2 <= x2; k2++) {
+                    k = ky + k2;
+                    if (si.t != nullptr) {
                         t = si.t[k];
                         if (tMax < t) {
                             tMax = t;
@@ -88,9 +198,15 @@ SpStatInfo::SpStatInfo(const SpectrogramInfo& si, int n1) {
                             kTmin = k;
                         }
                     }
+                    if (si.p != nullptr) {
+                        pp = si.p + k * 3;    //  this particular point
+                        px.pUpdate(pp[0], k, k1, k2);
+                        py.pUpdate(pp[1], k, k1, k2);
+                        pz.pUpdate(pp[2], k, k1, k2);
+                    }
                 }
             }
-            cells[i1 + j] = SpCell{ x1, x2, y1, y2, tMin, tMax, xTmax, yTmax, xTmin, yTmin, kTmin, kTmax};
+            cells[i1 + j] = SpCell{ x1, x2, y1, y2, tMin, tMax, xTmax, yTmax, xTmin, yTmin, kTmin, kTmax, px, py, pz};
             x1 = x2 + 1;
         }
         y1 = y2 + 1;
@@ -219,17 +335,24 @@ private:
     QwtInterval d_intervals[3];
 };
 
+class SpectrogramData;
+
+//  this is for nanoflann
+using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
+    nanoflann::L2_Simple_Adaptor<double, SpectrogramData>, SpectrogramData, 3 /* dim */
+>;
 
 class SpectrogramData : public QwtRasterData
 {
 public:
     double dx, dy;                  //      size of one pixel
     double zMin, zMax, xMin, xMax, yMin, yMax, wx, wy;      // 
-    double* p = nullptr;
-    double* tt = nullptr;
+    double* p = nullptr;   ///< a 'point info' for every cell
+    double* tt = nullptr;   ///< a 'time info' for every  cell
+    my_kd_tree_t* pointsTree = nullptr;
 
 
-    SpectrogramData(const SpectrogramInfo& info) : statInfo(info)     {
+    SpectrogramData(const SpectrogramInfo& info) : statInfo(info) {
         // some minor performance improvements when the spectrogram item
         // does not need to check for NaN values
         setAttribute(QwtRasterData::WithoutGaps, true);
@@ -242,7 +365,8 @@ public:
         //  copy the data:
         xSize = info.nx;
         ySize = info.ny;
-        int nz = info.nx * info.ny;
+        nSize = xSize * ySize;
+        int nz = nSize;
         try {
             //yData = new double[info.ny];
             zData = new double[nz];
@@ -287,6 +411,9 @@ public:
                 } else {
                     xmprintf(1, "SpectrogramData(const SpectrogramInfo& info): ERROR in memory allocation (3) (out of memory?)\n");
                 }
+                
+                //  this is for nanoflann
+                pointsTree = new my_kd_tree_t(3 /*dim*/, *this, { 50 /* max leaf */ });
             }
             if ((info.t != 0)) {
                 tt = new double[nz];
@@ -302,6 +429,25 @@ public:
         }
     }
 
+    //  this is for nanoflann
+    int do_knn_search(double* x) const {
+        if (p == nullptr || x == nullptr) {
+            return -1;
+        }
+        // do a knn search
+        const size_t                   num_results = 1;
+        size_t                         ret_index;
+        double                          out_dist_sqr;
+        nanoflann::KNNResultSet<double> resultSet(num_results);
+        double* query_pt = x;
+        resultSet.init(&ret_index, &out_dist_sqr);
+        pointsTree->findNeighbors(resultSet, &query_pt[0]);
+        if (num_results > 0) {
+            return ret_index;
+        }
+        return 0;
+    }
+
     virtual QwtInterval interval(Qt::Axis axis) const QWT_OVERRIDE
     {
         if (axis >= 0 && axis <= 2)
@@ -309,6 +455,39 @@ public:
 
         return QwtInterval();
     }
+
+    // Must return the number of data points
+   //  this is for nanoflann
+    inline size_t kdtree_get_point_count() const  {
+        if (p == nullptr) {
+            return 0;
+        } else {
+            return nSize;
+        }
+    }
+
+    // Returns the dim'th component of the idx'th point in the class
+    //  this is for nanoflann
+    inline double kdtree_get_pt(const size_t idx, const size_t dim) const
+    {
+        if (p == nullptr) {
+            return 0.0;
+        } else {
+            return p[idx * 3 + dim];
+        }
+    }
+
+    // Optional bounding-box computation: return false to default to a standard
+    // bbox computation loop.
+    //   Return true if the BBOX was already computed by the class and returned
+    //   in "bb" so it can be avoided to redo it again. Look at bb.size() to
+    //   find out the expected dimensionality (e.g. 2 or 3 for point clouds)
+    //  this is for nanoflann
+    template <class BBOX> bool kdtree_get_bbox(BBOX& /*bb*/) const
+    {
+        return false;
+    }
+
 
     /**
     * \param[out] iy    vertical index 
@@ -374,6 +553,10 @@ public:
         if (tt != nullptr) {
             delete[] tt; tt = nullptr;
         }
+        if (pointsTree != nullptr) {
+            delete pointsTree;
+            pointsTree = nullptr;
+        }
     }
 
     /** 
@@ -389,20 +572,28 @@ public:
         }
         return tt[k];
     }
+
+    /**
+    * \param[in] i row index  
+    * \param[in] j column index
+    * \return a 'point info' from spectrogramm coords.
+    
+    */
     bool getP(int i, int j, double* dst) {
         if (p == 0) return false;
         unsigned int k = i * xSize + j;
         if (k >= xSize * ySize) {
-            return 0.0;
+            return false;
         }
         memcpy(dst, p + k * 3, sizeof(double) * 3);
         return true;
     }
 
-    /**
+    /** find coords and indices from time info.
+    * 
     * \param[out] xx horizontal coord
     * \param[out] yy vertical coord
-    *  \param[out] jj horizontal index     (col #)
+    * \param[out] jj horizontal index     (col #)
     * \param[out] ii vertical index      (row #)
     \return true if all is OK
     */
@@ -419,13 +610,13 @@ public:
         int i, j, k, raw;
         bool u = false;
         for (const auto& a : statInfo.cells) {              //  for every 'cells'
-            if (a.tMax >= t && a.tMin <= t) {                 // 
-                for (i = a.y1; i <= a.y2; i++) {
+            if (a.tMax >= t && a.tMin <= t) {               //   if 't' might be inside
+                for (i = a.y1; i <= a.y2; i++) {            //  check all the rows of this cell
                     raw = i * xSize;
-                    for (j = a.x2; j <= a.x2; j++) {
+                    for (j = a.x2; j <= a.x2; j++) {        //  check all the columns of this cell
                         k = raw + j;
                         dt = fabs(tt[k] - t);
-                        if (mdt > dt) {
+                        if (mdt > dt) {                     //  remember the minimum 'time distance'
                             mdt = dt;
                             ii = i;
                             jj = j;
@@ -459,6 +650,24 @@ public:
         return true;
     }
 
+
+    bool findP(double* pp, double& xx, double& yy, int& jj, int& ii) {
+        if (p == nullptr) {
+            return false;
+        }
+        int k = do_knn_search(pp);
+        if (k < 0 || k >= nSize) {
+            return false;
+        }
+        jj = k % xSize;
+        ii = std::lround((k - jj) / xSize);
+
+        xx = dx * jj + xMin;
+        yy = dy * ii + yMin;
+        return true;
+    }
+
+
     ~SpectrogramData() {
         clearData();
     }
@@ -466,6 +675,7 @@ private:
     QwtInterval d_intervals[3];
     int xSize = 0;          /// number of horizontal points
     int ySize = 0;          /// number of vertical points
+    int nSize = 0;          /// xSize * ySize
     //double* xData = 0;      // hor points 
     //double* yData = 0;      // ver points
     double* zData = nullptr;        // the[ xSize x ySize] matrix of all the points
@@ -776,6 +986,18 @@ void QSpectrogram::setInfo(const SpectrogramInfo& info) {
     setAxisScale(QwtPlot::yRight, zInterval.minValue(), zInterval.maxValue());
     enableAxis(QwtPlot::yRight);
     setColorMap(QSpectrogram::RGBMap);
+}
+
+void QSpectrogram::drawMarker3D(double* x) {
+    double xx, yy;
+    int ii, jj;
+    if (sData && sData->findP(x, xx, yy, ii, jj)) {
+        ma->setValue(xx, yy);
+        if (!maIsVisible) {
+            maIsVisible = true;
+            ma->setVisible(true);
+        }
+    }
 }
 
 void QSpectrogram::drawMarker(double t) {
@@ -1219,6 +1441,17 @@ void QSpectrogramPlot::ylabel(const std::string& s) {
     QwtText title(s.c_str());
     title.setFont(axisFont);
     spectrogram->setAxisTitle(spectrogram->yLeft, title);
+}
+
+void QSpectrogramPlot::draw3DMarker(const CBPickerInfo& cpi) {
+  //  if (cpi.plotID == iKey) { // should I react on my own picker ????  YES!
+  //      return;
+  //  }
+    double x[3];
+    x[0] = cpi.x;
+    x[1] = cpi.y;
+    x[2] = cpi.z;
+    spectrogram->drawMarker3D(x);
 }
 
 void QSpectrogramPlot::drawMarker(double X, double Y, int type) {
