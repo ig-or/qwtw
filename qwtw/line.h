@@ -13,20 +13,20 @@ class SQWLine;
 one single line on a plot.
 */
 struct LineItemInfo {
-	double* x;
-	double* y;
-	double* z;
+	double* x = nullptr;
+	double* y = nullptr;
+	double* z = nullptr;
 	/** just a reference, supposed to be common for all the figures
 	   if "0", then reference maybe "x"
 	*/
-	double* time;
+	double* time = nullptr;
 	/**
 	0 - do not use markers
 	1 - draw 'vertical line' markers using "x" (y[i] - y[i-1] ==  const), regular grid
 	2 - draw 'vertical line' markers using "x" (y[i] - y[i-1] !=  const), not regular grid
 	3 - draw 'point' marker using "time" info
 	*/
-	int mode;
+	int mode = 0;
 	bool important; ///< if 'false', it will not participate in 'clipping'
 	long long size; ///< size for x, y, z , and time
 	std::string  legend;

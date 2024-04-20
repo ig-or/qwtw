@@ -47,6 +47,7 @@ class BCUdpClient;
 class BCUdpServer;
 #endif
 struct SpectrogramInfo;
+class BCInfo;
 
 /*
 class PlotsInterfaceModel: public QStandardItemModel {
@@ -175,7 +176,8 @@ protected:
 	typedef std::map<std::string, JustAplot*> FSet;
 	FSet figures;
 #ifdef ENABLE_UDP_SYNC
-	LineItemInfo* broadCastInfo;
+	//LineItemInfo* broadCastInfo;
+	BCInfo* bcInfo = nullptr;
 	BCUdpClient*	bc;
 	BCUdpServer*	bServer;
 	bool callbackWorking = false;

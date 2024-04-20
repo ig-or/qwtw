@@ -445,7 +445,7 @@ public:
         if (num_results > 0) {
             return ret_index;
         }
-        return 0;
+        return -1;
     }
 
     virtual QwtInterval interval(Qt::Axis axis) const QWT_OVERRIDE

@@ -49,6 +49,7 @@
 #include <mgl2/qmathgl.h>
 #endif
 #include "spectrogram.h"
+#include "nanoflann.hpp"
 
 
 int xmprintf(int level, const char * _Format, ...);
@@ -101,8 +102,133 @@ struct ClipUdpMessage {
 	double pos2[3];
 	char tail[4];
 };
-
 #pragma pack()
+
+
+//  this is for nanoflann
+class BCInfo;
+using my_kd_tree_t = nanoflann::KDTreeSingleIndexAdaptor<
+	nanoflann::L2_Simple_Adaptor<double, BCInfo>, BCInfo, 3 /* dim */
+>;
+/**
+broadCastInfo wrapper;
+*/
+class BCInfo {
+public:
+	LineItemInfo* broadCastInfo = nullptr;
+	my_kd_tree_t* pointsTree = nullptr;
+	BCInfo();
+	~BCInfo() {
+		bcClear();
+	}
+	bool bcOK() {
+		return (broadCastInfo != nullptr) && (pointsTree != nullptr);
+	}
+	void bcSetup(double* x, double* y, double* z, double* time, int size) {
+		bcClear();
+		broadCastInfo = new LineItemInfo(x, y, z, size, "broadcast", time);
+		pointsTree = new my_kd_tree_t(3 /*dim*/, *this, { 50 /* max leaf */ });
+	}
+	/**
+return the index of the closest point
+*/
+	int getClosestPoint(double pIn[3], double& x, double& y, double& z, double& time) {
+		if ((broadCastInfo == nullptr) || (pointsTree == nullptr)) {
+			return -1;
+		}
+		int k = do_knn_search(pIn);
+		if (k < 0 || k >= broadCastInfo->size) {
+			return -1;
+		}
+		time = broadCastInfo->time[k];
+		x = broadCastInfo->x[k];
+		y = broadCastInfo->y[k];
+		if (broadCastInfo->z != nullptr) {
+			z = broadCastInfo->z[k];
+		} else {
+			z = 0.0;
+		}
+		return k;
+	}
+	int getClosestTimePoint(double t, double& x, double& y, double& z) {
+		if ((broadCastInfo == nullptr) || (pointsTree == nullptr) || (broadCastInfo->size <= 0)) {
+			return -1;
+		}
+		long long k = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, t);
+		if (k < 0) k = 0;
+		if (k >= broadCastInfo->size) k = broadCastInfo->size - 1;
+		broadCastInfo->ma.index = k;
+		x = broadCastInfo->x[k];
+		y = broadCastInfo->y[k];
+		if (broadCastInfo->z != nullptr) {
+			z = broadCastInfo->z[k];
+		} else {
+			z = 0.0;
+		}
+		return k;
+	}
+	inline size_t kdtree_get_point_count() const {
+		if (broadCastInfo == nullptr) {
+			return 0;
+		} else {
+			return broadCastInfo->size;
+		}
+	}
+
+	// Returns the dim'th component of the idx'th point in the class
+//  this is for nanoflann
+	inline double kdtree_get_pt(const size_t idx, const size_t dim) const
+	{
+		if (broadCastInfo == nullptr) {
+			return 0.0;
+		} else {
+			switch (dim) {
+			case 0: return broadCastInfo->x[idx]; break;
+			case 1: return broadCastInfo->y[idx]; break;
+			case 2: return broadCastInfo->z[idx]; break;
+			};
+		}
+		return 0.0;
+	}
+	// Optional bounding-box computation: return false to default to a standard
+	// bbox computation loop.
+	template <class BBOX> bool kdtree_get_bbox(BBOX& /*bb*/) const {
+		return false;
+	}
+
+private:
+	void bcClear() {
+		if (pointsTree != nullptr) {
+			delete pointsTree;
+			pointsTree = nullptr;
+		}
+		if (broadCastInfo != nullptr) {
+			delete broadCastInfo;
+			broadCastInfo = nullptr;
+		}
+	}
+	int do_knn_search(double* x) const {
+		if (broadCastInfo == nullptr || x == nullptr) {
+			return -1;
+		}
+		// do a knn search
+		const size_t                   num_results = 1;
+		size_t                         ret_index;
+		double                         out_dist_sqr;
+		nanoflann::KNNResultSet<double> resultSet(num_results);
+		double* query_pt = x;
+		resultSet.init(&ret_index, &out_dist_sqr);
+		pointsTree->findNeighbors(resultSet, &query_pt[0]);
+		if (num_results > 0) {
+			return ret_index;
+		}
+		return -1;
+	}
+	// Must return the number of data points
+//  this is for nanoflann
+
+};
+
 class BCUdpClient {
 public:
 	BCUdpClient(const QWSettings& settings) : multicast_address(boost::asio::ip::make_address_v4(settings.smip.c_str())),
@@ -333,8 +459,8 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 	connect(ui.tbClosePlots, SIGNAL(clicked(bool)), this, SLOT(onCloseAllPlots(bool)));
 	connect(ui.tbShowEverything, SIGNAL(clicked(bool)), this, SLOT(onShowAllPlots(bool)));
 	connect(ui.tbShowSimple, SIGNAL(clicked(bool)), this, SLOT(onShowAllSimple(bool)));
+	bcInfo = new BCInfo();
 #ifdef ENABLE_UDP_SYNC
-	broadCastInfo = 0;
 	//bc = 0;
 	///  start UDP client 
 	// since we'd send out picker info anyway
@@ -349,6 +475,7 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 	std::thread ttmp = std::thread(&XQPlots::pFilterThreadF, this);
 	pFilterThread.swap(ttmp);
 #endif
+
 	QTimer::singleShot(500, this, &XQPlots::onTest);
 }
 
@@ -615,33 +742,30 @@ void XQPlots::setAllMarkersVisible(bool visible) {
 void XQPlots::on3DMarker(double p[3]) {
 	int i = 0;
 	V3 point(p), p1;
+
+	CBPickerInfo cpi;
+	cpi.plotID = -1;
+	cpi.time = 0;
+	cpi.type = 4;
+	cpi.x = p[0];
+	cpi.y = p[1];
+	cpi.z = p[2];
+	drawAll3DMarkers(cpi);  //  only for jQwSpectrogram
+
 	// lets find the timestamp:
-	if (broadCastInfo != 0) {
-		int n = broadCastInfo->smallCoordIndex.size();
-		if (n > 1) {
-			unsigned long index = 0;
-			double d = BIGNUMBER;
-			for (unsigned int ix :  broadCastInfo->smallCoordIndex) {
-				p1[0] = broadCastInfo->x[ix];
-				p1[1] = broadCastInfo->y[ix];
-				p1[2] = broadCastInfo->z[ix];
-				double d1 = (point - p1).norma2();
-				if (d1 < d) {
-					d = d1;
-					index = ix;
-				}
-			}
-			double time = broadCastInfo->time[index];
-			//QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(double, time));
+	if (bcInfo->bcOK()) {
+		double x, y, z, t;
+		int index = bcInfo->getClosestPoint(p, x, y, z, t);
+		if (index >= 0) {
 			bool test  =  QMetaObject::invokeMethod(this, "drawAllMarkers1", Qt::QueuedConnection, 
 				Q_ARG(int, index),
-				Q_ARG(double, broadCastInfo->x[index]), Q_ARG(double, broadCastInfo->y[index]), Q_ARG(double, broadCastInfo->z[index]),
-				Q_ARG(double, time));
+				Q_ARG(double, x), Q_ARG(double, y), Q_ARG(double, z), Q_ARG(double, t));
 			if (!test) {
 				xmprintf(2, "XQPlots::on3DMarker() drawAllMarkers1 failed \n");
 			}
 		}
 	}
+
 }
 
 Q_INVOKABLE void XQPlots::addVMarkerEverywhere(double t, const char* label, int id_, JustAplot* p) {
@@ -674,7 +798,7 @@ void XQPlots::setPickerCallback(OnPickerCallback cb) {
 }
 
 Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double z, double t) {
-	drawAllMarkers(t);
+	drawAllMarkers(t);		// draw all markers relying on time info
 		
 	CBPickerInfo cbi;
 	cbi.index = index;
@@ -697,10 +821,8 @@ Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double 
 	}
 
 #ifdef ENABLE_UDP_SYNC
-	sendPickerInfo(cbi);		//  send UDP info
-	if (broadCastInfo != 0) {  //  send one more UDP?
-		sendBroadcast(x, y, z);
-	}
+	sendPickerInfo(cbi);			//  send UDP info
+	sendBroadcast(x, y, z);			//  send one more UDP?
 #endif
 }
 
@@ -728,12 +850,11 @@ void XQPlots::pFilterThreadF() {
 #ifdef ENABLE_UDP_SYNC
 			sendPickerInfo(cbi);  // send out UDP about the callback
 
-			if ((broadCastInfo != 0) && (cbiLocal.time > 1.0e-8) && (cbiLocal.type == 1)) {  //  send one more UDP? this works if we have valid time stamp
-				mxat(broadCastInfo->size > 0);
-				long long i = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, cbiLocal.time);
-				broadCastInfo->ma.index = i;
-				if ((i >= 0) && (i < broadCastInfo->size)) {
-					sendBroadcast(broadCastInfo->x[i], broadCastInfo->y[i], broadCastInfo->z[i]);
+			if (bcInfo->bcOK() && (cbiLocal.time > 1.0e-8) && (cbiLocal.type == 1)) {  //  send one more UDP? this works if we have valid time stamp
+				double x, y, z;
+				long long i = bcInfo->getClosestTimePoint(cbiLocal.time, x, y, z);
+				if (i >= 0) {
+					sendBroadcast(x, y, z);
 				}
 			}
 			if (cbiLocal.type == 4) { //  just the point coords
@@ -793,11 +914,43 @@ Q_INVOKABLE void XQPlots::drawAllMarkers2(int figureID, int lineID, int index, i
 Q_INVOKABLE void XQPlots::drawAllMarkers(double t) {
 	//if (!markersAreVisible) markersAreVisible = true;
     std::map<std::string, JustAplot*>::iterator it;
+	bool boc = bcInfo->bcOK();
+	bool haveSpectrogramm = false;
+	JustAplot* f;
+
     for(it = figures.begin(); it != figures.end(); it++) {
-	   it->second->drawMarker(t);
+		f = it->second;
+		if (f->type == jQwSpectrogram) {
+
+			we should decide based on the info what particular spectrogramm has
+				if it has time info, then use it. Or, use the points.
+
+
+			if (boc) {							// will use a 3D coord in this case
+				haveSpectrogramm = true;
+			} else {							// try to use time info
+				it->second->drawMarker(t);
+			}
+		} else {
+			it->second->drawMarker(t);
+		}
     }
 	for (it = figures.begin(); it != figures.end(); it++) {
 		it->second->replot();
+	}
+
+	if (boc && (t > 1.0e-8) && haveSpectrogramm) {  // 
+		double x, y, z;
+		long long i = bcInfo->getClosestTimePoint(t, x, y, z);
+		if (i >= 0) {  // we have good 3D coordinates from this timestamp
+			CBPickerInfo& cpi;     cpi.x = x; cpi.y = y; cpi.z = z; cpi.time = t; cpi.index = 0;
+			for (it = figures.begin(); it != figures.end(); it++) {
+				f = it->second;
+				if (f->type == jQwSpectrogram) {
+					f->draw3DMarker(cpi);
+				}
+			}
+		}
 	}
 }
 Q_INVOKABLE void XQPlots::drawAll3DMarkers(const CBPickerInfo& cpi) {
@@ -827,9 +980,8 @@ void XQPlots::sendBroadcast(double x, double y, double z) {
 	m.pos[2] = z;
 
 	bc->bcSend((unsigned char*)(&m), sizeof(BroadcastMessage));
-
-
 }
+
 void XQPlots::sendPickerInfo(const CBPickerInfo& cpi) {
 	if (bc == 0) {
 		return;
@@ -841,6 +993,7 @@ void XQPlots::sendPickerInfo(const CBPickerInfo& cpi) {
 
 	bc->bcSend((unsigned char*)(&m), sizeof(m));
 }
+
 void XQPlots::sendClipInfo(double t1, double t2, int clipGroup) {
 	if (bc == 0) {
 		return;
@@ -856,22 +1009,25 @@ void XQPlots::sendClipInfo(double t1, double t2, int clipGroup) {
 		m.pos2[i] = 0;
 	}
 	m.havePos = 0;
-	if ((broadCastInfo != 0) && (broadCastInfo->size > 0)) {  
-		long long i1 = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, t1);
-		long long i2 = findClosestPoint_1(0, broadCastInfo->size - 1, broadCastInfo->time, t2);
-		if ((i1 >= 0) && (i1 < broadCastInfo->size) && (i2 >= 0) && (i2 < broadCastInfo->size)) {
-			m.pos1[0] = broadCastInfo->x[i1];
-			m.pos1[1] = broadCastInfo->y[i1];
-			m.pos1[2] = broadCastInfo->z[i1];
+	double x1, y1, z1;
+	double x2, y2, z2;
+	if (bcInfo->bcOK()) {  
+		long long i1 = bcInfo->getClosestTimePoint(t1, x1, y1, z1);
+		long long i2 = bcInfo->getClosestTimePoint(t2, x2, y2, z2);
 
-			m.pos2[0] = broadCastInfo->x[i2];
-			m.pos2[1] = broadCastInfo->y[i2];
-			m.pos2[2] = broadCastInfo->z[i2];
+		if ((i1 >= 0) && (i2 >= 0)) {
+			m.pos1[0] = x1;
+			m.pos1[1] = y1;
+			m.pos1[2] = z1;
+
+			m.pos2[0] = x2;
+			m.pos2[1] = y2;
+			m.pos2[2] = z2;
 			m.havePos = 1;
+
+			bc->bcSend((unsigned char*)(&m), sizeof(m));
 		}
 	}
-
-	bc->bcSend((unsigned char*)(&m), sizeof(m));
 }
 #endif
 
@@ -1087,11 +1243,7 @@ int XQPlots::changeLine(int key, double* x, double* y, double* z, double* time, 
 
 #ifdef ENABLE_UDP_SYNC
 void XQPlots::enableCoordBroadcast(double* x, double* y, double* z, double* time, int size) {
-	if (broadCastInfo != 0) {
-		delete broadCastInfo;
-		broadCastInfo = 0;
-	}
-	broadCastInfo = new LineItemInfo(x, y, z, size, "broadcast", time);
+	bcInfo->bcSetup(x, y, z, time, size);
 	if (bc == 0) {
 		bc = new BCUdpClient(qwSettings);
 	}
@@ -1111,13 +1263,11 @@ void XQPlots::enableCoordBroadcast(double* x, double* y, double* z, double* time
 
 }
 void XQPlots::disableCoordBroacast() {
-	if ((broadCastInfo == 0) || (bc == 0)) {
+	if (bc == 0) {
 		return;
 	}
 	char m[4]; memset(m, 'X', 4);
 	bc->bcSend((unsigned char*)(&m), 4);
-	delete broadCastInfo;
-	broadCastInfo = 0;
 }
 
 #endif
@@ -1133,10 +1283,6 @@ void XQPlots::onExit() {
 	clearFigures();
 	
 #ifdef ENABLE_UDP_SYNC
-	if (broadCastInfo != 0) {
-		delete broadCastInfo;
-		broadCastInfo = 0;
-	}
 	if (bc != 0) {
 		delete bc;
 		bc = 0;
@@ -1146,6 +1292,8 @@ void XQPlots::onExit() {
 		bServer = 0;
 	}
 #endif
+	delete bcInfo;
+	bcInfo = nullptr;
 }
 
 void XQPlots::clearFigures() {
