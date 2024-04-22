@@ -988,6 +988,13 @@ void QSpectrogram::setInfo(const SpectrogramInfo& info) {
     setColorMap(QSpectrogram::RGBMap);
 }
 
+bool QSpectrogram::haveTimeInfo() const {
+    return sData->tt != nullptr;
+}
+bool QSpectrogram::havePointsInfo() const {
+    return sData->p != nullptr;
+}
+
 void QSpectrogram::drawMarker3D(double* x) {
     double xx, yy;
     int ii, jj;
@@ -1425,6 +1432,13 @@ void QSpectrogramPlot::title(const std::string& s) {
     JustAplot::title(s);
 }
 
+bool QSpectrogramPlot::haveTimeInfo() const {
+    return spectrogram->haveTimeInfo();
+}
+bool QSpectrogramPlot::havePointsInfo() const {
+    return spectrogram->havePointsInfo();
+}
+
 void QSpectrogramPlot::footer(const std::string& s) {
     QwtText foo(s.c_str());
     foo.setFont(axisFont);
@@ -1483,10 +1497,25 @@ void QSpectrogramPlot::closeEvent(QCloseEvent* event) {
 
 }
 void QSpectrogramPlot::picker_t(double t) {
-    pf->drawAllMarkers2(iKey, 0, 0, 0, 0, lastXselected, lastYselected, t, legend);
+    CBPickerInfo cbi1;
+    cbi1.index = 0;
+    cbi1.lineID = 0;
+    cbi1.plotID = iKey;
+    cbi1.time = t;
+    cbi1.type = 1;
+    cbi1.x = 0;
+    cbi1.y = 0;
+    cbi1.xx = 0;
+    cbi1.yy = 0;
+    cbi1.z = 0.0;
+    cbi1.flag = 1;   // only time info
+
+    pf->drawAllMarkers2(cbi1);
 }
+
 void QSpectrogramPlot::picker_p(double* p) {
-    pf->draw3DpointMArker(iKey, p);
+    //pf->draw3DpointMArker(iKey, p);
+    pf->on3DMarker(p);
 }
 
 void QSpectrogramPlot::removeLines() {

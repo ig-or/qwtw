@@ -40,6 +40,8 @@ public:
     QSpectrogram(QWidget* = NULL, unsigned int flags_ = 0);
 	virtual ~QSpectrogram();
 	virtual void resizeEvent(QResizeEvent* e);
+	bool haveTimeInfo() const;
+	bool havePointsInfo() const;
 
 Q_SIGNALS:
     void rendered(const QString& status);
@@ -125,6 +127,9 @@ public:
 
 	void picker_t(double t);
 	void picker_p(double* p);
+	bool haveTimeInfo() const;
+	bool havePointsInfo() const;
+
 
 protected:
 	int mouseMode;///< figure gui mode

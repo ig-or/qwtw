@@ -117,7 +117,7 @@ class BCInfo {
 public:
 	LineItemInfo* broadCastInfo = nullptr;
 	my_kd_tree_t* pointsTree = nullptr;
-	BCInfo();
+	BCInfo() {}
 	~BCInfo() {
 		bcClear();
 	}
@@ -460,6 +460,7 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 	connect(ui.tbShowEverything, SIGNAL(clicked(bool)), this, SLOT(onShowAllPlots(bool)));
 	connect(ui.tbShowSimple, SIGNAL(clicked(bool)), this, SLOT(onShowAllSimple(bool)));
 	bcInfo = new BCInfo();
+	haveSpectrogramm = 0;
 #ifdef ENABLE_UDP_SYNC
 	//bc = 0;
 	///  start UDP client 
@@ -562,6 +563,8 @@ JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 #endif
 		case jQwSpectrogram: 
 			cf = new QSpectrogramPlot(name_, this, parent, flags);
+			haveSpectrogramm += 1;
+			xmprintf(5, "XQPlots::figure creating jQwSpectrogram done; haveSpectrogramm=%d\n", haveSpectrogramm);
 			break;
 		};
 		bool test = true;
@@ -739,6 +742,31 @@ void XQPlots::setAllMarkersVisible(bool visible) {
 	}
 }
 
+void XQPlots::adjustPickerCallback(CBPickerInfo& cpi) {
+	if ((cpi.flag & 3) == 3) { //  have pos and time info already
+		return;
+	}
+	if (!bcInfo->bcOK()) {  //  can do nothing
+		return;
+	}
+	if (cpi.flag & 2) {     // update time info
+		double x, y, z, t;
+		double p[3]; p[0] = cpi.x;  p[1] = cpi.y; p[2] = cpi.z;
+		int index = bcInfo->getClosestPoint(p, x, y, z, t);
+		if (index >= 0) {
+			cpi.time = t;
+			cpi.flag |= 1;	//  add time info
+		}
+	} else if (cpi.flag & 1) {  // have time, need coord
+		double x, y, z, t;
+		int index = bcInfo->getClosestTimePoint(cpi.time, x, y, z);
+		if (index >= 0) {
+			cpi.x = x;  cpi.y = y; cpi.z = z;
+			cpi.flag |= 2;			//  add pos info
+		}
+	}
+}
+
 void XQPlots::on3DMarker(double p[3]) {
 	int i = 0;
 	V3 point(p), p1;
@@ -750,22 +778,14 @@ void XQPlots::on3DMarker(double p[3]) {
 	cpi.x = p[0];
 	cpi.y = p[1];
 	cpi.z = p[2];
-	drawAll3DMarkers(cpi);  //  only for jQwSpectrogram
+	cpi.flag = 2;  //  have point info
 
-	// lets find the timestamp:
-	if (bcInfo->bcOK()) {
-		double x, y, z, t;
-		int index = bcInfo->getClosestPoint(p, x, y, z, t);
-		if (index >= 0) {
-			bool test  =  QMetaObject::invokeMethod(this, "drawAllMarkers1", Qt::QueuedConnection, 
-				Q_ARG(int, index),
-				Q_ARG(double, x), Q_ARG(double, y), Q_ARG(double, z), Q_ARG(double, t));
-			if (!test) {
-				xmprintf(2, "XQPlots::on3DMarker() drawAllMarkers1 failed \n");
-			}
-		}
-	}
+	//adjustPickerCallback(cpi);
 
+	pFilterMutex.lock();
+	haveNewPickerInfo = true;
+	memcpy(&fcbi, &cpi, sizeof(fcbi));
+	pFilterMutex.unlock();
 }
 
 Q_INVOKABLE void XQPlots::addVMarkerEverywhere(double t, const char* label, int id_, JustAplot* p) {
@@ -797,21 +817,9 @@ void XQPlots::setPickerCallback(OnPickerCallback cb) {
 	onPickerCallback = cb;
 }
 
-Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double z, double t) {
-	drawAllMarkers(t);		// draw all markers relying on time info
-		
-	CBPickerInfo cbi;
-	cbi.index = index;
-	cbi.label[0] = 0;
-	cbi.lineID = 0;
-	cbi.plotID = 0;
-	cbi.time = t;
-	cbi.type = 2;
-	cbi.x = x;
-	cbi.y = y;
-	cbi.xx = 0;
-	cbi.yy = 0;
-	cbi.z = z;
+/*
+Q_INVOKABLE void XQPlots::drawAllMarkers1(const CBPickerInfo& cbi) {
+	drawAllMarkers(cbi);		// draw all markers relying on time info
 
 	if (onPickerCallback != 0) {
 		//xmprintf(8, "XQPlots::drawAllMarkers2: onPickerCallback, time = %f \n", cbi.time);
@@ -821,11 +829,11 @@ Q_INVOKABLE void XQPlots::drawAllMarkers1(int index, double x, double y, double 
 	}
 
 #ifdef ENABLE_UDP_SYNC
-	sendPickerInfo(cbi);			//  send UDP info
-	sendBroadcast(x, y, z);			//  send one more UDP?
+	sendPickerInfo(cbi);					//  send UDP info
+	sendBroadcast(cbi.x, cbi.y, cbi.z);		//  send one more UDP?
 #endif
 }
-
+*/
 void XQPlots::pFilterThreadF() {
 	using namespace std::chrono_literals;
 	CBPickerInfo cbiLocal;
@@ -834,30 +842,23 @@ void XQPlots::pFilterThreadF() {
 		pFilterMutex.lock();
 		if (haveNewPickerInfo) {
 			haveNewPickerInfo = false;
-			memcpy(&cbiLocal, &cbi, sizeof(cbi));
+			memcpy(&cbiLocal, &fcbi, sizeof(fcbi));
 			pFilterMutex.unlock();
 
-			//drawAllMarkers(cbiLocal.time);
-			if (cbiLocal.type == 1) {  //  this one might have some time info already!
-				QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::BlockingQueuedConnection, Q_ARG(double, cbiLocal.time));
-			} else if (cbiLocal.type == 4) { // probably, only 3D coords
-				QMetaObject::invokeMethod(this, "drawAll3DMarkers", Qt::BlockingQueuedConnection, Q_ARG(CBPickerInfo, cbiLocal));
-			}
+			adjustPickerCallback(cbiLocal);
+			//if (cbiLocal.type == 1) {  //  this one might have some time info already!
+			QMetaObject::invokeMethod(this, "drawAllMarkers", Qt::QueuedConnection, Q_ARG(CBPickerInfo, cbiLocal));
+			//} else if (cbiLocal.type == 4) { // probably, only 3D coords
+			//	QMetaObject::invokeMethod(this, "drawAll3DMarkers", Qt::BlockingQueuedConnection, Q_ARG(CBPickerInfo, cbiLocal));
+			//}
 
 			if (onPickerCallback != 0) {  //  call the callback function?
 				onPickerCallback(cbiLocal);
 			}
 #ifdef ENABLE_UDP_SYNC
-			sendPickerInfo(cbi);  // send out UDP about the callback
+			sendPickerInfo(cbiLocal);  // send out UDP about the callback
 
-			if (bcInfo->bcOK() && (cbiLocal.time > 1.0e-8) && (cbiLocal.type == 1)) {  //  send one more UDP? this works if we have valid time stamp
-				double x, y, z;
-				long long i = bcInfo->getClosestTimePoint(cbiLocal.time, x, y, z);
-				if (i >= 0) {
-					sendBroadcast(x, y, z);
-				}
-			}
-			if (cbiLocal.type == 4) { //  just the point coords
+			if (cbiLocal.flag & 2) { //  we have point coords
 				sendBroadcast(cbiLocal.x, cbiLocal.y, cbiLocal.z);
 			}
 #endif
@@ -869,103 +870,62 @@ void XQPlots::pFilterThreadF() {
 	}
 }
 
-Q_INVOKABLE void XQPlots::draw3DpointMArker(int figureID, double* point) {
-	CBPickerInfo cbi1;
-	cbi1.index = 0;
-	//strncpy(cbi1.label, legend.c_str(), cbi1.lSize);
-	cbi1.lineID = 0;
-	cbi1.plotID = figureID;
-	cbi1.time = 0.0;
-	cbi1.type = 4;
-	cbi1.x = point[0];
-	cbi1.y = point[1];
-	cbi1.z = point[2];
-	cbi1.xx = 0;
-	cbi1.yy = 0;
+//Q_INVOKABLE void XQPlots::draw3DpointMArker(int figureID, double* point) {
+//	
+//}
 
-	pFilterMutex.lock();
-	haveNewPickerInfo = true;
-	memcpy(&cbi, &cbi1, sizeof(cbi));
-	pFilterMutex.unlock();
-}
-
-Q_INVOKABLE void XQPlots::drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend) {
+Q_INVOKABLE void XQPlots::drawAllMarkers2(CBPickerInfo cbi1) {
 	//xmprintf(8, "drawAllMarkers2!\n ");
 
-		CBPickerInfo cbi1;
-		cbi1.index = index;
-		strncpy(cbi1.label, legend.c_str(), cbi1.lSize);
-		cbi1.lineID = lineID;
-		cbi1.plotID = figureID;
-		cbi1.time = t;
-		cbi1.type = 1;
-		cbi1.x = x;
-		cbi1.y = y;
-		cbi1.xx = fx;
-		cbi1.yy = fy;
-		cbi1.z = 0.0;
-
+		//adjustPickerCallback(cbi1);
 		pFilterMutex.lock();
 		haveNewPickerInfo = true;
-		memcpy(&cbi, &cbi1, sizeof(cbi));
+		memcpy(&fcbi, &cbi1, sizeof(fcbi));
 		pFilterMutex.unlock();
 }
 
-Q_INVOKABLE void XQPlots::drawAllMarkers(double t) {
+Q_INVOKABLE void XQPlots::drawAllMarkers(CBPickerInfo cpi) {
 	//if (!markersAreVisible) markersAreVisible = true;
     std::map<std::string, JustAplot*>::iterator it;
-	bool boc = bcInfo->bcOK();
-	bool haveSpectrogramm = false;
 	JustAplot* f;
-
     for(it = figures.begin(); it != figures.end(); it++) {
 		f = it->second;
 		if (f->type == jQwSpectrogram) {
-
-			we should decide based on the info what particular spectrogramm has
-				if it has time info, then use it. Or, use the points.
-
-
-			if (boc) {							// will use a 3D coord in this case
-				haveSpectrogramm = true;
-			} else {							// try to use time info
-				it->second->drawMarker(t);
+			QSpectrogramPlot* sp = (QSpectrogramPlot*)(f);
+			if (sp->havePointsInfo()) {
+				if (cpi.flag & 2) {
+					f->draw3DMarker(cpi);
+					continue;
+				}
+			} 
+			if (sp->haveTimeInfo() && (cpi.flag & 1)) {
+				f->drawMarker(cpi.time);
+				continue;
 			}
-		} else {
-			it->second->drawMarker(t);
+		} else {	//  not the spectrogramm
+			if (cpi.flag & 1) {
+				it->second->drawMarker(cpi.time);
+			}
 		}
     }
 	for (it = figures.begin(); it != figures.end(); it++) {
 		it->second->replot();
 	}
+}
 
-	if (boc && (t > 1.0e-8) && haveSpectrogramm) {  // 
-		double x, y, z;
-		long long i = bcInfo->getClosestTimePoint(t, x, y, z);
-		if (i >= 0) {  // we have good 3D coordinates from this timestamp
-			CBPickerInfo& cpi;     cpi.x = x; cpi.y = y; cpi.z = z; cpi.time = t; cpi.index = 0;
-			for (it = figures.begin(); it != figures.end(); it++) {
-				f = it->second;
-				if (f->type == jQwSpectrogram) {
-					f->draw3DMarker(cpi);
-				}
-			}
-		}
-	}
-}
-Q_INVOKABLE void XQPlots::drawAll3DMarkers(const CBPickerInfo& cpi) {
-	std::map<std::string, JustAplot*>::iterator it;
-	JustAplot* f;
-	for (it = figures.begin(); it != figures.end(); it++) {
-		f = it->second;
-		if (f->type == jQwSpectrogram) {
-			//if (cpi.plotID != f->iKey) {
-				f->draw3DMarker(cpi);
-				f->replot();  //   do we need it here ????
-			//}
-		}
-	}
-}
+//Q_INVOKABLE void XQPlots::drawAll3DMarkers(const CBPickerInfo& cpi) {
+//	std::map<std::string, JustAplot*>::iterator it;
+//	JustAplot* f;
+//	for (it = figures.begin(); it != figures.end(); it++) {
+//		f = it->second;
+//		if (f->type == jQwSpectrogram) {
+//			//if (cpi.plotID != f->iKey) {
+//				f->draw3DMarker(cpi);
+//				f->replot();  //   do we need it here ????
+//			//}
+//		}
+//	}
+//}
 
 #ifdef ENABLE_UDP_SYNC
 void XQPlots::sendBroadcast(double x, double y, double z) {
@@ -1339,6 +1299,10 @@ void XQPlots::onFigureClosed(const std::string& key) {
 	std::map<std::string,  JustAplot*>::iterator it = figures.find(key);
 	if (it != figures.end()) {
 		f = it->second;  //  DO WE NEED THIS???
+		if (f->type == jQwSpectrogram) {
+			haveSpectrogramm -= 1;
+			xmprintf(4, "INFO: XQPlots::onFigureClosed for key = {%s} spectrogramm was removed haveSpectrogramm=%d\n", key.c_str(), haveSpectrogramm);
+		}
 		
 		//    remove all the lines from 'lines':
 		for (auto i = lines.begin(); i != lines.end(); ) { //  according to https://en.cppreference.com/w/cpp/container/map/erase

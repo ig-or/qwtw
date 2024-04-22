@@ -50,6 +50,7 @@ struct CBPickerInfo {
 	int plotID = 0;
 	int lineID = 0;
 	int type = 0; 	///< signal source ID
+	int flag = 0;	///<	&1 -> have time info; &2 -> have point info
 	char label[lSize];   ///< line label
 };
 

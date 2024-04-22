@@ -118,6 +118,11 @@ public:
 	void enableCoordBroadcast(double* x, double* y, double* z, double* time, int size); 
 	void disableCoordBroacast();
 #endif
+	/// <summary>
+///  incoming coord (from UDP ?)
+/// </summary>
+/// <param name="p"></param>
+	void on3DMarker(double p[3]);
 
 
 
@@ -134,26 +139,21 @@ public:
 	/// <param name="z"></param>
 	/// <param name="t"></param>
 	/// <returns></returns>
-	Q_INVOKABLE void drawAllMarkers1(int index, double x, double y, double z, double t);
+	//Q_INVOKABLE void drawAllMarkers1(const CBPickerInfo& cbi);
 
+
+	Q_INVOKABLE void drawAllMarkers2(CBPickerInfo cbi1);
 	/// <summary>
-	/// callback from plot picker (mouse click)
+	/// 
+	/// 
 	/// </summary>
-	/// <param name="figureID"> figure ID (iKey)  </param>
-	/// <param name="lineID">    line ID (static.... not threadsafe)</param>
-	/// <param name="index"> index of the selected  point </param>
-	/// <param name="fx"> x plot coord</param>
-	/// <param name="fy"></param>
-	/// <param name="x"></param>
-	/// <param name="y"></param>
-	/// <param name="t"></param>
-	/// <param name="legend"> legend of the selected line </param>
+	/// <param name="figureID"></param>
+	/// <param name="point"></param>
 	/// <returns></returns>
-	Q_INVOKABLE void drawAllMarkers2(int figureID, int lineID, int index, int fx, int fy, double x, double y, double t, const std::string& legend);
-	Q_INVOKABLE void draw3DpointMArker(int figureID, double* point);
+	//Q_INVOKABLE void draw3DpointMArker(int figureID, double* point);
 
-	Q_INVOKABLE void drawAllMarkers(double t);
-	Q_INVOKABLE void drawAll3DMarkers(const CBPickerInfo& cpi);
+	Q_INVOKABLE void drawAllMarkers(CBPickerInfo cpi);
+	//Q_INVOKABLE void drawAll3DMarkers(const CBPickerInfo& cpi);
 	Q_INVOKABLE void addVMarkerEverywhere(double t, const char* label = 0, int id_ = 0, JustAplot* p = nullptr);
 	Q_INVOKABLE void removeVMarkerEverywhere(int id_);
 
@@ -201,14 +201,21 @@ protected:
 	bool clearingAllFigures;
 	void clearFigures();
 
+
 private:
 	//PlotsInterfaceModel pim;
 	QStandardItemModel pim;
+	int haveSpectrogramm = 0;
 	/**
 	@return 0 if cannot find
 	*/
 	JustAplot* getPlotByName(std::string s);
-	void on3DMarker(double p[3]);
+
+	/// <summary>
+	/// update 'cpi' based on 'broadcast info'
+	/// </summary>
+	/// <param name="cpi"></param>
+	void adjustPickerCallback(CBPickerInfo& cpi);
 //	QStandardItem* jp2SI
 	std::map<int, LineHandler> lines;
 	OnUdpCallback onUdpCallback = 0;
@@ -217,7 +224,7 @@ private:
 	/// special picker filtering things
 	std::thread pFilterThread; ///< filtering thread handler
 	std::mutex  pFilterMutex;  ///< for access cbi and haveNewPickerInfo
-	CBPickerInfo cbi;	///< filtering info container
+	CBPickerInfo fcbi;	///< filtering info container
 	bool pleaseStopFilterThread = false;
 	bool haveNewPickerInfo = false; ///< new picker info to the filtering thread flag
 	void pFilterThreadF(); ///< filtering thread function

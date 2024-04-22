@@ -1597,8 +1597,22 @@ void Figure2::onPickerSignal(int x, int y) {
 	setWindowTitle(s);
 	
 	if(ok) {
-	   //pf->drawAllMarkers(t);
-		pf->drawAllMarkers2(iKey, mfi->info->id, minIndex, x, y, lastXselected, lastYselected, t, mfi->info->legend);
+	   //pf->drawAllMarkers(t);		
+		CBPickerInfo cbi1;
+		cbi1.index = index;
+		strncpy(cbi1.label, mfi->info->legend.c_str(), cbi1.lSize);
+		cbi1.lineID = mfi->info->id;
+		cbi1.plotID = iKey;
+		cbi1.time = t;
+		cbi1.type = 1;
+		cbi1.x = x;
+		cbi1.y = y;
+		cbi1.xx = xx;
+		cbi1.yy = yy;
+		cbi1.z = 0.0;
+		cbi1.flag = 1;   // only time info
+
+		pf->drawAllMarkers2(cbi1);
 	}
 
 	//xmprintf(8, "Figure2::onPickerSigna: time = %f  \n", t);
