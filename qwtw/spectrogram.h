@@ -26,6 +26,7 @@ class SpectrogramData;
 class QwtPlotMarker;
 class QSpectrogramPlot;
 class FSPicker2;
+class AMarker;
 
 
 class QSpectrogram : public QwtPlot {
@@ -36,7 +37,7 @@ public:
         RGBMap,
         HueMap
     };
-
+	double lastXselected, lastYselected;
     QSpectrogram(QWidget* = NULL, unsigned int flags_ = 0);
 	virtual ~QSpectrogram();
 	virtual void resizeEvent(QResizeEvent* e);
@@ -64,6 +65,7 @@ public Q_SLOTS:
 	void drawMarker3D(double* x);
 private:
 	bool	squareAxis = false;
+	
     virtual void drawItems(QPainter*, const QRectF&,
         const QwtScaleMap maps[axisCnt]) const QWT_OVERRIDE;
 
@@ -142,6 +144,7 @@ protected:
 	std::string sTitle;
 
 	QFont titleFont, axisFont;
+	std::list<AMarker*> amList;
 
 	void closeEvent(QCloseEvent* event);
 	void removeLines();
@@ -152,9 +155,18 @@ protected:
 	void keyPressEvent(QKeyEvent* k);
 	
 private:
-	double lastXselected, lastYselected;
+	//double lastXselected, lastYselected;
 	bool pointWasSelected;
 	std::string legend;
+
+	/**  test what we can do about the marker.
+ *  \param mid marker ID to remove
+ * \return 	0 do nothing
+ * 			1 add a marker
+ * 			2 remove a marker
+ */
+	int markerTest(int& mid, std::string& label, QColor& color);
+	void addAMarker();
 
 private slots:
 	void ontbPicker(bool checked);

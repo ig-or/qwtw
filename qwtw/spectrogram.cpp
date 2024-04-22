@@ -1,7 +1,7 @@
 
 #include "spectrogram.h"
 #include "sfigure.h"
-
+#include <QLineEdit>
 #include <qwt_color_map.h>
 #include <qwt_plot_spectrogram.h>
 #include <qwt_scale_widget.h>
@@ -18,12 +18,14 @@
 #include <qwt_plot_marker.h>
 #include <qwt_symbol.h>
 #include <qpen.h>
+#include <qevent.h>
 #include <qtoolbar.h>
 #include <qstatusbar.h>
 #include <qelapsedtimer.h>
 #include <qcheckbox.h>
 #include "settings.h"
 #include "nanoflann.hpp"
+#include "qmarkers.h"
 
 #include <limits>
 #include <cmath>
@@ -883,6 +885,7 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
     QwtRasterData* data = new TestSpectrogramData();
     d_spectrogram->setData(data);
     d_spectrogram->attach(this);
+    lastXselected = 0.0; lastYselected = 0.0;
 
     const QwtInterval zInterval = d_spectrogram->data()->interval(Qt::ZAxis);
 
@@ -1034,6 +1037,9 @@ void QSpectrogram::onPickerSignal(int x, int y) {
     double z;
     
     sData->d2i(xx, yy, ix, iy, z);
+    lastXselected = xx;
+    lastYselected = yy;
+
     if (sData->tt != nullptr) {
         double t = sData->getT(iy, ix);
         spp->picker_t(t);
@@ -1214,7 +1220,7 @@ void QSpectrogram::doSquareAxis() {
 
 QSpectrogramPlot::QSpectrogramPlot(const std::string& key_, XQPlots* pf_, QWidget* parent, unsigned int flags_) : 
         JustAplot(key_, pf_, parent, jQwSpectrogram) {
-    mouseMode = 0;
+    mouseMode = 2;
     flags = flags_;
     tbModeChanging = false;
     clipperHost = false;
@@ -1276,7 +1282,8 @@ QSpectrogramPlot::QSpectrogramPlot(const std::string& key_, XQPlots* pf_, QWidge
     spectrogram->setAxisFont(2, axisFont);
 
     makeMarkersVisible(true);
-    lastXselected = 0.0; lastYselected = 0.0;  pointWasSelected = false;
+   // lastXselected = 0.0; lastYselected = 0.0;  
+    pointWasSelected = false;
 }
 
 QSpectrogramPlot::~QSpectrogramPlot() {
@@ -1509,12 +1516,14 @@ void QSpectrogramPlot::picker_t(double t) {
     cbi1.yy = 0;
     cbi1.z = 0.0;
     cbi1.flag = 1;   // only time info
+    pointWasSelected = true;
 
     pf->drawAllMarkers2(cbi1);
 }
 
 void QSpectrogramPlot::picker_p(double* p) {
     //pf->draw3DpointMArker(iKey, p);
+    pointWasSelected = true;
     pf->on3DMarker(p);
 }
 
@@ -1540,12 +1549,127 @@ void QSpectrogramPlot::onPickerSignal(int x, int y) {
 void QSpectrogramPlot::focusInEvent(QFocusEvent* event) {
 
     }
-void QSpectrogramPlot::keyPressEvent(QKeyEvent* k) {
 
+
+int QSpectrogramPlot::markerTest(int& mid, std::string& label, QColor& color) {
+    int ret = 0;
+    mid = 0;
+    if (mouseMode != 1) {
+        xmprintf(3, "QSpectrogramPlot::markerTest(): mouseMode = %d \n", mouseMode);
+        return 0;
+    }
+    if (!pointWasSelected) {
+        xmprintf(3, "QSpectrogramPlot::markerTest(): point was not selected \n");
+        return 0;
+    }
+
+    xmprintf(3, "QSpectrogramPlot::markerTest(): ..... \n");
+    bool haveItAlready = false;
+    QwtScaleMap smY = spectrogram->canvasMap(QwtPlot::yLeft);
+    QwtScaleMap smX = spectrogram->canvasMap(QwtPlot::xBottom);
+    double dxS = smX.sDist();
+    double dyS = smY.sDist();
+
+    double dx = dxS / 256.0;
+    double dy = dyS / 100.0;
+
+
+    for (AMarker* a : amList) {
+        if ((fabs(spectrogram->lastXselected - a->x) < dx) && (fabs(spectrogram->lastYselected - a->y) < dy)) {
+            haveItAlready = true;
+            mid = a->id;
+            break;
+        }
+    }
+
+    if (haveItAlready) {
+        return 2;
+    }
+    char tmp[64];
+
+    snprintf(tmp, 64, "[%.2f, %.2f]", spectrogram->lastXselected, spectrogram->lastYselected);
+    {
+        SelectMarkerParamsDlg dlg(this, tmp);
+        dlg.exec();
+        if (!dlg.ret) {
+            xmprintf(3, "Figure2::markerTest(): rejected \n");
+            return 0;
+        }
+        label = dlg.text->text().toStdString();
+        color = dlg.selectedColor;
+    }
+    return 1;
+}
+
+void QSpectrogramPlot::addAMarker() {
+    int mid = 0;
+    std::string label;
+    QColor color;
+    AMarker* am;
+    int  test = markerTest(mid, label, color);
+    switch (test) {
+    case 1:
+        markerID++;
+        am = new AMarker(label.c_str(), spectrogram->lastXselected, spectrogram->lastYselected, color,
+            static_cast<AMarker::AMPos>(qwSettings.direction), markerID);
+        amList.push_back(am);
+        am->attach(spectrogram);
+        break;
+    case 2:
+    {
+        std::list<AMarker*>::iterator it = amList.begin();
+        while (it != amList.end()) {
+            AMarker* a = *it;
+            if (a->id == mid) {
+                a->detach();
+                delete a;
+                it = amList.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+    break;
+    };
+    replot();
+    xmprintf(3, "Figure2::addAMarker(): OK \n");
+}
+
+
+void QSpectrogramPlot::keyPressEvent(QKeyEvent* k) {
+    switch (k->key()) {
+    case Qt::Key_Up:
+    case Qt::Key_Down:
+    case Qt::Key_Left:
+    case Qt::Key_Right:
+        QWidget::keyPressEvent(k);
+        break;
+    case Qt::Key_A:  //  add arrow marker
+        xmprintf(9, "QSpectrogramPlot:: A was pressed!\n");
+        addAMarker();
+        break;
+    case Qt::Key_M: //  switch to marker mode
+        mouseMode = 1;
+        //setTBState();
+        break;
+    case Qt::Key_P: //  switch to pan mode
+        mouseMode = 2;
+        //setTBState();
+        break;
+    case Qt::Key_Z: //  switch to zoom mode
+        mouseMode = 3;
+        //setTBState();
+        break;
+    default:
+        QWidget::keyPressEvent(k);
+        break;
+    };
+    return;
 }
 
 void QSpectrogramPlot::ontbPicker(bool checked) {
     spectrogram->enablePicker(checked);
+    mouseMode = checked ? 1 : 2;
 }
 
 void QSpectrogramPlot::onClip(bool checked) {
