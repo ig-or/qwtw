@@ -43,6 +43,7 @@ public:
 	virtual void resizeEvent(QResizeEvent* e);
 	bool haveTimeInfo() const;
 	bool havePointsInfo() const;
+	void spClip(double x1, double x2, double y1, double y2);
 
 Q_SIGNALS:
     void rendered(const QString& status);
@@ -104,6 +105,7 @@ public:
 	virtual void draw3DMarker(const CBPickerInfo& cpi);
 	virtual void makeMarkersVisible(bool visible);
 	virtual void onClip(double t1, double t2);
+	void spClip(double x1, double x2, double y1, double y2);
 	virtual int savePng(const std::string& filename);
 	virtual void replot();
 	//void setAxesEqual();

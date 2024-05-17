@@ -1004,6 +1004,19 @@ void XQPlots::clipAll(double t1, double t2, int clipGroup) {
 #endif
 }
 
+void XQPlots::spClipAll(double x1, double x2, double y1, double y2, int clipGroup) {
+	std::map<std::string, JustAplot*>::iterator it;
+	for (it = figures.begin(); it != figures.end(); it++) {
+		JustAplot* jsp = it->second;
+		if (jsp->clipGroup == clipGroup) {
+			if (jsp->type == jQwSpectrogram) {
+				QSpectrogramPlot* sp = (QSpectrogramPlot*)(jsp);
+				sp->spClip(x1, x2, y1, y2);
+			}
+		}
+	}
+}
+
 JustAplot* XQPlots::figure(int n, JPType type, unsigned int flags) {
 	char buf[32];
 	std::string fName;

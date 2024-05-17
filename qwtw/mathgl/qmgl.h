@@ -6,15 +6,9 @@
 #include <mgl2/qmathgl.h>
 #include "qwtypes.h"
 
-
-//
-//#include <QFrame>
 #include <QWidget>
 #include <QGLWidget>
 #include <memory>
-
-
-
 
 class QMathGL;
 class mglGraph;

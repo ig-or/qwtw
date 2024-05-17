@@ -159,6 +159,7 @@ public:
 	Q_INVOKABLE void removeVMarkerEverywhere(int id_);
 
 	void clipAll(double t1, double t2, int clipGroup);
+	void spClipAll(double x1, double x2, double y1, double y2, int clipGroup);
 	void setUdpCallback(OnUdpCallback  cb);
 	void setPickerCallback(OnPickerCallback cb);
 

@@ -1217,7 +1217,11 @@ void QSpectrogram::doSquareAxis() {
 }
 
 
-
+void QSpectrogram::spClip(double x1, double x2, double y1, double y2) {
+    QRectF zr(x1, y1, x2 - x1, y2 - y1);
+    zoomer->zoom(zr);
+    replot(); // ?
+}
 
 
 QSpectrogramPlot::QSpectrogramPlot(const std::string& key_, XQPlots* pf_, QWidget* parent, unsigned int flags_) : 
@@ -1682,9 +1686,28 @@ void QSpectrogramPlot::ontbPicker(bool checked) {
     mouseMode = checked ? 1 : 2;
 }
 
-void QSpectrogramPlot::onClip(bool checked) {
+void QSpectrogramPlot::onClip(bool checked) { //  clip button pressed
+    clipperHost = true;
+    QwtScaleMap smX = spectrogram->canvasMap(QwtPlot::xBottom);
+    double  x1 = smX.s1();
+    double  x2 = smX.s2();
+    if (x1 > x2) {        std::swap(x1, x2);    }
+    QwtScaleMap smY = spectrogram->canvasMap(QwtPlot::yLeft);
+    double  y1 = smY.s1();
+    double  y2 = smY.s2();
+    if (y1 > y2) {         std::swap(y1, y2);     }
+    pf->spClipAll(x1, x2, y1, y2, clipGroup);
+    clipperHost = false;
+}
 
+void QSpectrogramPlot::spClip(double x1, double x2, double y1, double y2) {
+    if (clipperHost) {
+        return;
     }
+    spectrogram->spClip(x1, x2, y1, y2);
+}
+
+
 void QSpectrogramPlot::onResetLayout() {
 
     }
