@@ -238,6 +238,10 @@ qwtwc_API int qwtchange(int id, double* x, double* y, double* z, double* time, i
 	return test.qwtchange(id, x, y, z, time, size);
 }
 
+qwtwc_API int qwtsave_png(int id, char* filename) {
+	return test.qwtsave_png(id, filename);
+}
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

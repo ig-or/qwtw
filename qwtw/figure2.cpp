@@ -999,7 +999,16 @@ void Figure2::onSaveImage() {
 	if (!fn.isEmpty()) {
 		qPix.save(fn, "png");
 	}
+}
 
+int Figure2::savePng(const std::string& filename) {
+	QPixmap qPix = plot1->grab();
+	if (qPix.isNull()) {
+		return 6;
+	}
+	qPix.save(filename.c_str(), "png");
+
+	return 0;
 }
 
 void Figure2::onSaveData() {

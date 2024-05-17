@@ -1057,6 +1057,31 @@ void XQPlots::xlabel(const std::string& s) {
 	cf->xlabel(s);
 }
 
+int XQPlots::savePng(int id, const std::string& filename) {
+	JustAplot* f = nullptr;
+	if (id == 0) {				//   ask for 'current'
+		if (cf == nullptr) {
+			return 1;
+		} else {
+			f = cf;
+		}
+	} else {
+		char buf[32];
+		std::string fName;
+		snprintf(buf, 32, "%d", id); buf[31] = 0;
+		fName.assign(buf);
+		std::map<std::string, JustAplot*>::iterator it = figures.find(fName);
+		if (it == figures.end()) {
+			return 2;
+		} else {
+			f = it->second;
+		}
+	}
+	int result = f->savePng(filename);
+	return result;
+
+}
+
 int XQPlots::service(int x) {
 	switch (x) {
 		case qsCallbackStarted: 

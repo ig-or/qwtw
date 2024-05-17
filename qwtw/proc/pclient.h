@@ -58,6 +58,7 @@ struct SHMTest {
 	/// </summary>
 	/// <param name="id"> id of thie line</param>
 	void qwtremove(int id);
+	int qwtsave_png(int id, char* filename);
 	int qwtchange(int id, double* x, double* y, double* z, double* time, int size);
 #ifdef USE_QT3D
 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
@@ -82,7 +83,7 @@ struct SHMTest {
 
 private:    
 
-	int sendCommand(CmdHeader::QWCmd cmd, const char* text = 0);
+	int sendCommand(CmdHeader::QWCmd cmd, const char* text = 0, int test = 0);
 	int sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags = 0);
 	void resize(long long size);
 	void resizeData(long long size);

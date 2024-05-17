@@ -16,6 +16,7 @@
 #include <QKeyEvent>
 #include <QPushButton>
 #include <QColorDialog>
+#include "qpainterpath.h"
 #include <qwt_text.h>
 
 #include "settings.h"

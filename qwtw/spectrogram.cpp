@@ -1218,6 +1218,8 @@ void QSpectrogram::doSquareAxis() {
 
 
 
+
+
 QSpectrogramPlot::QSpectrogramPlot(const std::string& key_, XQPlots* pf_, QWidget* parent, unsigned int flags_) : 
         JustAplot(key_, pf_, parent, jQwSpectrogram) {
     mouseMode = 2;
@@ -1429,14 +1431,22 @@ void QSpectrogramPlot::retranslateUi() {
     Q_UNUSED(this);
 } // retranslateUi 
 
-
-
 void QSpectrogramPlot::title(const std::string& s) {
     sTitle = s;
     QwtText title(s.c_str());
     title.setFont(titleFont);
     spectrogram->setTitle(title);
     JustAplot::title(s);
+}
+
+int QSpectrogramPlot::savePng(const std::string& filename) {
+    QPixmap qPix = spectrogram->grab();
+    if (qPix.isNull()) {
+        return 6;
+    }
+    qPix.save(filename.c_str(), "png");
+
+    return 0;
 }
 
 bool QSpectrogramPlot::haveTimeInfo() const {

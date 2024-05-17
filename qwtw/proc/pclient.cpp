@@ -335,7 +335,15 @@ int SHMTest::testInit(int level) {
 		xmprintf(4, "trying to adjust the memory according to header info ... \n");
 		try {
 			xmprintf(5, "\t entering lock on  pd.hdr->mutex..\n");
-			pd.hdr->mutex.lock();
+			//pd.hdr->mutex.lock();
+			bool lock_test = pd.hdr->mutex.try_lock_for(250ms);
+			if (lock_test) {
+				xmprintf(8, " \t locked! (try_lock_for = true) \n");
+			} else {
+				pd.hdr->mutex.unlock();
+				xmprintf(0, "ERROR SHMTest::testInit() (128): cannot lock mutex; qwproc hangs?\n");
+				return 14;
+			}
 			//scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 		} catch (interprocess_exception &ex) { 
 			pd.hdr->mutex.unlock();
@@ -470,7 +478,7 @@ void SHMTest::qsetloglevel(int level) {
 	//xmPrintLevel = tmp; // level
 }
 
-int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
+int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text, int test) {
 	if (status != 0) return 0;
 	using namespace boost::interprocess;
 	xmprintf(4, "SHMTest::sendCommand(%d, %s): locking ..\n", static_cast<int>(cmd), text);
@@ -480,6 +488,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 	if (text != 0) {
 		strncpy(pd.hdr->name, text, CmdHeader::nameSize);
 	}
+	pd.hdr->test = test;
 #if (BOOST_VERSION >= 107800)
 	boost::interprocess::cv_status wResult;		//  boost 1.78 ? 
 #else
@@ -523,6 +532,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text) {
 int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	if (status != 0) return 0;
 	using namespace boost::interprocess;
+	using namespace std::chrono_literals;
 	xmprintf(4, "SHMTest::sendCommand(%d, %d): locking ..\n", static_cast<int>(cmd), v);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	xmprintf(4, "\tSHMTest::sendCommand locked. \n");
@@ -539,13 +549,16 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	for (int nCounter = 16; nCounter > 0; nCounter--) {
 		pd.hdr->cmdWait.notify_all();
 		pd.hdr->cmdWait.notify_all();
-		xmprintf(4, "\t %d SHMTest::sendCommand(%d, %d): start waiting ..\n", nCounter, static_cast<int>(cmd), v);
+		xmprintf(4, "\t %d SHMTest::sendCommand(%d, %d): start waiting ..  (BOOST_VERSION =%d)\n", nCounter, static_cast<int>(cmd), v, BOOST_VERSION);
 		////pd.hdr->workDone.wait(lock);
 		  //    boost 1.78
 #if (BOOST_VERSION >= 107800)
-		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(75));
+		wResult = pd.hdr->workDone.wait_for(lock, 78ms);
 		if (wResult == cv_status::no_timeout) {  //  condition worked, no timeout 
+			xmprintf(8, "\t\t (%d) (%d, %d):  condition worked, no timeout \n", nCounter, static_cast<int>(cmd), v);
 			break;
+		} else {
+			xmprintf(8, "\t\t (%d) (%d, %d): timeout. trying one more time.. \n", nCounter, static_cast<int>(cmd), v);
 		}
 #else             // boost 1.76:
 		boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(75);
@@ -835,6 +848,14 @@ void SHMTest::qwtremove(int id) {
 	if (status != 0) return;
 	sendCommand(CmdHeader::qRemoveLine, id);
 }
+
+int SHMTest::qwtsave_png(int id, char* filename) {
+	if (status != 0) return -7;
+	int result = sendCommand(CmdHeader::qSavePng, filename, id);
+	xmprintf(4, "\tSHMTest::qwtsave_png(id = %d); result = %d\n", id, result);
+	return result;
+}
+
 
 int SHMTest::qwtchange(int id, double* x, double* y, double* z, double* time, int size) {
 	if (status != 0) return -7;

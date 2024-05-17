@@ -135,6 +135,7 @@ public:
 	virtual void makeMarkersVisible(bool visible);
 	virtual void addLine(LineItemInfo* line);
 	virtual void onClip(double t1, double t2);
+	virtual int savePng(const std::string& filename);
 
 	virtual void replot();
 

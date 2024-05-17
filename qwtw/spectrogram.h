@@ -104,6 +104,7 @@ public:
 	virtual void draw3DMarker(const CBPickerInfo& cpi);
 	virtual void makeMarkersVisible(bool visible);
 	virtual void onClip(double t1, double t2);
+	virtual int savePng(const std::string& filename);
 	virtual void replot();
 	//void setAxesEqual();
 	void setInfo(const SpectrogramInfo& info);

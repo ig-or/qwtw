@@ -40,11 +40,12 @@ struct CmdHeader {
 		qSetUdpCallback,  //  
 		qSetPickerCallback,  // 
 		qService,			//   27
+		qSavePng,
 
 		qwcmdSize
 	};
 	enum {
-		nameSize = 128
+		nameSize = 356
 	};
 	int cmd; ///< QWCmd
 	int segSize; ///< size of each memory segment in 8th (how many numbers maximum..)

@@ -33,6 +33,7 @@ public:
 	virtual void xlabel(const std::string&  s) = 0;
 	virtual void ylabel(const std::string&  s) = 0;
 	virtual void zlabel(const std::string&  s) {}
+	virtual int savePng(const std::string& filename) { return 5; }
 	virtual void drawMarker(double X, double Y, int type = 1) = 0;
 	virtual void draw3DMarker(const CBPickerInfo& cpi) {};
 	virtual void drawMarker(double t);

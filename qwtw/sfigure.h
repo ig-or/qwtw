@@ -81,6 +81,7 @@ public:
 	void title(const std::string& s);
 	void footer(const std::string& s);
 	void xlabel(const std::string& s);
+	int savePng(int id, const std::string& filename);
 	int service(int x);
 	void ylabel(const std::string& s);
 	void setSpectrogramInfo(const SpectrogramInfo& info);

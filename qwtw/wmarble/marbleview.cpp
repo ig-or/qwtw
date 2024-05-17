@@ -92,7 +92,7 @@ private:
 MWidgetEx::MWidgetEx(QWidget *parent): MarbleWidget(parent) {
 	maxLat = 0; maxLon = 0; minLat = 0; minLon = 0;
 #ifdef QT_NO_SSL
-	xmprintf(0, "ERROR: looks like SSL support in QT.. not sure if maps will work \n");
+	xmprintf(0, "ERROR: looks like no SSL support in QT.. not sure if maps will work \n");
 #else
 	bool haveSSL = QSslSocket::supportsSsl();
 
@@ -354,7 +354,9 @@ MarView::~MarView() {
 
 int MarView::mvInit() {
 	if (mw != 0) return 1;
+	xmprintf(7, "MarView::mvInit()..  creating the marble widget..  \n");
 	mw = new MWidgetEx(this);
+	xmprintf(7, "MarView::mvInit()..  marble widget  created  \n");
 	// Load the OpenStreetMap map
 	//mw->setMapThemeId("earth/plain/plain.dgml");
 	mw->setMapThemeId("earth/openstreetmap/openstreetmap.dgml");
@@ -461,6 +463,7 @@ int MarView::mvInit() {
 	resize(400, 300);
 
 	show();
+	xmprintf(7, "MarView::mvInit() completed \n");
 	return 0;
 }
 

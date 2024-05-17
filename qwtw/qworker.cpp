@@ -220,6 +220,16 @@ void QWorker::qwtylabel(const char* s) {
 	}
 }
 
+int QWorker::qwtSavePng(int id, char* filename) {
+	int rv = -5;
+	if (!QMetaObject::invokeMethod(this, "qwtSavePngImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
+		Q_ARG(int, id), Q_ARG(char*, filename))) {
+
+		std::cout << " cannot invoke QWorker::qwtSavePng" << std::endl;
+	}
+	return rv;
+}
+
 
 
 int QWorker::qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time) {
@@ -352,6 +362,10 @@ Q_INVOKABLE void QWorker::qwtxlabelImpl(const char* s) {
 }
 Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 	pf->ylabel(s);
+}
+Q_INVOKABLE int QWorker::qwtSavePngImpl(int id, char* filename) {
+	int test = pf->savePng(id, filename);
+	return test;
 }
 
 Q_INVOKABLE int QWorker::qwtfigureImpl(int n, unsigned int flags) {

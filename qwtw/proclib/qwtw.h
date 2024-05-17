@@ -275,6 +275,13 @@ qwtwc_API void qwtremove(int id);
 */
 qwtwc_API int qwtchange(int id, double* x, double* y, double* z, double* time, int size);
 
+/**
+Save the whole plot into a png file. 
+\param id the ID of the plot (returned by qwtfigure())
+\param filename the full path to the file. Should be png image file.
+*/
+qwtwc_API int qwtsave_png(int id, char* filename);
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

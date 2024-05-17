@@ -340,6 +340,11 @@ void QProcInterface::processCommand(int cmd) {
 		case CmdHeader::qRemoveLine:
 			worker.qwtRemoveLine(pd.hdr->test);
 			break;
+		case CmdHeader::qSavePng: {
+			int result = worker.qwtSavePng(pd.hdr->test, pd.hdr->name);
+			pd.hdr->test = result;
+			}
+			break;
 
 #ifdef USEMARBLE
 		case CmdHeader::qMap: {
