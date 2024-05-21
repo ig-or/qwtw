@@ -875,13 +875,22 @@ macro (commonEnd   libType)
 	set(src_cur_dir ${CMAKE_CURRENT_SOURCE_DIR})
 
 	if (UNIX)
-		set(CMAKE_CXX_STANDARD 14)
-		set(CMAKE_CXX_STANDARD_REQUIRED ON)
 		set(CMAKE_CXX_EXTENSIONS OFF)
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 ") 
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ") 
 		add_definitions(-DLIN_UX -DUNIX)
 	endif()
-	#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 ") 
+	
+	set(CMAKE_CXX_STANDARD 20)
+	set(CMAKE_CXX_STANDARD_REQUIRED ON)
+	if(MSVC)
+		add_definitions( /std:c++20 )
+	else()
+		if(UNIX)
+			add_definitions( -std=c++2a )
+		else() # g++ for Windows ?
+			add_definitions( -std=c++2a )
+		endif()
+	endif()
 
 	if(${libType} STREQUAL EXE)
 		set(win32_using)
@@ -960,17 +969,10 @@ macro (commonEnd   libType)
 	message(STATUS "INCLUDE_DIRECTORIES = ${INC_DIR_LIST}")
 
 	if(WIN32 AND MSVC) 
-		add_definitions(/MP  /GS /std:c++14)
-		#list(APPEND CMAKE_CXX_FLAGS " /GS /std:c++14 ") # 
-		#list(APPEND CMAKE_CXX_FLAGS_RELEASE " /fp:fast /O2  /Ob2 /Oi /Ot /Qpar /openmp /Zc:inline /MD ")
+		add_definitions(/MP  /GS )
 		set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}  /fp:fast /O2  /Ob2 /Oi /Ot /Qpar /openmp /Zc:inline /MD ")
-		
-		#list(APPEND CMAKE_C_FLAGS_RELWITHDEBINFO  " /Od /Ob0 /Zi /openmp  /MD ")
 		set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}  /Od /Ob0 /Zi /openmp  /MD ")
-		#list(APPEND CMAKE_CXX_FLAGS_RELWITHDEBINFO " /Od /Ob0 /Zi /openmp  /MD ")
 		set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}  /Od /Ob0 /Zi /openmp  /MD ")
-		
-		#list(APPEND CMAKE_CXX_FLAGS_DEBUG " /MDd ")
 		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MDd ")
 		
 		# 4101 unreferenced local variable

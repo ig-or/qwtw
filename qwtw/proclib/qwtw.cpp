@@ -10,6 +10,7 @@
 #include "qwtypes.h"
 #include <chrono>
 #include <thread>
+#include <filesystem>
 
 #ifdef WIN32
 #include <windows.h>
@@ -315,20 +316,49 @@ const char* getQwtwDllPath() {
 
 static const int logBufLen = 2048;
 static char logBuf[logBufLen];
+static FILE* xmLogFile = 0;
+static int xmFileOpenCounter = 0;
 int xmprintf(int level, const char * _Format, ...) {
 	using namespace std::chrono_literals;
-	if (level > xmPrintLevel) {
-		return 1;
+	using namespace std::filesystem;
+	if (xmLogFile == 0 && xmFileOpenCounter < 5) {
+		std::error_code ec;
+		path logFolder = temp_directory_path() / "qwtw";
+		if (!exists(logFolder)) {
+			create_directories(logFolder, ec);
+		}
+		if (exists(logFolder)) {
+			std::time_t t = std::time(nullptr);
+			char mbstr[128];
+			std::strftime(mbstr, sizeof(mbstr), "%Y-%m-%dT%H-%M-%S", std::localtime(&t));
+			std::string st(mbstr); st.append("_lib.txt");
+			path logFilePath = logFolder / st;
+			xmLogFile = fopen(logFilePath.string().c_str(), "wt");
+			if (xmLogFile != 0) {
+				if (xmPrintLevel != 0) {
+					printf("log started in %s\n", logFilePath.string().c_str());
+				}
+			}
+		}
+		xmFileOpenCounter += 1;
 	}
+
 	va_list args;
 	va_start(args, _Format);
 
 	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
 	logBuf[logBufLen - 1] = 0;
 	if(ok > 0) { // we got the message
-		printf("%d-%d \t%s", xmPrintLevel, level, logBuf);
+		if (level <= xmPrintLevel) {
+			printf("%d-%d \t%s", xmPrintLevel, level, logBuf);
+		}
+		if (xmLogFile != 0 && level <= 3) {
+			fprintf(xmLogFile, "%d-%d \t%s", xmPrintLevel, level, logBuf);
+			fflush(xmLogFile);
+		}
 		//std::cout << logBuf;
 	}
+
 	va_end(args);
 	if (xmPrintLevel > 5) {
 		std::this_thread::sleep_for(10ms);

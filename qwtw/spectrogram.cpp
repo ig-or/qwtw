@@ -297,6 +297,59 @@ public:
     }
 };
 
+class SaturationColorMap : public QwtSaturationValueColorMap
+{
+public:
+    SaturationColorMap(int formatType)
+    {
+        setFormat((QwtColorMap::Format)formatType);
+
+        setHue(220);
+        setSaturationInterval(0, 255);
+        setValueInterval(255, 255);
+    }
+};
+
+class ValueColorMap : public QwtSaturationValueColorMap
+{
+public:
+    ValueColorMap(int formatType)
+    {
+        setFormat((QwtColorMap::Format)formatType);
+
+        setHue(220);
+        setSaturationInterval(255, 255);
+        setValueInterval(70, 255);
+    }
+};
+
+
+class SVColorMap : public QwtSaturationValueColorMap
+{
+public:
+    SVColorMap(int formatType)
+    {
+        setFormat((QwtColorMap::Format)formatType);
+
+        setHue(220);
+        setSaturationInterval(100, 255);
+        setValueInterval(70, 255);
+    }
+};
+
+class AlphaColorMap : public QwtAlphaColorMap
+{
+public:
+    AlphaColorMap(int formatType)
+    {
+        setFormat((QwtColorMap::Format)formatType);
+
+        //setColor( QColor("DarkSalmon") );
+        setColor(QColor("SteelBlue"));
+    }
+};
+
+
 
 
 class TestSpectrogramData : public QwtRasterData
@@ -722,7 +775,8 @@ QwtText FSPicker2::trackerTextF(const QPointF& pos) const {
         t = rd->getT(iy, ix);
     }
     char stmp[256];
-    snprintf(stmp, 256, "%.3f (%.3f, %.3f)[%d %d] %.3f", z, x, y, ix, iy, t);
+    //snprintf(stmp, 256, "%.3f (%.3f, %.3f)[%d %d] %.3f", z, x, y, ix, iy, t);
+    snprintf(stmp, 256, "%.3f (%.3f, %.3f) %.3f", z, x, y, t);
     stmp[255] = 0;
     QwtText text = QString::fromUtf8(stmp);
     text.setBackgroundBrush(QBrush(bg));
@@ -730,6 +784,72 @@ QwtText FSPicker2::trackerTextF(const QPointF& pos) const {
     text.setFont(font);
     return text;
 }
+
+
+class MyMagnifier : public QwtPlotMagnifier {
+public:
+    MyMagnifier(QWidget* canvas) :QwtPlotMagnifier(canvas) {
+
+    }
+    /*!
+   Zoom in/out the axes scales
+   \param factor A value < 1.0 zooms in, a value > 1.0 zooms out.
+*/
+    void rescale(double factor)
+    {
+        QwtPlot* plt = plot();
+        if (plt == NULL)
+            return;
+
+        factor = qAbs(factor);
+        if (factor == 1.0 || factor == 0.0)
+            return;
+
+        bool doReplot = false;
+
+        const bool autoReplot = plt->autoReplot();
+        plt->setAutoReplot(false);
+
+        for (int axisId = 0; axisId < QwtPlot::axisCnt; axisId++)
+        {
+            if (isAxisEnabled(axisId) && (axisId != QwtPlot::yRight))            {
+                const QwtScaleMap scaleMap = plt->canvasMap(axisId);
+
+                double v1 = scaleMap.s1();
+                double v2 = scaleMap.s2();
+
+                if (scaleMap.transformation())
+                {
+                    // the coordinate system of the paint device is always linear
+
+                    v1 = scaleMap.transform(v1); // scaleMap.p1()
+                    v2 = scaleMap.transform(v2); // scaleMap.p2()
+                }
+
+                const double center = 0.5 * (v1 + v2);
+                const double width_2 = 0.5 * (v2 - v1) * factor;
+
+                v1 = center - width_2;
+                v2 = center + width_2;
+
+                if (scaleMap.transformation())
+                {
+                    v1 = scaleMap.invTransform(v1);
+                    v2 = scaleMap.invTransform(v2);
+                }
+
+                plt->setAxisScale(axisId, v1, v2);
+                doReplot = true;
+            }
+        }
+
+        plt->setAutoReplot(autoReplot);
+
+        if (doReplot)
+            plt->replot();
+    }
+
+};
 
 
 class MyZoomer : public QwtPlotZoomer {
@@ -753,7 +873,8 @@ public:
             t = rd->getT(iy, ix);
         }
         char stmp[256];
-        snprintf(stmp, 256, "%.3f (%.3f, %.3f)[%d %d] %.3f", z, x, y, ix, iy, t);
+        //snprintf(stmp, 256, "%.3f (%.3f, %.3f)[%d %d] %.3f", z, x, y, ix, iy, t);
+        snprintf(stmp, 256, "%.3f (%.3f, %.3f) %.3f", z, x, y, t);
         stmp[255] = 0;
         QwtText text = QString::fromUtf8(stmp);
         text.setBackgroundBrush(QBrush(bg));
@@ -893,6 +1014,7 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
     QwtScaleWidget* rightAxis = axisWidget(QwtPlot::yRight);
     rightAxis->setTitle("Intensity");
     rightAxis->setColorBarEnabled(true);
+    //rightAxis->
 
     setAxisScale(QwtPlot::yRight, zInterval.minValue(), zInterval.maxValue());
     enableAxis(QwtPlot::yRight);
@@ -902,7 +1024,7 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
     setColorMap(QSpectrogram::RGBMap);
 
     // zoom in/out with the wheel
-    (void) new QwtPlotMagnifier(canvas());
+    (void) new MyMagnifier(canvas());
 
     // LeftButton for the zooming
     // MidButton for the panning
@@ -1077,6 +1199,31 @@ void QSpectrogram::setColorMap(int type) {
         {
             d_spectrogram->setColorMap(new HueColorMap(format));
             axis->setColorMap(zInterval, new HueColorMap(format));
+            break;
+        }
+        case QSpectrogram::SaturationMap:
+        {
+            d_spectrogram->setColorMap(new SaturationColorMap(format));
+            axis->setColorMap(zInterval, new SaturationColorMap(format));
+            break;
+        }
+        case QSpectrogram::ValueMap:
+        {
+            d_spectrogram->setColorMap(new ValueColorMap(format));
+            axis->setColorMap(zInterval, new ValueColorMap(format));
+            break;
+        }
+        case QSpectrogram::SVMap:
+        {
+            d_spectrogram->setColorMap(new SVColorMap(format));
+            axis->setColorMap(zInterval, new SVColorMap(format));
+            break;
+        }
+        case QSpectrogram::AlphaMap:
+        {
+            alpha = 255;
+            d_spectrogram->setColorMap(new AlphaColorMap(format));
+            axis->setColorMap(zInterval, new AlphaColorMap(format));
             break;
         }
         case QSpectrogram::RGBMap:
@@ -1391,6 +1538,11 @@ void QSpectrogramPlot::setupUi() {
     QComboBox* mapBox = new QComboBox(toolBar);
     mapBox->addItem("RGB");
     mapBox->addItem("Hue");
+    mapBox->addItem("Saturation");
+    mapBox->addItem("Value");
+    mapBox->addItem("Sat.+Value");
+    mapBox->addItem("Alpha");
+
     mapBox->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     toolBar->addWidget(mapBox);
     connect(mapBox, SIGNAL(currentIndexChanged(int)),

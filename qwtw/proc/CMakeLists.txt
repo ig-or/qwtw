@@ -31,16 +31,6 @@ endif()
 
 add_definitions(-DXMPRINTF_TO_FILE)
 
-if(MSVC)
-	add_definitions( /std:c++20 )
-else()
-	if(UNIX)
-		add_definitions( -std=c++2a )
-	else() # g++ for Windows ?
-		add_definitions( -std=c++2a )
-	endif()
-endif()
-
 if (USE_MGL)
 	add_definitions(-DUSEMATHGL)
 	addSourceFiles("mgl" "../mathgl" qmgl qmglplot)

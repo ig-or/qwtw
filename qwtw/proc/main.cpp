@@ -277,7 +277,7 @@ int main(int argc, char** argv) {
 
 	int lockState = checkProcRunning();
 	if (lockState != 0) {
-		xmprintf(0, "already started\n\n");
+		xmprintf(0, "already started!\n\n");
 		exit(EXIT_FAILURE);
 	}
 	if (lockHandle() != 0) {

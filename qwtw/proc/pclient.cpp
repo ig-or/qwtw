@@ -150,7 +150,7 @@ int SHMTest::startProc(int level) {
 	// current path?
 	try {
 		pa = current_path() / procName;
-		xmprintf(2, "\tlooking at %s .. \n", pa.string().c_str());
+		xmprintf(2, "\tfirst, check current path; looking at %s .. \n", pa.string().c_str());
 		if (exists(pa)) {
 			qwProcPath = pa.string();
 			xmprintf(2, "\tlocated!\n");
@@ -163,7 +163,7 @@ int SHMTest::startProc(int level) {
 	try {
 		const char* dllPath = getQwtwDllPath();
 		pa = path(dllPath).parent_path() / procName;
-		xmprintf(2, "\tlooking at %s .. \n", pa.string().c_str());
+		xmprintf(2, "\tnext, check near the DLL; looking at %s .. \n", pa.string().c_str());
 		if (exists(pa)) {
 			qwProcPath = pa.string();
 			xmprintf(2, "\tlocated!\n");
@@ -189,7 +189,7 @@ int SHMTest::startProc(int level) {
 #endif
 
 	if (qwProcPath.empty()) {
-		xmprintf(2, "\tnow lookign in PATH; \n");
+		xmprintf(2, "\tnow lookign in all the PATH; \n");
 		try {
 			pa = bp::search_path(procName);
 			qwProcPath = pa.string();
@@ -236,7 +236,7 @@ int SHMTest::startProc(int level) {
 		xmprintf(2, "@starting %s --debug %s\n", qwProcPath.c_str(), sLevel.c_str());
 
 #endif
-		std::this_thread::sleep_for(475ms);
+		std::this_thread::sleep_for(550ms);
 		xmprintf(3, "qwproc supposed to start from  (%s) \n", qwProcPath.c_str());
 	}	catch (std::exception& ex) {
 		xmprintf(0, "cannot start process %s from (%s) (%s) \n", procName, qwProcPath.c_str(), ex.what());
@@ -268,12 +268,13 @@ int SHMTest::testInit(int level) {
 #endif
 		
 		//  try one more time
-		for (int a = 0; a < 5; a++) {
+		for (int a = 0; a < 10; a++) {
 			test = checkProcRunning();
 			if (test == 0) {  // still not running
-				std::this_thread::sleep_for(375ms);
+				xmprintf(3, "\t%d\tSHMTest::testInit() checkProcRunning() test = %d \n", a, test);
+				std::this_thread::sleep_for(550ms);
 			} else {
-				xmprintf(3, "\tSHMTest::testInit() checkProcRunning() test = %d \n", test);
+				xmprintf(3, "\t%d\tSHMTest::testInit() checkProcRunning() test = %d \n", a, test);
 				break;
 			}
 		}
@@ -299,7 +300,7 @@ int SHMTest::testInit(int level) {
 			exPlanation.assign(ex.what());
 			xmprintf(3, "\tSHMTest::testInit() proc not started? (attemptCount = %d)  something is not OK; (%s)\n", 
 				attemptCount, exPlanation.c_str());
-			std::this_thread::sleep_for(275ms);
+			std::this_thread::sleep_for(575ms);
 		}
 		attemptCount -= 1;
 	}

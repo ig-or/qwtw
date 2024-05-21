@@ -33,10 +33,15 @@ class QSpectrogram : public QwtPlot {
     Q_OBJECT
 
 public:
-    enum ColorMap    {
-        RGBMap,
-        HueMap
-    };
+	enum ColorMap
+	{
+		RGBMap,
+		HueMap,
+		SaturationMap,
+		ValueMap,
+		SVMap,
+		AlphaMap
+	};
 	double lastXselected, lastYselected;
     QSpectrogram(QWidget* = NULL, unsigned int flags_ = 0);
 	virtual ~QSpectrogram();
