@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
 	if(vm.count("marble_data"))  {
 		std::string mdp = vm["marble_data"].as< std::string >();
 		printf("\tserring  marble_data to [%s] \n", mdp.c_str());
-		Marble::MarbleDirs::setMarbleDataPath(mdp.c_str());
+		Marble::MarbleDirs::setMarbleDataPath(QString::fromStdString(mdp));
 	} else {
 		printf("\tusing default marble_data \n");
 	}
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
 	if(vm.count("marble_plugins"))  {
 		std::string mpp = vm["marble_plugins"].as< std::string >();
 		printf("\tserring  marble_plugins to [%s] \n", mpp.c_str());
-		Marble::MarbleDirs::setMarblePluginPath(mpp.c_str());
+		Marble::MarbleDirs::setMarblePluginPath(QString::fromStdString(mpp));
 	} else {
 		printf("\tusing default marble_plugins \n");
 	}

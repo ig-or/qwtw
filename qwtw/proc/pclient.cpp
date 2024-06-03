@@ -554,7 +554,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 		////pd.hdr->workDone.wait(lock);
 		  //    boost 1.78
 #if (BOOST_VERSION >= 107800)
-		wResult = pd.hdr->workDone.wait_for(lock, 78ms);
+		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(78));
 		if (wResult == cv_status::no_timeout) {  //  condition worked, no timeout 
 			xmprintf(8, "\t\t (%d) (%d, %d):  condition worked, no timeout \n", nCounter, static_cast<int>(cmd), v);
 			break;

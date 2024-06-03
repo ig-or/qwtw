@@ -72,7 +72,9 @@ void QWorker::qwtshowmw() {
 int QWorker::mapview(int n) {
 	int rv = 0;
 	if (!QMetaObject::invokeMethod(this, "topviewImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n))) {
-		std::cout << " cannot invoke topviewImpl" << std::endl;
+		xmprintf(0, "QWorker::mapview() cannot invoke topviewImpl\n");
+	} else {
+		xmprintf(6, "QWorker::mapview() OK; rv = %d\n", rv);
 	}
 	return rv;
 }
@@ -432,10 +434,12 @@ Q_INVOKABLE int QWorker::qtstartImpl() {
 				icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 			pf->setWindowIcon(icon);
 
-			#ifdef USEMARBLE
-			Marble::MarbleDirs::setMarbleDataPath(mdPath.c_str());
-			Marble::MarbleDirs::setMarblePluginPath(mpPath.c_str());
-			#endif			
+			//   those MarbleDirs were done already in 'main()'; why we need this again from inside QT gui thread?
+
+			//#ifdef USEMARBLE
+			//Marble::MarbleDirs::setMarbleDataPath(QString::fromStdString(mdPath));
+			//Marble::MarbleDirs::setMarblePluginPath(QString::fromStdString(mpPath));
+			//#endif			
 		}
 	}	else {
 		xmprintf(5, "\talready started .. \n");
@@ -451,6 +455,7 @@ Q_INVOKABLE void QWorker::qwtshowmwImpl() {
 #ifdef USEMARBLE
 Q_INVOKABLE int QWorker::topviewImpl(int n) {
 	JustAplot* test = pf->figure(n, jMarble);
+	xmprintf(7, "QWorker::topviewImpl(): test = %d \n", (test == 0) ? 0 : test->iKey);
 	return (test == 0) ? 0 : test->iKey;
 }
 #endif

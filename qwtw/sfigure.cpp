@@ -536,8 +536,11 @@ JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 			break;
 #ifdef USEMARBLE
 		case jMarble: {
+				xmprintf(7, "\tXQPlots::figure(); will create a MarView(%s)\n", name_.c_str());
 				MarView* tvp = new MarView(name_, this, parent);
+				xmprintf(7, "\tXQPlots::figure(); tvp created  \n");
 				tvp->mvInit();
+				xmprintf(7, "\tXQPlots::figure(); tvp init completed  \n");
 				cf = tvp;
 			}
 			break;
