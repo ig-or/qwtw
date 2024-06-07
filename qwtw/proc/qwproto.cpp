@@ -340,6 +340,26 @@ void QProcInterface::processCommand(int cmd) {
 		case CmdHeader::qRemoveLine:
 			worker.qwtRemoveLine(pd.hdr->test);
 			break;
+
+		case  CmdHeader::qSetPos: {
+			QWndPos pos;
+			pos.x = pd.hdr->xMin;
+			pos.y = pd.hdr->yMin;
+			pos.w = pd.hdr->xSize;
+			pos.h = pd.hdr->ySize;
+			pos.set = pd.hdr->flags;
+
+			int result = worker.qwtSetPos(pd.hdr->test, pos);
+
+			pd.hdr->test = result;
+			pd.hdr->flags = pos.set;
+			pd.hdr->xMin = pos.x;
+			pd.hdr->yMin = pos.y;
+			pd.hdr->xSize = pos.w;
+			pd.hdr->ySize = pos.h;
+			}
+			break;
+
 		case CmdHeader::qSavePng: {
 			int result = worker.qwtSavePng(pd.hdr->test, pd.hdr->name);
 			pd.hdr->test = result;

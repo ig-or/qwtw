@@ -59,6 +59,7 @@ struct SHMTest {
 	/// <param name="id"> id of thie line</param>
 	void qwtremove(int id);
 	int qwtsave_png(int id, char* filename);
+	int qwtsetpos(int key, QWndPos& pos);
 	int qwtchange(int id, double* x, double* y, double* z, double* time, int size);
 #ifdef USE_QT3D
 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,

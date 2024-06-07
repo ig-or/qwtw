@@ -55,6 +55,7 @@ public:
 	bool looksLikeTopView() {
 		return maybeTopView; 
 	}
+	void windowPos(QWndPos& pos);
 
 signals:
 	void exiting(const std::string&);

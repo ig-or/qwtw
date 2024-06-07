@@ -155,3 +155,18 @@ void JustAplot::makeMarkersVisible(bool visible) {
 
 
  }
+ void JustAplot::windowPos(QWndPos& pos) {
+	 QWndPos posCopy = pos;
+	 // save current real pos
+	 //QSize s = frameSize();
+	 QRect r = frameGeometry();
+	 pos.h = r.height();
+	 pos.w = r.width();
+	 pos.x = r.left();
+	 pos.y = r.top();
+
+	 if (pos.set != 0) { //   move
+		 resize(posCopy.w, posCopy.h);
+		 move(posCopy.x, posCopy.y);
+	 }
+ }

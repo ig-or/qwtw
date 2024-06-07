@@ -30,6 +30,7 @@ class QWorker : public QObject {
 	Q_INVOKABLE void qwtxlabelImpl(const char* s);
 	Q_INVOKABLE void qwtylabelImpl(const char* s);
 	Q_INVOKABLE int qwtSavePngImpl(int id, char* filename);
+	Q_INVOKABLE int qwtSetPosImpl(int key, QWndPos& pos);
 	Q_INVOKABLE int qwtfigureImpl(int n, unsigned int flags);
 	Q_INVOKABLE int qwtSpectrogramImpl(int n, unsigned int flags);
 	Q_INVOKABLE int qwtserviceImpl(int x);
@@ -83,6 +84,7 @@ public:
 	void qwtSetClipGroup(int gr);
 	void qwtRemoveLine(int key);
 	int qwtSavePng(int id, char* filename);
+	int qwtSetPos(int key, QWndPos& pos);
 	int qwtChangeLine(int id, double* x, double* y, double* z, double* time, int size);
 	int qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 	//void appMutexLock

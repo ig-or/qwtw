@@ -75,9 +75,21 @@ struct SpectrogramInfo {
 	double* t = 0; // time info for every cell; [ny x nx] matrix. 
 };
 
+/**
+	info about window position.
+*/
+struct QWndPos {
+	int x;
+	int y;
+	int w;
+	int h;
+	int set = 0;	///< if not 0, then change the window pos.
+};
+
 #ifdef QT_DLL
 Q_DECLARE_METATYPE(SpectrogramInfo);
 Q_DECLARE_METATYPE(CBPickerInfo);
+Q_DECLARE_METATYPE(QWndPos);
 #endif
 #pragma pack()
 

@@ -243,6 +243,24 @@ qwtwc_API int qwtsave_png(int id, char* filename) {
 	return test.qwtsave_png(id, filename);
 }
 
+qwtwc_API int qwtsetpos(int key, int* x, int* y, int* w, int* h, int set) {
+	QWndPos pos;
+	pos.x = *x; 
+	pos.y = *y;
+	pos.w = *w;
+	pos.h = *h;
+	pos.set = set;
+
+	int result = test.qwtsetpos(key, pos);
+
+	*x = pos.x;
+	*y = pos.y;
+	*w = pos.w;
+	*h = pos.h;
+
+	return result;
+}
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);

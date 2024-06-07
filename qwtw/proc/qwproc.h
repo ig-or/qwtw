@@ -41,6 +41,7 @@ struct CmdHeader {
 		qSetPickerCallback,  // 
 		qService,			//   27
 		qSavePng,
+		qSetPos,
 
 		qwcmdSize
 	};

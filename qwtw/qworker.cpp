@@ -25,6 +25,7 @@ QWorker::QWorker(const std::string& mdp, const std::string& mpp): pf(nullptr) {
 	mpPath = mpp;
 	int id = qRegisterMetaType<SpectrogramInfo>();
 	int id1 = qRegisterMetaType<CBPickerInfo>();
+	int id2 = qRegisterMetaType<QWndPos>();
 }
 #else
 
@@ -232,6 +233,18 @@ int QWorker::qwtSavePng(int id, char* filename) {
 	return rv;
 }
 
+int QWorker::qwtSetPos(int key, QWndPos& pos) {
+	int rv = -5;
+	if (!QMetaObject::invokeMethod(this, "qwtSetPosImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv),
+			Q_ARG(int, key), Q_ARG(QWndPos&, pos))) {
+		std::cout << " cannot invoke QWorker::qwtSavePng" << std::endl;
+		xmprintf(2, "ERROR: qwtSetPosImpl invokeMethod failed \n");
+	} else {
+		xmprintf(2, "call to qwtSetPosImpl: ret = %d; x=%d; y = %d; w = %d; h = %d  \n", rv, pos.x, pos.y, pos.w, pos.h);
+	}
+	return rv;
+}
+
 
 
 int QWorker::qwtplot2(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time) {
@@ -367,6 +380,11 @@ Q_INVOKABLE void QWorker::qwtylabelImpl(const char* s) {
 }
 Q_INVOKABLE int QWorker::qwtSavePngImpl(int id, char* filename) {
 	int test = pf->savePng(id, filename);
+	return test;
+}
+
+Q_INVOKABLE int QWorker::qwtSetPosImpl(int key, QWndPos& pos) {
+	int test = pf->setPos(key, pos);
 	return test;
 }
 

@@ -114,6 +114,7 @@ public:
 	int changeLine(int key, double* x, double* y, double* z, double* time, int size);
 
 	void mesh(const MeshInfo& info);
+	int setPos(int key, QWndPos& pos);
 
 #ifdef ENABLE_UDP_SYNC
 	void enableCoordBroadcast(double* x, double* y, double* z, double* time, int size); 

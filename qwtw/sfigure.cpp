@@ -1098,6 +1098,30 @@ int XQPlots::savePng(int id, const std::string& filename) {
 
 }
 
+int XQPlots::setPos(int key, QWndPos& pos) {
+	JustAplot* f = nullptr;
+	if (key == 0) {				//   ask for 'current'
+		if (cf == nullptr) {
+			return 1;			//  no current figure
+		} else {
+			f = cf;
+		}
+	} else {
+		char buf[32];
+		std::string fName;
+		snprintf(buf, 32, "%d", key); buf[31] = 0;
+		fName.assign(buf);
+		std::map<std::string, JustAplot*>::iterator it = figures.find(fName);
+		if (it == figures.end()) {
+			return 2;			// wrond key parameter
+		} else {
+			f = it->second;
+		}
+	}
+	f->windowPos(pos);
+	return 0;				//  all is OK
+}
+
 int XQPlots::service(int x) {
 	switch (x) {
 		case qsCallbackStarted: 

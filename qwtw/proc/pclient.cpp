@@ -857,6 +857,40 @@ int SHMTest::qwtsave_png(int id, char* filename) {
 	return result;
 }
 
+int SHMTest::qwtsetpos(int key, QWndPos& pos) {
+	if (status != 0) return -7;
+	using namespace boost::interprocess;
+
+	xmprintf(6, "SHMTest::qwtsetpos(); key = %d  locking ..\n", key);
+	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
+	xmprintf(6, "\tSHMTest::qwtsetpos();  locked ..\n");
+
+	//  now lets copy the params
+	xmprintf(6, "\tSHMTest::qwtsetpos: copying .. \n");
+
+	pd.hdr->test = key;
+	pd.hdr->flags = pos.set;
+	pd.hdr->xMin = pos.x;
+	pd.hdr->yMin = pos.y;
+	pd.hdr->xSize = pos.w;
+	pd.hdr->ySize = pos.h;
+	pd.hdr->cmd = CmdHeader::qSetPos;
+
+	xmprintf(6, "\tSHMTest::qwtsetpos(); notifying..\n");
+	pd.hdr->cmdWait.notify_all();
+	xmprintf(6, "\tSHMTest::qwtsetpos();  waiting ..\n");
+	pd.hdr->workDone.wait(lock);
+	xmprintf(6, "\tSHMTest::qwtsetpos();  done\n");
+
+	pos.x = pd.hdr->xMin;
+	pos.y = pd.hdr->yMin;
+	pos.w = pd.hdr->xSize;
+	pos.h = pd.hdr->ySize;
+	pos.set = pd.hdr->flags;
+	int result = pd.hdr->test;
+	return result;
+}
+
 
 int SHMTest::qwtchange(int id, double* x, double* y, double* z, double* time, int size) {
 	if (status != 0) return -7;

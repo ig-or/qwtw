@@ -282,6 +282,8 @@ Save the whole plot into a png file.
 */
 qwtwc_API int qwtsave_png(int id, char* filename);
 
+qwtwc_API int qwtsetpos(int key, int* x, int* y, int* w, int* h, int set);
+
 #ifdef USE_QT3D
 qwtwc_API 	void qwtplot3d(double* x, double* y, double* z, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time);
