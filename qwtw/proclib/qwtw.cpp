@@ -370,7 +370,7 @@ int xmprintf(int level, const char * _Format, ...) {
 		if (level <= xmPrintLevel) {
 			printf("%d-%d \t%s", xmPrintLevel, level, logBuf);
 		}
-		if (xmLogFile != 0 && level <= 3) {
+		if (xmLogFile != 0 && level <= 4) {
 			fprintf(xmLogFile, "%d-%d \t%s", xmPrintLevel, level, logBuf);
 			fflush(xmLogFile);
 		}

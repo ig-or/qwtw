@@ -534,7 +534,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	if (status != 0) return 0;
 	using namespace boost::interprocess;
 	using namespace std::chrono_literals;
-	xmprintf(4, "SHMTest::sendCommand(%d, %d): locking ..\n", static_cast<int>(cmd), v);
+	xmprintf(4, "SHMTest::sendCommand(%d, %d, %d): locking ..\n", static_cast<int>(cmd), v, flags);
 	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
 	xmprintf(4, "\tSHMTest::sendCommand locked. \n");
 	pd.hdr->cmd = cmd;
@@ -556,10 +556,10 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 #if (BOOST_VERSION >= 107800)
 		wResult = pd.hdr->workDone.wait_for(lock, boost::chrono::milliseconds(78));
 		if (wResult == cv_status::no_timeout) {  //  condition worked, no timeout 
-			xmprintf(8, "\t\t (%d) (%d, %d):  condition worked, no timeout \n", nCounter, static_cast<int>(cmd), v);
+			xmprintf(4, "\t\t (%d) (%d, %d):  condition worked, no timeout \n", nCounter, static_cast<int>(cmd), v);
 			break;
 		} else {
-			xmprintf(8, "\t\t (%d) (%d, %d): timeout. trying one more time.. \n", nCounter, static_cast<int>(cmd), v);
+			xmprintf(4, "\t\t (%d) (%d, %d): timeout. trying one more time.. \n", nCounter, static_cast<int>(cmd), v);
 		}
 #else             // boost 1.76:
 		boost::system_time const timeout = boost::get_system_time() + boost::posix_time::milliseconds(75);
@@ -579,7 +579,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 		xmprintf(4, "\tSHMTest::sendCommand(%d, %d): test = %d\n", static_cast<int>(cmd), v, test);
 		return test;
 	} else {
-		xmprintf(4, "\tSHMTest::sendCommand(%d, %s) 2: TIMEOUT\n");
+		xmprintf(4, "\tSHMTest::sendCommand() 2: TIMEOUT\n");
 		return -1;
 	}
 	return 0;
