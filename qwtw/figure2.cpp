@@ -784,7 +784,7 @@ void Figure2::setupUi()     {
 	this->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
 	verticalLayout = new QVBoxLayout(this);
 	verticalLayout->setSpacing(2);
-	verticalLayout->setMargin(2);
+	verticalLayout->setContentsMargins(2, 2, 2, 2);
 	verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
 	top_frame = new QFrame(this);
 	top_frame->setObjectName(QString::fromUtf8("top_frame"));
@@ -794,7 +794,7 @@ void Figure2::setupUi()     {
 	top_frame->setLineWidth(1);
 	horizontalLayout = new QHBoxLayout(top_frame);
 	horizontalLayout->setSpacing(2);
-	horizontalLayout->setMargin(2);
+	horizontalLayout->setContentsMargins(2, 2, 2, 2);
 	horizontalLayout->setObjectName(QString::fromUtf8("horizontalLayout"));
 
 	tb1 = new QToolButton(top_frame);

@@ -30,7 +30,8 @@
 //#include <QWindow>
 //#include <QtPlatformHeaders/QWindowsWindowFunctions>
 
-#include "qdesktopwidget.h"
+#include <QGuiApplication>
+#include <QScreen>
 #include "xmatrixplatform.h"
 #include "xmatrix2.h"
 #include "qwtypes.h"
@@ -459,9 +460,9 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 	connect(ui.tbClosePlots, SIGNAL(clicked(bool)), this, SLOT(onCloseAllPlots(bool)));
 	connect(ui.tbShowEverything, SIGNAL(clicked(bool)), this, SLOT(onShowAllPlots(bool)));
 	connect(ui.tbShowSimple, SIGNAL(clicked(bool)), this, SLOT(onShowAllSimple(bool)));
-	bcInfo = new BCInfo();
 	haveSpectrogramm = 0;
 #ifdef ENABLE_UDP_SYNC
+	bcInfo = new BCInfo();
 	//bc = 0;
 	///  start UDP client 
 	// since we'd send out picker info anyway
@@ -471,11 +472,11 @@ XQPlots::XQPlots(QWidget * parent1): /*QMainWindow(parent1,   // */QDialog(paren
 		xmprintf(1, "ERROR while creating UDP client: {%s} \n", ex.what());
 	}
 	bServer = 0;
+#endif
 
 	//  start picker info filter thread
 	std::thread ttmp = std::thread(&XQPlots::pFilterThreadF, this);
 	pFilterThread.swap(ttmp);
-#endif
 
 	QTimer::singleShot(500, this, &XQPlots::onTest);
 }
@@ -634,13 +635,16 @@ void XQPlots::onTvItemClicked(QModelIndex mi) {
 		return;
 	}
 		
+#ifdef ENABLE_UDP_SYNC
 	if (!callbackWorking) {
+#endif
 		cf = it->second;
 		cf->activateWindow();
 		cf->raise();
-		//cf->showMaximized();
 		cf->showNormal();
+#ifdef ENABLE_UDP_SYNC
 	}
+#endif
 
 	/*
 	JustAplot* p = getPlotByName(i->text().toUtf8().toStdString());
@@ -687,10 +691,7 @@ void XQPlots::onShowAllPlots(bool checked) {
 		h++;
 	}
 	mxat(w*h >= n);
-	// /workspace/srcdir/qwtw/qwtw/sfigure.cpp:404:54: warning: 
-	//‘const QRect QDesktopWidget::screenGeometry(int) const’ is deprecated: 
-	// Use QGuiApplication::screens() [-Wdeprecated-declarations]
-	QRect rec = QApplication::desktop()->screenGeometry();
+	QRect rec = QGuiApplication::primaryScreen()->geometry();
 	int height = rec.height();
 	int width = rec.width() - 48;
 	int hh = floor(height / h);
@@ -749,6 +750,7 @@ void XQPlots::adjustPickerCallback(CBPickerInfo& cpi) {
 	if ((cpi.flag & 3) == 3) { //  have pos and time info already
 		return;
 	}
+#ifdef ENABLE_UDP_SYNC
 	if (!bcInfo->bcOK()) {  //  can do nothing
 		return;
 	}
@@ -768,6 +770,7 @@ void XQPlots::adjustPickerCallback(CBPickerInfo& cpi) {
 			cpi.flag |= 2;			//  add pos info
 		}
 	}
+#endif
 }
 
 void XQPlots::on3DMarker(double p[3]) {
@@ -1124,11 +1127,15 @@ int XQPlots::setPos(int key, QWndPos& pos) {
 
 int XQPlots::service(int x) {
 	switch (x) {
+#ifdef ENABLE_UDP_SYNC
 		case qsCallbackStarted: 
 			callbackWorking = true;
 		break;
 		case qsCallbackFinished:
 			callbackWorking = false;
+		break;
+#endif
+		default:
 		break;
 	};
 	return 0;
@@ -1317,8 +1324,10 @@ void XQPlots::onExit() {
 		bServer = 0;
 	}
 #endif
+#ifdef ENABLE_UDP_SYNC
 	delete bcInfo;
 	bcInfo = nullptr;
+#endif
 }
 
 void XQPlots::clearFigures() {
@@ -1339,9 +1348,11 @@ void XQPlots::clearFigures() {
 }
 
 void XQPlots::onSelection(const std::string& key) {
+#ifdef ENABLE_UDP_SYNC
 	if (callbackWorking) {
 		return;
 	}
+#endif
 	
 	std::map<std::string,  JustAplot*>::iterator it = figures.find(key);
 	if (it != figures.end()) {

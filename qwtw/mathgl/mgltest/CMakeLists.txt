@@ -2,7 +2,7 @@
 # 	# MGL_QT test   project
 #
 
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required(VERSION 3.21)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../../buildsys/ccmake.cmake")
 set (NO_VERSION_INFO 1)
 
@@ -35,12 +35,12 @@ addOtherLib(${MATHGL2_LIBRARIES})
 message(STATUS "got MATHGL2_VERSION_STRING ${MATHGL2_VERSION_STRING}")
 
 if(UNIX)
-	add_definitions(-DLIN_UX)
-	#addQWTLinux() # do not need this actually here....
-	addOtherLib("rt")
 	addOtherLib("dl")
 	addOtherLib("GL")
-
+	if(UNIX AND NOT APPLE)
+		add_definitions(-DLIN_UX)
+		addOtherLib("rt")
+	endif()
 	message("STATUS LIB_LIST: "  ${${L_LIST}})
 endif()
 if(WIN32)

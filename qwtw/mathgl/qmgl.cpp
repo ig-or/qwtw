@@ -430,7 +430,7 @@ void QMGL1::addSurf(const MeshInfo& info) {
 QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	xmprintf(7, "creating QMGL1 widget start .. \n");
 	QVBoxLayout *layout = new QVBoxLayout;
-	layout->setSpacing(2); layout->setMargin(2);
+	layout->setSpacing(2); layout->setContentsMargins(2, 2, 2, 2);
 	squareAxis = false;
 
 	QFrame* top_frame = new QFrame(this);
@@ -447,12 +447,11 @@ QMGL1::QMGL1(QWidget *parent) : QWidget(parent) {
 	tool_frame->setLineWidth(1);
 
 	toolLayout = new QBoxLayout(QBoxLayout::LeftToRight, tool_frame);
-	//set margins to zero so the toolbar touches the widget's edges
 	toolLayout->setContentsMargins(0, 0, 0, 0);
 
 	QHBoxLayout* horizontalLayout = new QHBoxLayout(top_frame);
 	horizontalLayout->setSpacing(2);
-	horizontalLayout->setMargin(2);
+	horizontalLayout->setContentsMargins(2, 2, 2, 2);
 
 	menu_bar = new QMenuBar();
 	xmprintf(7, "QMGL1: another draw .. \n");

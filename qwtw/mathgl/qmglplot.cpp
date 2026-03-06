@@ -35,7 +35,7 @@ int QMglPlot::qInit() {
 	// Add all widgets to the vertical layout.
 	QVBoxLayout *layout = new QVBoxLayout;
 
-	layout->setSpacing(1); layout->setMargin(1);
+	layout->setSpacing(1); layout->setContentsMargins(1, 1, 1, 1);
 	layout->addWidget(qmgl);
 	//layout->addWidget(positionLabel);
 

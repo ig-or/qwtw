@@ -84,7 +84,7 @@ QTTest::QTTest(QWidget * parent1): QDialog(parent1,
     setWindowIcon(icon);
 
 	QVBoxLayout *layout = new QVBoxLayout;
-	layout->setSpacing(2); layout->setMargin(2);
+	layout->setSpacing(2); layout->setContentsMargins(2, 2, 2, 2);
 
 
 	#ifdef USEMARBLE

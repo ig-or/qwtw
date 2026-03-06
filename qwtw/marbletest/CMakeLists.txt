@@ -2,10 +2,9 @@
 # 	# marble library test project
 #
 
-cmake_minimum_required (VERSION 2.8.11)
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/")
+cmake_minimum_required(VERSION 3.21)
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 set(USE_QT YES)
-include(ccmake)
 
 set(PROJECT_NAME mtest)
 set (NEED_BOOST thread system filesystem date_time chrono)
@@ -35,9 +34,10 @@ add_definitions(-DUNICODE -D_UNICODE)
 if(WIN32)
 	addExtLibrary(marble VSTRING 1.11.3 RLNAME marblewidget-qt5  )
 else()
-	add_definitions(-DLIN_UX)
+	if(UNIX AND NOT APPLE)
+		add_definitions(-DLIN_UX)
+	endif()
 	addExtLibrary(marble VSTRING 1.11.3 RLNAME marblewidget-qt5  )
-
 endif()
 programEnd()
 

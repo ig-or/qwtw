@@ -24,8 +24,10 @@ class QWorker : public QObject {
 #endif
 	Q_INVOKABLE int qwttitleImpl(const char* s);
 	Q_INVOKABLE int qwtplot2Impl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time);
+#ifdef ENABLE_UDP_SYNC
 	Q_INVOKABLE void qwtEnableCoordBroadcastImpl(double* x, double* y, double* z, double* time, int size);
 	Q_INVOKABLE void qwtDisableCoordBroadcastImpl();
+#endif
 	Q_INVOKABLE void qwtsetimpstatusImpl(int impStatus);
 	Q_INVOKABLE void qwtxlabelImpl(const char* s);
 	Q_INVOKABLE void qwtylabelImpl(const char* s);

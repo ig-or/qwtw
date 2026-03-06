@@ -2,7 +2,7 @@
 # 	# qwtwc library test project
 #
 
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.21)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 set(USE_QT YES)
 set (NO_VERSION_INFO 1)
@@ -22,8 +22,10 @@ list(APPEND ${L_LIST} qwtw)
 list(APPEND INC_DIR_LIST "../c_lib")
 
 if(UNIX)
-    addOtherLib("dl")
-    addOtherLib("rt")
+	addOtherLib("dl")
+	if(UNIX AND NOT APPLE)
+		addOtherLib("rt")
+	endif()
 endif()
 
 programEnd()

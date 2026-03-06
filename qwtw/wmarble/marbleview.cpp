@@ -419,7 +419,7 @@ int MarView::mvInit() {
 	top_frame->setLineWidth(1);
 	QHBoxLayout* horizontalLayout = new QHBoxLayout(top_frame);
 	horizontalLayout->setSpacing(2);
-	horizontalLayout->setMargin(2);
+	horizontalLayout->setContentsMargins(2, 2, 2, 2);
 
 	QToolButton* tbHome = new QToolButton(top_frame);
 	tbHome->setIcon(QIcon(QPixmap(":/icons/binokl.png")));
@@ -446,7 +446,7 @@ int MarView::mvInit() {
 	// Add all widgets to the vertical layout.
 	QVBoxLayout *layout = new QVBoxLayout;
 
-	layout->setSpacing(2); layout->setMargin(2);
+	layout->setSpacing(2); layout->setContentsMargins(2, 2, 2, 2);
 	layout->addWidget(top_frame);
 	layout->addWidget(mw);
 	layout->addWidget(positionLabel);
