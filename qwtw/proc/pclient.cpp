@@ -5,13 +5,23 @@
 #include "qwtypes.h"
 
 #include <boost/interprocess/sync/scoped_lock.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 108600
+#include <boost/process/v1.hpp>
+namespace bp_impl = boost::process::v1;
+#else
 #include <boost/process/spawn.hpp>
 #include <boost/process/search_path.hpp>
+namespace bp_impl = boost::process;
+#endif
 #include <boost/chrono.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <thread>
 #include <chrono>
 #include <cstdlib>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 #ifdef WIN32
 //	#include <windows.h>  //  cannot use it here
 const char* getQwtwDllPath();
@@ -135,7 +145,7 @@ int SHMTest::startProc(int level) {
 	xmprintf(2, "\nstarting proc.. \n");
 	using namespace std::chrono_literals;
 	using namespace boost::filesystem;
-	namespace bp = boost::process;
+	namespace bp = bp_impl;
 	std::error_code ec;
 #ifdef WIN32
 	const char* procName = "qwproc.exe";
@@ -173,12 +183,27 @@ int SHMTest::startProc(int level) {
 		qwProcPath.clear();
 	}
 	
+#elif defined(__APPLE__)
+	if (qwProcPath.empty()) {
+		char result[ PATH_MAX ] = {0};
+		uint32_t bufsize = sizeof(result);
+		if (_NSGetExecutablePath(result, &bufsize) == 0) {
+			pa = path(result).parent_path() / procName;
+			xmprintf(2, "\tlooking at %s \n", pa.string().c_str());
+			if (exists(pa)) {
+				qwProcPath = pa.string();
+				xmprintf(2, "\tgot exe in %s\n", qwProcPath.c_str());
+			} else {
+				xmprintf(2, "\t\t ..  nothing found\n");
+			}
+		}
+	}
 #else
-	if (qwProcPath.empty()) { //   near current EXE?
+	if (qwProcPath.empty()) {
 		char result[ PATH_MAX ];
 		ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
 		pa = path(result).parent_path() / procName;
-		xmprintf(2, "\tlookigng at %s \n", pa.string().c_str());
+		xmprintf(2, "\tlooking at %s \n", pa.string().c_str());
 		if (exists(pa)) {
 			qwProcPath = pa.string();
 			xmprintf(2, "\tgot exe in %s\n", qwProcPath.c_str());

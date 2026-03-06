@@ -73,7 +73,7 @@ private:
 	bool	squareAxis = false;
 	
     virtual void drawItems(QPainter*, const QRectF&,
-        const QwtScaleMap maps[axisCnt]) const QWT_OVERRIDE;
+        const QwtScaleMap maps[axisCnt]) const override;
 
 	void doSquareAxis();
 	void onPickerSignal(int x, int y);

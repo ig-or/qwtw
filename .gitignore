@@ -37,6 +37,8 @@ debug
 release
 obj
 build
+build_*/
+lib/
 *.pyc
 build_info.cpp
 build_number.cpp

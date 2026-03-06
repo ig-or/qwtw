@@ -1039,7 +1039,7 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
 
     QwtPlotPanner* panner = new QwtPlotPanner(canvas());
     panner->setAxisEnabled(QwtPlot::yRight, false);
-    panner->setMouseButton(Qt::MidButton);
+    panner->setMouseButton(Qt::MiddleButton);
 
     picker = new FSPicker2(QwtPlot::xBottom, QwtPlot::yLeft,
         // QwtPicker::PointSelection | QwtPicker::DragSelection, 
@@ -1060,7 +1060,7 @@ QSpectrogram::QSpectrogram(QWidget* parent, unsigned int flags_) :
 
     const QFontMetrics fm(axisWidget(QwtPlot::yLeft)->font());
     QwtScaleDraw* sd = axisScaleDraw(QwtPlot::yLeft);
-    sd->setMinimumExtent(fm.width("100.00"));
+    sd->setMinimumExtent(fm.horizontalAdvance("100.00"));
 
     const QColor c(Qt::darkBlue);
     zoomer->setRubberBandPen(c);
@@ -1238,22 +1238,7 @@ void QSpectrogram::setColorMap(int type) {
     replot();
 }
 
-void QSpectrogram::setColorTableSize(int type) {
-    int numColors = 0;
-    switch (type)
-    {
-    case 1:
-        numColors = 256;
-        break;
-    case 2:
-        numColors = 1024;
-        break;
-    case 3:
-        numColors = 16384;
-        break;
-    }
-
-    d_spectrogram->setMaxRGBTableSize(numColors);
+void QSpectrogram::setColorTableSize(int /*type*/) {
     replot();
 }
 void QSpectrogram::setAlpha(int) {
@@ -1462,7 +1447,7 @@ void QSpectrogramPlot::setupUi() {
     this->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));
     verticalLayout = new QVBoxLayout(this);
     verticalLayout->setSpacing(2);
-    verticalLayout->setMargin(2);
+    verticalLayout->setContentsMargins(2, 2, 2, 2);
     verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
 
     QToolBar* toolBar = new QToolBar(this);

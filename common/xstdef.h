@@ -96,6 +96,20 @@ void assert_failed(const char* file, unsigned int line, const char* str);
 	#endif
 #endif
 
+#if defined(__APPLE__) && !defined(LIN_UX) && !defined(WIN32)
+	#include <cstring>
+	#include <cstddef>
+	#define strnicmp strncasecmp
+	#include <stdexcept>
+	#ifndef XMPRINTF_TO_FILE
+		#include <cstdlib>
+		#include <cstdio>
+		#ifndef xm_printf
+			#define xm_printf printf
+		#endif
+	#endif
+#endif
+
 #if defined (LIN_UX) || defined (WIN32) || defined (UNIX)
 
 #define PC__VERSION 1

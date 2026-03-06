@@ -16,6 +16,9 @@
 	#include <syslog.h>
 	#include <unistd.h>
 	#include <pwd.h>
+	#ifdef __APPLE__
+		#include <libproc.h>
+	#endif
 #endif
 
 #include <string>
@@ -191,18 +194,36 @@ int checkProcRunning() {
 		}	else { //    looks like not running
 			xmprintf(3, "\tOpenProcess returned NULL\n");
 		}
+#elif defined(__APPLE__)
+		pid_t pid = (pid_t)strtol(sp.c_str(), 0, 10);
+		xmprintf(2, "\tpid = %d\n", pid);
+		if (kill(pid, 0) == 0) {
+			char pathbuf[PROC_PIDPATHINFO_MAXSIZE] = {0};
+			int ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
+			if (ret > 0) {
+				xmprintf(3, "\tprocess path for pid %d: %s\n", pid, pathbuf);
+				if (strstr(pathbuf, "qwproc") == NULL) {
+					xmprintf(2, "\tbut looks like this is different program with same pid\n");
+				} else {
+					xmprintf(2, "\tthis looks like our plot server\n");
+					return 1;
+				}
+			} else {
+				xmprintf(2, "\tproc_pidpath failed for pid %d, assuming not our process\n", pid);
+			}
+		} else {
+			xmprintf(2, "\tprocess %d not found (kill(pid,0) failed, errno=%d)\n", pid, errno);
+		}
 #else
 		path proc = path("/proc") / sp / "status";
-		if (exists(proc)) { // lets check the name
-			//path pf = proc / "status";
+		if (exists(proc)) {
 			std::string pName;
 			std::ifstream pFile(proc.string());
 			std::getline(pFile, pName);
 			xmprintf(2, "lockHandle: %s is running\n", pName.c_str());
 			if (pName.find("qwproc") == std::string::npos) {
 				xmprintf(2, "\tbut looks like this is different program with same pid\n");
-			} else { // its me ?
-				//  lets check the status:
+			} else {
 				std::string line;
 				for (line; std::getline(pFile, line); ) {
 					if (line.find("State:") != std::string::npos) {

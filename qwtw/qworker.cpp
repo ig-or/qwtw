@@ -162,10 +162,12 @@ void QWorker::spectrogram_info(const SpectrogramInfo& info) {
 	xmprintf(4, "QWorker::spectrogram_info finished \n");
 }
 
+#ifdef USEMATHGL
 Q_INVOKABLE int  QWorker::spectrogram_info_impl(const SpectrogramInfo& info) {
 	pf->setSpectrogramInfo(info);
 	return 0;
 }
+#endif
 
 int QWorker::qVersion(char* vstr, int vstr_size) {
 #ifdef WIN32
@@ -357,12 +359,14 @@ Q_INVOKABLE int QWorker::qwtplot2Impl(double* x, double* y, int size, const char
 	int test = pf->plot(x, y, size, name, style, lineWidth, symSize, time);
 	return test;
 }
+#ifdef ENABLE_UDP_SYNC
 Q_INVOKABLE void QWorker::qwtEnableCoordBroadcastImpl(double* x, double* y, double* z, double* time, int size) {
 	pf->enableCoordBroadcast(x, y, z, time, size);
 }
 Q_INVOKABLE void QWorker::qwtDisableCoordBroadcastImpl() {
 	pf->disableCoordBroacast();
 }
+#endif
 
 Q_INVOKABLE void QWorker::qwtclearImpl() {
 	pf->clear();

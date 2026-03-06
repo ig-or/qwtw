@@ -14,6 +14,9 @@
 #else
 	#include <sys/types.h>
 	#include <dlfcn.h>
+	#ifdef __APPLE__
+		#include <mach-o/dyld.h>
+	#endif
 #endif
 
 #include <iomanip>
@@ -61,7 +64,7 @@ double t4[mwn];
 void createInfo();
 
 ///   this function will try to call the library
-void test(int n);
+void test(int n, const char* argv0);
 
 int main(int argc, char* argv[]) {
 	createInfo(); //    fill in all data arrays
@@ -70,7 +73,7 @@ int main(int argc, char* argv[]) {
 	setvbuf(stdout, NULL, _IONBF, 0); 
 
 	for (int i = 0; i < 1; i++) {
-		test(i);
+		test(i, argv[0]);
 	}
 	 
 	//  clean memory
@@ -89,7 +92,7 @@ int main(int argc, char* argv[]) {
 static volatile  HINSTANCE hQWTW_DLL = 0;
 #endif
 
-void test(int n) {
+void test(int n, const char* argv0) {
 	printf("\n\n\ndoing the test # %d\n", n);
 	using namespace std::chrono_literals;
 	//std::this_thread::sleep_for(100ms);
@@ -104,6 +107,14 @@ void test(int n) {
 		return;
 	} 
 	exeFileName = buf;
+	#elif defined(__APPLE__)
+		char exepath[2014] = {0};
+		uint32_t bufsize = sizeof(exepath);
+		if (_NSGetExecutablePath(exepath, &bufsize) == 0) {
+			exeFileName.assign(exepath);
+		} else {
+			exeFileName = argv0;
+		}
 	#else
 		char arg1[32];
 		char exepath[2014] = {0};
@@ -112,7 +123,7 @@ void test(int n) {
 		if (test > 0) {
 			exeFileName.assign(exepath);
 		} else {
-			exeFileName = "/home";
+			exeFileName = argv0;
 		}
 	#endif
 	std::cout << "exeFileName = " << exeFileName << std::endl;
@@ -158,9 +169,17 @@ void test(int n) {
 	#else
  		void *lib_handle;
 		#ifdef DEBUG123
-		std::string qwtw_name = "libqwtwd.so";
+			#ifdef __APPLE__
+			std::string qwtw_name = "libqwtwd.dylib";
+			#else
+			std::string qwtw_name = "libqwtwd.so";
+			#endif
 		#else
-		std::string qwtw_name = "libqwtw.so";
+			#ifdef __APPLE__
+			std::string qwtw_name = "libqwtw.dylib";
+			#else
+			std::string qwtw_name = "libqwtw.so";
+			#endif
 		#endif
 		std::string qwtwPath = (p / qwtw_name).string();
 		lib_handle = dlopen(qwtwPath.c_str(), RTLD_LAZY);

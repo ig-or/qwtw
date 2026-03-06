@@ -2,7 +2,7 @@
 # 	# qwtwc library project
 #
 
-cmake_minimum_required (VERSION 2.8.11)
+cmake_minimum_required(VERSION 3.21)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 
 #option(WITH_QT3D "3D plotting support from QT" OFF)
@@ -142,10 +142,12 @@ if(WIN32)
 	ENDIF()
 	
 else()
-	add_definitions(-DLIN_UX)
-	addQWTLinux()
-	addOtherLib("rt")
+	if(UNIX AND NOT APPLE)
+		add_definitions(-DLIN_UX)
+		addOtherLib("rt")
+	endif()
 	addOtherLib("dl")
+	addQWT()
 	message("LIB_LIST: "  ${LIB_LIST})
 endif()
 libraryEnd(SHARED)

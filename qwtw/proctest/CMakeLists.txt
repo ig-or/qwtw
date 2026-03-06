@@ -2,7 +2,7 @@
 # 	# proctest  project
 #
 
-cmake_minimum_required (VERSION 3.1)
+cmake_minimum_required(VERSION 3.21)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 
 set (NO_VERSION_INFO 1)
@@ -17,8 +17,10 @@ addSourceFiles("source" "../proc/" qwproc.h)
 add_definitions(-DBOOST_DATE_TIME_NO_LIB)
 
 if(UNIX)
-    #addOtherLib("dl")
-    addOtherLib("rt")
+	#addOtherLib("dl")
+	if(UNIX AND NOT APPLE)
+		addOtherLib("rt")
+	endif()
 endif()
 
 programEnd()
