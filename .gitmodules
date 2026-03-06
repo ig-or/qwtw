@@ -1,4 +1,4 @@
 [submodule "extern/qwt"]
 	path = extern/qwt
-	url = https://github.com/ig-or/qwt.git
+	url = git@github.com:ig-or/qwt.git
 	branch = trunk
