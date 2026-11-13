@@ -12,9 +12,8 @@
 */
 
 #ifdef ENABLE_UDP_SYNC
-
-#include <boost/asio.hpp>
-#include <boost/array.hpp>
+#include <QHostAddress>
+#include <QUdpSocket>
 #endif
 
 #include "sfigure.h"
@@ -58,21 +57,16 @@ int xmprintf(int level, const char * _Format, ...);
 #include <iostream>
 #include <atomic>
 #include <condition_variable>
-//#include <thread>
-//#include <chrono>
-#include <boost/chrono.hpp>
+#include <chrono>
 #include <functional>
-//#include <mutex>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
+#include <mutex>
+#include <thread>
 #include <stdexcept>
-#include <boost/bind.hpp>
 #include "xmutils.h"
 #include "settings.h"
 
 
 #ifdef ENABLE_UDP_SYNC
-using boost::asio::ip::udp; 
 
 #pragma pack(1)
 struct BroadcastMessage {
@@ -232,187 +226,98 @@ private:
 
 class BCUdpClient {
 public:
-	BCUdpClient(const QWSettings& settings) : multicast_address(boost::asio::ip::make_address_v4(settings.smip.c_str())),
-			endpoint_(multicast_address, settings.udp_client_port),
-			socket_(io_context, endpoint_.protocol()) {
-		ok = false;
-	
-		try {
-			//socket_.open(udp::v4());
-			socket_.set_option(udp::socket::reuse_address(true));
-			socket_.set_option(udp::socket::broadcast(true));
-		}  catch (const std::exception& ex) {
-			xmprintf(0, "ERROR: BCUdpClient(): socket_.set_option failed (%s)\n", ex.what());
+	explicit BCUdpClient(const QWSettings& settings)
+		: multicastAddress_(QString::fromStdString(settings.smip)),
+		  port_(static_cast<quint16>(settings.udp_client_port)) {
+		ok = socket_.bind(QHostAddress::AnyIPv4, 0, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint);
+		if (!ok) {
+			xmprintf(0, "ERROR: BCUdpClient(): bind failed (%s)\n",
+				socket_.errorString().toStdString().c_str());
 			return;
 		}
-
-		ok = true;
-		xmprintf(5, "BCUdpClient() created;  UDP port %d \n", settings.udp_client_port);
+		xmprintf(5, "BCUdpClient() created; UDP port %d\n", settings.udp_client_port);
 	}
 
 	void bcSend(unsigned char* buf, int size) {
-		if (!ok) {
+		if (!ok || !buf || size <= 0) {
 			return;
 		}
-		try {
-			size_t bs = socket_.send_to(boost::asio::buffer(buf, size), endpoint_);
-			int itmp = 0;
-			if (bs != size) {
-				xmprintf(9, "bcSend bs = %d bytes; size = %d \n", bs, size);
-			}
-			//xmprintf(9, "bcSend %d bytes \n", bs);
-		} catch (const std::exception& ex) {
-			xmprintf(1, "BCUdpClient::bcSend: exception: %s\n", ex.what());
+		qint64 bs = socket_.writeDatagram(reinterpret_cast<const char*>(buf), size, multicastAddress_, port_);
+		if (bs != size) {
+			xmprintf(9, "bcSend bs = %lld bytes; size = %d\n", static_cast<long long>(bs), size);
 		}
 	}
 
-private: 
-	boost::asio::ip::address multicast_address;
-	boost::asio::io_context io_context;
-	udp::endpoint endpoint_;
-	udp::socket socket_;
+private:
+	QHostAddress multicastAddress_;
+	quint16 port_;
+	QUdpSocket socket_;
 	bool ok = false;
 };
 
-
-
 class BCUdpServer {
 private:
-	volatile bool created, createdMarker, somethingWasChanged;
-	volatile int cmd;
-	double pos[3];
-	boost::mutex mu;
-	//std::thread st;
-	boost::thread st;
-	volatile bool pleaseStop;
-	boost::asio::io_context io_context;
-	udp::endpoint sender_endpoint_;
-	boost::asio::ip::address listen_address;
-	boost::asio::ip::address multicast_address;
-	udp::socket socket_;
-	int udp_server_port;
-	
-	unsigned char	rb[256];
-	std::function<void(double[3])> onPointF;
+	QUdpSocket socket_;
+	QHostAddress multicastAddress_;
+	quint16 udpServerPort_;
+	std::mutex mu_;
+	double pos_[3] = {0.0, 0.0, 0.0};
+	int cmd_ = 0;
+	bool somethingWasChanged_ = false;
+	std::function<void(double[3])> onPointF_;
 
 public:
-	BCUdpServer(const QWSettings& settings) : socket_(io_context) {
-		created = false;
-		createdMarker = false;
-		somethingWasChanged = false;
-		cmd = 0;
-		udp_server_port = settings.udp_server_port;
-		listen_address = boost::asio::ip::address::from_string("0.0.0.0");
-		multicast_address = boost::asio::ip::address::from_string(settings.smip.c_str());
-		// Create the socket so that multiple may be bound to the same address.
-	}
+	explicit BCUdpServer(const QWSettings& settings)
+		: multicastAddress_(QString::fromStdString(settings.smip)),
+		  udpServerPort_(static_cast<quint16>(settings.udp_server_port)) {}
 
 	void bStart(std::function<void(double[3])> aPoint) {
-		onPointF = aPoint;
-		pleaseStop = false;
-		xmprintf(0, "INFO: BCUdpServer::bStart() \n");
-		boost::thread tr([&] { tcpThread(); });
-		st.swap(tr);
-		created = true;
-	}
+		onPointF_ = std::move(aPoint);
+		xmprintf(0, "INFO: BCUdpServer::bStart()\n");
 
-	~BCUdpServer() {
-		pleaseStop = true;
-		using std::chrono::system_clock;
-		using namespace std::chrono_literals;
-		if (!created) {
+		if (!socket_.bind(QHostAddress::AnyIPv4, udpServerPort_,
+				QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint)) {
+			xmprintf(0, "ERROR: BCUdpServer bind failed on port %u: %s\n",
+				static_cast<unsigned>(udpServerPort_),
+				socket_.errorString().toStdString().c_str());
 			return;
 		}
-		
-		if (st.joinable()) {
-			boost::asio::io_context io_service1;
-			boost::asio::ip::udp::endpoint ep(multicast_address, udp_server_port);
-			udp::socket s1(io_service1, ep.protocol());
-			s1.set_option(udp::socket::reuse_address(true));
-			s1.set_option(udp::socket::broadcast(true));
-			unsigned char b[5];
-			try {
-				s1.send_to(boost::asio::buffer(b, 5), ep);
-				s1.send_to(boost::asio::buffer(b, 5), ep);
-				s1.send_to(boost::asio::buffer(b, 5), ep);
-				//Sleep(10);
-				//std::this_thread::sleep_for(10ms);
-				boost::this_thread::sleep_for(boost::chrono::milliseconds(10));
-				s1.send_to(boost::asio::buffer(b, 5), ep);
-			} catch (const std::exception& ex) {
-				xmprintf(2, "~BCUdpServer() exception: %s\n", ex.what());
-			}
-			io_context.stop();
-			xmprintf(2, "~BCUdpServer(): stopping UDP server .... ");
-			st.join(); // wait for the task to finish??
-			xmprintf(2, " stopped! \n");
-		}
-		int itmp = 0;
-	}
-	void tcpThread() {
-		try {
-			// Create the socket so that multiple may be bound to the same address.
-			boost::asio::ip::udp::endpoint listen_endpoint(listen_address, udp_server_port);
-			socket_.open(listen_endpoint.protocol());
-			socket_.set_option(boost::asio::ip::udp::socket::reuse_address(true));
-			socket_.bind(listen_endpoint);
+		socket_.joinMulticastGroup(multicastAddress_);
 
-			// Join the multicast group.
-			socket_.set_option(boost::asio::ip::multicast::join_group(multicast_address));
-
-			start_receive();
-			xmprintf(2, "BCUdpServer tcpThread started; port %d\n", qwSettings.udp_server_port);
-			io_context.run();
-		} catch (std::exception& e) {
-			std::cerr << e.what() << std::endl;
-			xm_printf("TRACE: RDFramerDebugGuiUpdateCallback  exception 3: %s  \n", e.what());
-		}
-		return;
-	}
-	void start_receive() {
-		socket_.async_receive_from(
-			boost::asio::buffer(rb), sender_endpoint_,
-				boost::bind(&BCUdpServer::handle_receive, this,
-					boost::asio::placeholders::error,
-					boost::asio::placeholders::bytes_transferred));
-	}
-
-	void handle_receive(const boost::system::error_code& error, std::size_t bytes_transferred) {
-		if (pleaseStop) {
-			return;
-		}
-		if (!error || error == boost::asio::error::message_size) {
-			xmprintf(9, "UDP server handle_receive: bytes_transferred = %d \n", bytes_transferred);
-			
-			if ((bytes_transferred == 4) && ((memcmp(rb, "XXXX", 4) == 0))) {
-				mu.lock();
-				cmd = 2;
-				somethingWasChanged = true;
-				mu.unlock();
-			}
-
-			if (bytes_transferred == 8 * 3 + 4) {
-				if ((memcmp(rb, "EEEE", 4) == 0) || ((memcmp(rb + 4 + 3 * 8, "FFFF", 4) == 0))) {
-					rb[25] = 0;
-					xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got %s \n", rb);
-				} else {
-					if (memcmp(rb, "CRDS", 4) == 0) {  //  message from Collage?
-						mu.lock();
-						memcpy(pos, rb + 4, 3 * 8);
-						cmd = 1;
-						somethingWasChanged = true;
-						onPointF(pos);
-						mu.unlock();
-						xmprintf(9, "UDP server handle_receive: got CRDS message \n");
-					}		else {
-						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got %s \n", rb);
+		QObject::connect(&socket_, &QUdpSocket::readyRead, [this]() {
+			while (socket_.hasPendingDatagrams()) {
+				unsigned char rb[256] = {0};
+				qint64 n = socket_.readDatagram(reinterpret_cast<char*>(rb), sizeof(rb) - 1);
+				if (n <= 0) {
+					continue;
+				}
+				if (n == 4 && std::memcmp(rb, "XXXX", 4) == 0) {
+					std::lock_guard<std::mutex> lock(mu_);
+					cmd_ = 2;
+					somethingWasChanged_ = true;
+				} else if (n == 8 * 3 + 4) {
+					if (std::memcmp(rb, "EEEE", 4) == 0) {
+						rb[25] = 0;
+						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got %s\n", rb);
+					} else if (std::memcmp(rb, "CRDS", 4) == 0) {
+						std::lock_guard<std::mutex> lock(mu_);
+						std::memcpy(pos_, rb + 4, 3 * sizeof(double));
+						cmd_ = 1;
+						somethingWasChanged_ = true;
+						if (onPointF_) {
+							onPointF_(pos_);
+						}
+					} else {
+						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got %s\n", rb);
 					}
 				}
 			}
-			start_receive();
-		} else {
-			start_receive();
-		}
+		});
+		xmprintf(2, "BCUdpServer started on port %u\n", static_cast<unsigned>(udpServerPort_));
+	}
+
+	~BCUdpServer() {
+		socket_.close();
 	}
 };
 
@@ -569,6 +474,8 @@ JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 			cf = new QSpectrogramPlot(name_, this, parent, flags);
 			haveSpectrogramm += 1;
 			xmprintf(5, "XQPlots::figure creating jQwSpectrogram done; haveSpectrogramm=%d\n", haveSpectrogramm);
+			break;
+		default:
 			break;
 		};
 		bool test = true;
@@ -823,6 +730,10 @@ void XQPlots::setPickerCallback(OnPickerCallback cb) {
 	onPickerCallback = cb;
 }
 
+void XQPlots::setClipCallback(OnClipCallbackFn cb) {
+	onClipCallback = cb;
+}
+
 /*
 Q_INVOKABLE void XQPlots::drawAllMarkers1(const CBPickerInfo& cbi) {
 	drawAllMarkers(cbi);		// draw all markers relying on time info
@@ -1004,6 +915,9 @@ void XQPlots::clipAll(double t1, double t2, int clipGroup) {
 		if (jsp->clipGroup == clipGroup) {
 			jsp->onClip(t1, t2);
 		}
+	}
+	if (onClipCallback) {
+		onClipCallback(t1, t2, clipGroup);
 	}
 #ifdef ENABLE_UDP_SYNC
 	sendClipInfo(t1, t2, clipGroup);

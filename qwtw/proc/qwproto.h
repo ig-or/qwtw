@@ -1,94 +1,53 @@
-
+#pragma once
 
 #include "qwproc.h"
-////#include <boost/interprocess/shared_memory_object.hpp>
-//#include <boost/interprocess/mapped_region.hpp>
-
-// therer are problems on mingw with this #include <thread>
+#include <atomic>
 #include <memory>
-#include <boost/thread/thread.hpp>
-#include <thread>
 #include <mutex>
-#include <chrono>
 #include <thread>
-#include <condition_variable>
-
-namespace boost { 
-    namespace interprocess {
-        class shared_memory_object;
-        class mapped_region;
-    }
-    //class thread;
-
-}
+#include <vector>
 
 class QWorker;
 class QApplication;
 
 class QProcInterface {
-
 public:
-/**
- *  \param mdPath path to the MArble data files
- */
-    QProcInterface(QWorker& worker_, QApplication& app_);
-    ~QProcInterface();
+	QProcInterface(QWorker& worker_, QApplication& app_);
+	~QProcInterface();
 
-    ///  start everything
-    void start();
+	/// Bind local IPC listener and start accepting clients. Returns true on success.
+	bool start();
 
-    /**
-     * \return true if already running
-    **/
-    static bool runningAlready();
+	/// Return true if another qwproc instance is already listening.
+	static bool runningAlready();
 
-    void onCB(const CBPickerInfo& cbi_);
-    
+	void onCB(const CBPickerInfo& cbi_);
+	void onClip(double t1, double t2, int clipGroup);
 
 private:
-    ProcData pd;
-    boost::interprocess::shared_memory_object* shmCommand;
-    boost::interprocess::shared_memory_object* shmDataX;
-    boost::interprocess::shared_memory_object* shmDataY;
-    boost::interprocess::shared_memory_object* shmDataZ;
-    boost::interprocess::shared_memory_object* shmDataT;
-    boost::interprocess::shared_memory_object* shmDataData;
+	QWorker& worker;
+	QApplication& app;
 
-    boost::interprocess::mapped_region* commandReg;
-    boost::interprocess::mapped_region* xDataReg;
-    boost::interprocess::mapped_region* yDataReg;
-    boost::interprocess::mapped_region* zDataReg;
-    boost::interprocess::mapped_region* tDataReg;
-    boost::interprocess::mapped_region* dataDataReg;
-    bool started;
-    bool needStopThread;
-    //std::thread  wThread;
-    std::shared_ptr<boost::thread> wThread;
-    std::thread cbFilterThread;
+	qwipc::Listener listener_;
+	std::atomic<bool> started_{false};
+	std::atomic<bool> stopping_{false};
+	std::thread acceptThread_;
 
-	///  callback function sync
-    std::shared_ptr<CmdSync> cmdSync;
+	std::mutex cmdExecMutex_;
 
-    QWorker& worker;
-    QApplication& app;
+	struct ClientSlot {
+		std::shared_ptr<qwipc::Stream> stream;
+		std::thread worker;
+	};
+	std::mutex clientThreadsMutex_;
+	std::vector<ClientSlot> clientSlots_;
 
-    /// stop the thread
-    void stop();
-    void run();
-    void cbFilterThreadF();
-    std::mutex cbFilterMutex;
-    CBPickerInfo cbi; 
-    //std::chrono::time_point< std::chrono::system_clock > cbiTime;
-    bool haveNewCallbackInfo = false;
-    //std::condition_variable cbiReady;
+	std::mutex subscribersMutex_;
+	std::vector<std::shared_ptr<qwipc::Stream>> subscribers_;
 
-
-    void processCommand(int cmd);
-    //void setupSHM1(long long size, boost::interprocess::shared_memory_object* shm, boost::interprocess::mapped_region* reg);
-
-    //  change size of the memory segments
-    void changeSize(long long newSize);
-    void changeDataSize(long long newSize);
-    void removeSHM();
-    void plot();
+	void stop();
+	void acceptLoop();
+	void handleCommandClient(std::shared_ptr<qwipc::Stream> stream);
+	void broadcastEvent(const qwipc::ServerEvent& ev);
+	void executeCommand(const qwipc::CmdRequest& req, const std::vector<double>& payload, qwipc::CmdReply& rep, bool& requestQuit);
 };

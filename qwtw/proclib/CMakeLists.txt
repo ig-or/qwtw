@@ -4,11 +4,8 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 set(PROJECT_NAME qwtw)
 commonStart()
 
-set(NEED_BOOST thread filesystem date_time chrono regex)
-
 addSourceFiles("source" "." qwtw)
 addSourceFiles("lib" "../proc" qwproc pclient)
-addSourceFiles("qrc" "../../img" plib1.qrc)
 addSourceFiles("qrc" "../" qwtypes)
 addSourceFiles("common" "../../common"
     xstdef xmutils
@@ -28,7 +25,8 @@ endif()
 
 if(UNIX AND NOT APPLE)
     add_definitions(-DLIN_UX)
-    addOtherLib("rt" "dl")
+    find_package(Threads REQUIRED)
+    addOtherLib("dl" Threads::Threads)
 elseif(APPLE)
     addOtherLib("dl")
 endif()

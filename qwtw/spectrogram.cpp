@@ -894,7 +894,7 @@ public:
         return rect;
     }
 protected:
-    void rescale() {
+    void rescale() override {
         //QwtPlotZoomer::rescale();
         //return;
 

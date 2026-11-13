@@ -44,6 +44,7 @@ class QWorker : public QObject {
 
 	Q_INVOKABLE void qwtSetUdpCallbackImpl(OnUdpCallback cb);
 	Q_INVOKABLE void qwtSetPickerCallbackImpl(OnPickerCallback cb);
+	Q_INVOKABLE void qwtSetClipCallbackImpl(OnClipCallbackFn cb);
 
 #ifdef USEMATHGL
 	Q_INVOKABLE int mglPlotImpl(int n);
@@ -53,8 +54,8 @@ class QWorker : public QObject {
 		double* data, const char* name,
 		const char* style,
 		int type);
-	Q_INVOKABLE int spectrogram_info_impl(const SpectrogramInfo& info);
 #endif
+	Q_INVOKABLE int spectrogram_info_impl(const SpectrogramInfo& info);
 
 public:
 	//std::mutex appMutex;///< for waiting on QT app 
@@ -80,6 +81,7 @@ public:
 	void qwtclear();
 	void qwtSetUdpCallback(OnUdpCallback cb);
 	void qwtSetPickerCallback(OnPickerCallback cb);
+	void qwtSetClipCallback(OnClipCallbackFn cb);
 	int qwtfigure(int n, unsigned int flags);
 	int qwtSpectrogram(int n, unsigned int flags);
 	int qwtservice(int x);
@@ -110,6 +112,8 @@ public slots:
 private:
 	
 	XQPlots* pf = 0;
+	OnPickerCallback pendingPickerCb_;
+	OnClipCallbackFn pendingClipCb_;
 	#ifdef USEMARBLE
 	std::string mdPath; ///< marble data path
 	std::string mpPath; ///< marble plugin path

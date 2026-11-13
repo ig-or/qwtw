@@ -13,6 +13,7 @@ Utilitis which do not belong to any calss.
 #include "xstdef.h"
 //#include "xmatrixplatform.h"
 #include "xmutils.h"
+#include <algorithm>
 #include <string.h>
 
 #ifdef LIN_UX

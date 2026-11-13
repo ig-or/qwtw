@@ -1,12 +1,14 @@
-
-
 #include "settings.h"
 #include "qwproc.h"
-#include <boost/property_tree/json_parser.hpp>
-#include "boost/filesystem.hpp"
+
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonParseError>
+#include <filesystem>
 #include <string>
 
-QWSettings   qwSettings;
+QWSettings qwSettings;
 
 QWSettings::QWSettings() {
 	aMarkerColor_R = 0;
@@ -18,84 +20,105 @@ QWSettings::QWSettings() {
 	udp_client_port = 49561;
 	smip.assign("239.255.0.1");
 }
+
 int QWSettings::qwSave() {
 	char folder[512];
 	if (!getFolderLocation(folder, 512)) {
-		xmprintf(4, "QWSettings::qwSave()   getFolderLocation failed  \n");
+		xmprintf(4, "QWSettings::qwSave() getFolderLocation failed\n");
 		return 1;
 	}
-	using namespace boost::filesystem;
-	namespace pt = boost::property_tree;
-	path sf = path(folder) / "settings.json";
 
-	pt::ptree root;
-	root.put("aMarkerColor_R", aMarkerColor_R);
-	root.put("aMarkerColor_G", aMarkerColor_G);
-	root.put("aMarkerColor_B", aMarkerColor_B);
-	root.put("direction", direction);
-	root.put("pickerDigitsNumber", pickerDigitsNumber);
-	root.put("udp_server_port", udp_server_port);
-	root.put("udp_client_port", udp_client_port);
-	root.put("smip", smip.c_str());
-	std::ostringstream oss;
-	pt::write_json(oss, root);
-	try {
-		std::ofstream file;
-        file.open(sf.string());
-        file << oss.str();
-        file.close();
-	} catch (const std::exception& ex) {
-		xmprintf(0, "QWSettings::qwSave(): cannot save settings file %s (%s)\n", sf.string().c_str(), ex.what());
+	std::error_code ec;
+	std::filesystem::path dir(folder);
+	if (!std::filesystem::exists(dir, ec)) {
+		std::filesystem::create_directories(dir, ec);
 	}
-	xmprintf(5, "QWSettings::qwSave() file saved    \n");
+	std::filesystem::path sf = dir / "settings.json";
+
+	QJsonObject root;
+	root.insert("aMarkerColor_R", aMarkerColor_R);
+	root.insert("aMarkerColor_G", aMarkerColor_G);
+	root.insert("aMarkerColor_B", aMarkerColor_B);
+	root.insert("direction", direction);
+	root.insert("pickerDigitsNumber", pickerDigitsNumber);
+	root.insert("udp_server_port", udp_server_port);
+	root.insert("udp_client_port", udp_client_port);
+	root.insert("smip", QString::fromStdString(smip));
+
+	QFile file(QString::fromStdString(sf.string()));
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+		xmprintf(0, "QWSettings::qwSave(): cannot save settings file %s\n", sf.string().c_str());
+		return 2;
+	}
+	file.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+	file.close();
+
+	xmprintf(5, "QWSettings::qwSave() file saved\n");
 	return 0;
 }
+
+static int readJsonInt(const QJsonObject& obj, const char* key, int defaultVal) {
+	auto it = obj.find(QLatin1String(key));
+	if (it == obj.end()) {
+		return defaultVal;
+	}
+	if (it->isDouble()) {
+		return it->toInt(defaultVal);
+	}
+	if (it->isString()) {
+		bool ok = false;
+		int v = it->toString().toInt(&ok);
+		return ok ? v : defaultVal;
+	}
+	return defaultVal;
+}
+
 int QWSettings::qwLoad() {
 	char folder[512];
 	if (!getFolderLocation(folder, 512)) {
-		xmprintf(4, "QWSettings::qwLoad()   getFolderLocation failed  \n");
+		xmprintf(4, "QWSettings::qwLoad() getFolderLocation failed\n");
 		return 1;
 	}
-	using namespace boost::filesystem;
-	namespace pt = boost::property_tree;
-	path sf = path(folder) / "settings.json";
-	if (!exists(sf)) {
-		xmprintf(4, "QWSettings::qwLoad()   cannot find file %s \n", sf.string().c_str());
+
+	std::error_code ec;
+	std::filesystem::path sf = std::filesystem::path(folder) / "settings.json";
+	if (!std::filesystem::exists(sf, ec)) {
+		xmprintf(4, "QWSettings::qwLoad() cannot find file %s\n", sf.string().c_str());
 		return 2;
 	}
-	pt::ptree root;
-	try {
-		pt::read_json(sf.string(), root);
-	} catch (const std::exception& ex) {
-		xmprintf(4, "QWSettings::qwLoad()   error with the settings file (%s) \n", ex.what());
+
+	QFile file(QString::fromStdString(sf.string()));
+	if (!file.open(QIODevice::ReadOnly)) {
+		xmprintf(4, "QWSettings::qwLoad() cannot open file %s\n", sf.string().c_str());
+		return 2;
 	}
 
-	aMarkerColor_R = root.get<int>("aMarkerColor_R", 0);
-	aMarkerColor_G = root.get<int>("aMarkerColor_G", 0);
-	aMarkerColor_B = root.get<int>("aMarkerColor_B", 0);
-	direction = root.get<int>("direction", 0);
-
-	try {
-		pickerDigitsNumber = root.get<int>("pickerDigitsNumber", 6);
-	}	catch (const std::exception& ex){
-		pickerDigitsNumber = 6;
-		xmprintf(9, "QWSettings::qwLoad() cannot load  pickerDigitsNumber from the configuration file (%s)  \n", ex.what());	
+	QJsonParseError parseErr;
+	QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &parseErr);
+	file.close();
+	if (parseErr.error != QJsonParseError::NoError || !doc.isObject()) {
+		xmprintf(4, "QWSettings::qwLoad() JSON parse error (%s)\n",
+			parseErr.errorString().toStdString().c_str());
+		return 3;
 	}
 
-	try {
-		udp_server_port = root.get<int>("udp_server_port", 49562);
-		udp_client_port = root.get<int>("udp_client_port", 49561);
-		smip = root.get<std::string>("smip", "239.255.0.1");
-	}
-	catch (const std::exception& ex) {
-		udp_server_port = 49562;
-		udp_client_port = 49561;
-		smip.assign("239.255.0.1");
-		xmprintf(9, "QWSettings::qwLoad() cannot load  udp_server_port or udp_client_port from the configuration file (%s)  \n", ex.what());
+	QJsonObject root = doc.object();
+	aMarkerColor_R = readJsonInt(root, "aMarkerColor_R", 0);
+	aMarkerColor_G = readJsonInt(root, "aMarkerColor_G", 0);
+	aMarkerColor_B = readJsonInt(root, "aMarkerColor_B", 0);
+	direction = readJsonInt(root, "direction", 0);
+	pickerDigitsNumber = readJsonInt(root, "pickerDigitsNumber", 6);
+	udp_server_port = readJsonInt(root, "udp_server_port", 49562);
+	udp_client_port = readJsonInt(root, "udp_client_port", 49561);
+
+	auto smipIt = root.find(QLatin1String("smip"));
+	if (smipIt != root.end() && smipIt->isString()) {
+		smip = smipIt->toString().toStdString();
+	} else {
+		smip = "239.255.0.1";
 	}
 
-	xmprintf(9, "QWSettings::qwLoad() file loaded    \n");
-
+	xmprintf(9, "QWSettings::qwLoad() file loaded\n");
 	return 0;
 }
 
@@ -106,6 +129,3 @@ QColor QWSettings::markerColor() const {
 	co.setBlue(qwSettings.aMarkerColor_B);
 	return co;
 }
-
-
-

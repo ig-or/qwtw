@@ -103,4 +103,10 @@ typedef  void (*OnUdpCallback)(int, double, double, double, double);
 
 //typedef void (*OnPickerCallback)(const CBPickerInfo&);
 typedef std::function<void(const CBPickerInfo&)> OnPickerCallback;
+typedef std::function<void(double, double, int)> OnClipCallbackFn;
+
+#ifdef QT_DLL
+Q_DECLARE_METATYPE(OnPickerCallback);
+Q_DECLARE_METATYPE(OnClipCallbackFn);
+#endif
 

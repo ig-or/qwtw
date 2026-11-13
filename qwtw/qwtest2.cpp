@@ -21,13 +21,12 @@
 
 #include <iomanip>
 #include <locale>
-#include <codecvt>
 #include <sstream>
 #include <string>
 #include <chrono>
 #include <thread>
 
-#include "boost/filesystem.hpp"
+#include <filesystem>
 
 //  ==========  path #1. lets create some data ===================================
 //   our data arrays below:
@@ -89,7 +88,7 @@ int main(int argc, char* argv[]) {
 
 #ifdef WIN32
 //  the library instance
-static volatile  HINSTANCE hQWTW_DLL = 0;
+static HINSTANCE hQWTW_DLL = 0;
 #endif
 
 void test(int n, const char* argv0) {
@@ -128,10 +127,10 @@ void test(int n, const char* argv0) {
 	#endif
 	std::cout << "exeFileName = " << exeFileName << std::endl;
 
-	using namespace boost::filesystem;
+	namespace fs = std::filesystem;
 
 	//  at first, lets load the library form the same folder
-	path p = ((path)(exeFileName)).parent_path();
+	fs::path p = fs::path(exeFileName).parent_path();
 
 	#ifdef WIN32
 #ifdef DEBUG123
@@ -139,11 +138,10 @@ void test(int n, const char* argv0) {
 #else
 	std::string qwtw_name = "qwtw.dll";
 #endif
-	std::string rdfDllName = (p / qwtw_name).string();
+	fs::path dllPath = p / qwtw_name;
+	std::string rdfDllName = dllPath.string();
 
-	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-	std::wstring wide = converter.from_bytes(p.string());
-
+	std::wstring wide = p.wstring();
 	AddDllDirectory(wide.c_str());
 	std::cout << "loading the library " << rdfDllName << std::endl;
 

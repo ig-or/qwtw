@@ -23,16 +23,20 @@
 QWorker::QWorker(const std::string& mdp, const std::string& mpp): pf(nullptr) {
 	mdPath = mdp;
 	mpPath = mpp;
-	int id = qRegisterMetaType<SpectrogramInfo>();
-	int id1 = qRegisterMetaType<CBPickerInfo>();
-	int id2 = qRegisterMetaType<QWndPos>();
+	qRegisterMetaType<SpectrogramInfo>();
+	qRegisterMetaType<CBPickerInfo>();
+	qRegisterMetaType<QWndPos>();
+	qRegisterMetaType<OnPickerCallback>();
+	qRegisterMetaType<OnClipCallbackFn>();
 }
 #else
 
 QWorker::QWorker(): pf(nullptr) {
-
-	/*hello();*/ 
-	int id = qRegisterMetaType<SpectrogramInfo>();
+	qRegisterMetaType<SpectrogramInfo>();
+	qRegisterMetaType<CBPickerInfo>();
+	qRegisterMetaType<QWndPos>();
+	qRegisterMetaType<OnPickerCallback>();
+	qRegisterMetaType<OnClipCallbackFn>();
 }
 #endif
 void QWorker::onQtAppClosing() {
@@ -162,12 +166,10 @@ void QWorker::spectrogram_info(const SpectrogramInfo& info) {
 	xmprintf(4, "QWorker::spectrogram_info finished \n");
 }
 
-#ifdef USEMATHGL
-Q_INVOKABLE int  QWorker::spectrogram_info_impl(const SpectrogramInfo& info) {
+Q_INVOKABLE int QWorker::spectrogram_info_impl(const SpectrogramInfo& info) {
 	pf->setSpectrogramInfo(info);
 	return 0;
 }
-#endif
 
 int QWorker::qVersion(char* vstr, int vstr_size) {
 #ifdef WIN32
@@ -275,13 +277,14 @@ void QWorker::qwtSetUdpCallback(OnUdpCallback cb) {
 
 void QWorker::qwtSetPickerCallback(OnPickerCallback cb) {
 	xmprintf(8, "QWorker::qwtSetPickerCallback!\n");
-	if (!QMetaObject::invokeMethod(this, "qwtSetPickerCallbackImpl", Qt::BlockingQueuedConnection, Q_ARG(OnPickerCallback, cb))) {
-		xmprintf(8, "QWorker::qwtSetPickerCallback ERROR\n");
-		std::cout << " cannot invoke qwtSetPickerCallbackImpl" << std::endl;
+	if (!QMetaObject::invokeMethod(this, "qwtSetPickerCallbackImpl", Qt::QueuedConnection, Q_ARG(OnPickerCallback, cb))) {
+		pendingPickerCb_ = cb;
+	}
+}
 
-		qwtSetPickerCallbackImpl(cb); // %|
-	}	else {
-		xmprintf(8, "QWorker::qwtSetPickerCallback OK\n");
+void QWorker::qwtSetClipCallback(OnClipCallbackFn cb) {
+	if (!QMetaObject::invokeMethod(this, "qwtSetClipCallbackImpl", Qt::QueuedConnection, Q_ARG(OnClipCallbackFn, cb))) {
+		pendingClipCb_ = cb;
 	}
 }
 
@@ -433,9 +436,16 @@ Q_INVOKABLE void QWorker::qwtSetUdpCallbackImpl(OnUdpCallback cb) {
 
 Q_INVOKABLE void QWorker::qwtSetPickerCallbackImpl(OnPickerCallback cb) {
 	xmprintf(8, "QWorker::qwtSetPickerCallbackImpl! \n");
+	pendingPickerCb_ = cb;
 	if (pf != 0) {
-		xmprintf(8, "QWorker::qwtSetPickerCallbackImpl!!!! \n");
 		pf->setPickerCallback(cb);
+	}
+}
+
+Q_INVOKABLE void QWorker::qwtSetClipCallbackImpl(OnClipCallbackFn cb) {
+	pendingClipCb_ = cb;
+	if (pf != 0) {
+		pf->setClipCallback(cb);
 	}
 }
 
@@ -450,18 +460,16 @@ Q_INVOKABLE int QWorker::qtstartImpl() {
 		if (pf == nullptr) { //  fail
 			std::cout << " error qtstartImpl: (pf == nullptr)" << std::endl;
 		}	else {
-			//std::cout << "q2  started! " << std::endl;
+			if (pendingPickerCb_) {
+				pf->setPickerCallback(pendingPickerCb_);
+			}
+			if (pendingClipCb_) {
+				pf->setClipCallback(pendingClipCb_);
+			}
 				QIcon icon;
     			icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
 				icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 			pf->setWindowIcon(icon);
-
-			//   those MarbleDirs were done already in 'main()'; why we need this again from inside QT gui thread?
-
-			//#ifdef USEMARBLE
-			//Marble::MarbleDirs::setMarbleDataPath(QString::fromStdString(mdPath));
-			//Marble::MarbleDirs::setMarblePluginPath(QString::fromStdString(mpPath));
-			//#endif			
 		}
 	}	else {
 		xmprintf(5, "\talready started .. \n");

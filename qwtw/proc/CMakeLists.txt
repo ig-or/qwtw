@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.21)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../buildsys/ccmake.cmake")
 
 set(PROJECT_NAME qwproc)
-set(NEED_BOOST thread filesystem date_time chrono program_options)
 
 commonStart()
 addQT()
@@ -14,7 +13,7 @@ addSourceFiles("qwtw" "../" qworker sfigure figure2 justaplot qwtypes line setti
 addSourceFiles("qwtw" "../nanoflann" nanoflann)
 addSourceFiles("qrc" "../../img" plib1.qrc)
 addSourceFiles("common" "../../common"
-    xstdef xqbytebuffer xmutils queue_block xmroundbuf
+    xstdef xqbytebuffer xmutils xmroundbuf
     sqwlinetree coordtypes
 )
 addSourceFiles("klifft" "../../common/klifft" complex fft psd)
@@ -60,15 +59,10 @@ addQWT()
 
 # --- platform libs ---
 if(UNIX AND NOT APPLE)
-    addOtherLib("rt" "dl")
-    find_package(OpenSSL REQUIRED)
-    addOtherLib(${OPENSSL_LIBRARIES})
-    list(APPEND INC_DIR_LIST ${OPENSSL_INCLUDE_DIR})
+    find_package(Threads REQUIRED)
+    addOtherLib("dl" Threads::Threads)
 elseif(APPLE)
     addOtherLib("dl")
-    find_package(OpenSSL REQUIRED)
-    addOtherLib(${OPENSSL_LIBRARIES})
-    list(APPEND INC_DIR_LIST ${OPENSSL_INCLUDE_DIR})
 elseif(WIN32)
     addOtherLib("ws2_32")
 endif()

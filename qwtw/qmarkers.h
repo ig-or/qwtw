@@ -58,7 +58,7 @@ public:
 	bool ret;
 protected:
 	bool eventFilter(QObject* obj, QEvent* event) override;
-	void keyPressEvent(QKeyEvent* k);
+	void keyPressEvent(QKeyEvent* k) override;
 };
 
 class SelectNameDlg : public SelectInfoDlg {

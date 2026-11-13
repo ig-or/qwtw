@@ -119,7 +119,7 @@ bool IMatrixImpl::fromTextFile(FILE* f, XMType* x0, iiType h, iiType w) {
 #ifdef USE_SINGLE__PRECISION_NUMBERS
 			k = fscanf(f, "%g", &(x0[j + i*w]));
 #else
-			k = fscanf(f, "%Lg", &(x0[j + i*w]));
+			k = fscanf(f, "%lg", &(x0[j + i*w]));
 #endif
 			if (k != 1) {
 				//error

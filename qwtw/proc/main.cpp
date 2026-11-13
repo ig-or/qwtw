@@ -1,256 +1,250 @@
-
-
-
-
 #include "qwproc.h"
 #include "xstdef.h"
 #include "qworker.h"
 #include "qwproto.h"
 
-#include <QObject>
-#include <QPointer>
 #include <QApplication>
 #include <QIcon>
-#include <QPixmap>
-#include <QString>
-#include <QMainWindow>
 #include <QLibraryInfo>
+#include <QMainWindow>
+#include <QObject>
+#include <QPixmap>
+#include <QPointer>
+#include <QString>
 #include <QVersionNumber>
 #include <QtGlobal>
 
-#include <stdlib.h>
+#include <cstdarg>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <list>
+#include <optional>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <signal.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #ifdef WIN32
 	#include "windows.h"
 	#include <shlobj.h>
-#else // linux?
+#else
 	#include <syslog.h>
 	#include <unistd.h>
 #endif
-
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <fstream>
 
 #ifdef USEMARBLE
 #include <marble/MarbleDebug.h>
 #include <marble/MarbleDirs.h>
 #endif
 
-#include "boost/filesystem.hpp"
-#include <boost/program_options.hpp>
-
 static QPointer<QWorker> q2worker(nullptr);
 static FILE* logFile = 0;
-int xmPrintLevel = 1; // will printf messages with level <= then this
+int xmPrintLevel = 1; // will printf messages with level <= than this
 int debugLevel = 0;
 
-int lockHandle() {
-	using namespace boost::filesystem;
-	boost::system::error_code ec;
-	char p[512];
-	if (getFolderLocation(p, 512)) {
+namespace {
 
-	} else {
-		xmprintf(0, "ERROR: getFolderLocation not working \n");
-		return 3;
-	}
-
-	path home(p);
-	path dir = home / "lock";
-	path f = dir / "qwproc";
-
-	if (!exists(dir, ec)) {
-		bool lockDirCreated = create_directories(dir, ec);
-		if (!lockDirCreated) {
-			xmprintf(0, "cannot create dirs; error %s\n", ec.message().c_str());
-			return 2;
-		}
-	}
-
-	// install our lock
-#ifdef WIN32
-	DWORD pid = GetCurrentProcessId();
-#else
-	pid_t pid = getpid(); //  my PID
+struct CliOptions {
+	bool help = false;
+	std::optional<int> debug;
+	std::optional<int> print;
+	std::optional<int> second;
+#ifdef USEMARBLE
+	std::optional<std::string> marbleData;
+	std::optional<std::string> marblePlugins;
 #endif
+};
 
-	std::ofstream lockFile(f.string());
-	lockFile << pid;
-	lockFile.close();
-	xmprintf(1, "lockHandle() complete\n");
-	return 0;
+void printUsage(std::ostream& os) {
+	os << " Valid arguments:\n"
+	   << "  --help                   This help message\n"
+#ifdef USEMARBLE
+	   << "  --marble_data <path>     path to the Marble data files\n"
+	   << "  --marble_plugins <path>  path to the Marble plugins\n"
+#endif
+	   << "  --debug <0..10>          debug level, 0 - minimum, 10 - maximum\n"
+	   << "  --print <0..10>          print level, 0 - minimum, 10 - maximum\n"
+	   << "  --second <int>           internal daemon flag\n";
 }
 
-int main(int argc, char** argv) {
-	using namespace boost::program_options;
-	variables_map vm;
-	int iTest = 14;
-	std::string va(" Valid arguments");
-	options_description desc(va);
-	desc.add_options()
-		("help", "This help message")		
-		#ifdef USEMARBLE
-		("marble_data", value< std::string >(), "path to the Marble data files")
-		("marble_plugins", value< std::string >(), "path to the Marble plugins")
-		#endif
-		("debug",  value< int >(), "debug level, 0 - minimum, 10 - maximum")
-		("print",  value< int >(), "print level, 0 - minimum, 10 - maximum")
-		("second",  value< int >(), "second")
-		
-	;
-	try
-	{
-		//using namespace boost::program_options;
-		store(parse_command_line(argc, argv, desc, 
-			command_line_style::unix_style ^
-			command_line_style::allow_short
-			), vm);
-		//boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
-		notify(vm);
+bool parseIntValue(const std::string& s, int& out) {
+	try {
+		size_t idx = 0;
+		int v = std::stoi(s, &idx, 10);
+		if (idx != s.size()) {
+			return false;
+		}
+		out = v;
+		return true;
+	} catch (...) {
+		return false;
 	}
-	catch(...) 	{
-		std::cout << "   : error: bad arguments" <<  std::endl << desc << std::endl << std::endl;
-		std::cout << "argc = " << argc << "; argv: ";
+}
+
+bool parseCli(int argc, char** argv, CliOptions& opts) {
+	for (int i = 1; i < argc; ++i) {
+		std::string arg = argv[i];
+		auto nextVal = [&](std::string& val) -> bool {
+			auto eq = arg.find('=');
+			if (eq != std::string::npos) {
+				val = arg.substr(eq + 1);
+				return true;
+			}
+			if (i + 1 < argc) {
+				val = argv[++i];
+				return true;
+			}
+			return false;
+		};
+
+		std::string key = arg;
+		auto eq = key.find('=');
+		if (eq != std::string::npos) {
+			key = key.substr(0, eq);
+		}
+
+		if (key == "--help" || key == "-h") {
+			opts.help = true;
+		} else if (key == "--debug") {
+			std::string val;
+			int parsed = 0;
+			if (!nextVal(val) || !parseIntValue(val, parsed)) {
+				return false;
+			}
+			opts.debug = parsed;
+		} else if (key == "--print") {
+			std::string val;
+			int parsed = 0;
+			if (!nextVal(val) || !parseIntValue(val, parsed)) {
+				return false;
+			}
+			opts.print = parsed;
+		} else if (key == "--second") {
+			std::string val;
+			int parsed = 0;
+			if (!nextVal(val) || !parseIntValue(val, parsed)) {
+				return false;
+			}
+			opts.second = parsed;
+		}
+#ifdef USEMARBLE
+		else if (key == "--marble_data") {
+			std::string val;
+			if (!nextVal(val)) {
+				return false;
+			}
+			opts.marbleData = val;
+		} else if (key == "--marble_plugins") {
+			std::string val;
+			if (!nextVal(val)) {
+				return false;
+			}
+			opts.marblePlugins = val;
+		}
+#endif
+		// Ignore Qt platform arguments (e.g. -platform offscreen) passed through to QApplication
+		else if (!key.empty() && key[0] == '-' && (key == "-platform" || key == "-style" || key == "-geometry")) {
+			if (eq == std::string::npos && i + 1 < argc) {
+				++i;
+			}
+		} else {
+			return false;
+		}
+	}
+	return true;
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+	CliOptions opts;
+	if (!parseCli(argc, argv, opts)) {
+		std::cout << "   : error: bad arguments\n";
+		printUsage(std::cout);
+		std::cout << "\nargc = " << argc << "; argv: ";
 		for (int i = 0; i < argc; i++) {
 			std::cout << " " << argv[i] << ";";
 		}
 		std::cout << std::endl;
 		return 1;
 	}
-	//if(vm.count("marble_data"))  {
-//		xmprintf(0, "@@@@@@@@@@ marble_data  =  %s\n", vm["marble_data"].as< std::string >().c_str());
-	//}
-	if (vm.count("help")) {
-		std::cout << " (help)  " << std::endl << desc << std::endl;
+
+	if (opts.help) {
+		std::cout << " (help)\n";
+		printUsage(std::cout);
 		return 0;
 	}
 
-	bool test = QProcInterface::runningAlready();
-	if (test) {
-		xmprintf(2, "BTW, shm already exists\n");
-		//return 2;
-	}
-	
-	if(vm.count("debug"))  {
-		debugLevel = vm["debug"].as< int >();
-		xmprintf(0, "using debug level from cmd: %d \n", debugLevel);
-		if(vm.count("print"))  {
-			xmPrintLevel = vm["print"].as< int >();
-		} else {
-			xmPrintLevel = debugLevel;
-		}
+	if (QProcInterface::runningAlready()) {
+		xmprintf(2, "BTW, qwproc already running\n");
 	}
 
-	try {
+	if (opts.debug.has_value()) {
+		debugLevel = *opts.debug;
+		xmprintf(0, "using debug level from cmd: %d\n", debugLevel);
+		xmPrintLevel = opts.print.value_or(debugLevel);
+	} else if (opts.print.has_value()) {
+		xmPrintLevel = *opts.print;
+	}
+
+	{
 		std::ostringstream s;
-		s << "MAIN argc = " << argc << "; argv: " << std::endl;	;
+		s << "MAIN argc = " << argc << "; argv:\n";
 		for (int i = 0; i < argc; i++) {
 			s << " [" << argv[i] << "] ";
 		}
-		s << std::endl;	
+		s << '\n';
 		xmprintf(0, "params: %s\n", s.str().c_str());
-
-	} catch(...) {
-
 	}
 
-
-
-#ifdef WIN32	// make it a windows service could be a better way, though.. 
-				//  probably this also works:
-
-				
-#else
-	//  code partially from https://github.com/pasce/daemon-skeleton-linux-c:
-	pid_t pid;
-	if(vm.count("second"))  {
-
-	} else {
-		if (debugLevel == 0) {
-			// Fork off the parent process 
-			
-			pid = fork();
-			// An error occurred 
-			if (pid < 0) {
-				exit(EXIT_FAILURE);
-			}
-			
-			// Success: Let the parent terminate 
-			if (pid > 0) {
-				exit(EXIT_SUCCESS);
-			}
-			
-			// On success: The child process becomes session leader 
-			if (setsid() < 0) {
-				exit(EXIT_FAILURE);
-			}
-
-			//std::list<std::string> args2;
-			char** a = new char*[argc + 3]; 
-			for (int i = 0; i < argc; i++) {
-			//	args2.push_back(argv[i]);
-				a[i] = argv[i];
-			}
-
-			//args2.push_back("--second");
-			//args2.push_back("1");
-			a[argc] = "--second";
-			a[argc+1] = "1";
-			a[argc+2] = NULL;
-			execvp(a[0], a);
-						
-
-			//Catch, ignore and handle signals 
-			//TODO: Implement a working signal handler 
-			//signal(SIGCHLD, SIG_IGN);
-			//signal(SIGHUP, SIG_IGN);
-			
-			// Fork off for the second time
-			/*
-			pid = fork();
-			
-			// An error occurred 
-			if (pid < 0) {
-				exit(EXIT_FAILURE);
-			}
-			
-			// Success: Let the parent terminate 
-			if (pid > 0) {
-				exit(EXIT_SUCCESS);
-			}
-			
-			// Set new file permissions 
-			umask(0);
-
-			// Close all open file descriptors 
-			int x3;
-			for (x3 = sysconf(_SC_OPEN_MAX); x3>=0; x3--)	{
-				close (x3);
-			}
-			*/
+#ifndef WIN32
+	if (!opts.second.has_value() && debugLevel == 0) {
+		pid_t pid = fork();
+		if (pid < 0) {
+			exit(EXIT_FAILURE);
 		}
+		if (pid > 0) {
+			exit(EXIT_SUCCESS);
+		}
+		if (setsid() < 0) {
+			exit(EXIT_FAILURE);
+		}
+
+		std::vector<std::string> ownedArgs;
+		ownedArgs.reserve(static_cast<size_t>(argc) + 2);
+		for (int i = 0; i < argc; ++i) {
+			ownedArgs.emplace_back(argv[i]);
+		}
+		ownedArgs.emplace_back("--second");
+		ownedArgs.emplace_back("1");
+
+		std::vector<char*> execArgs;
+		execArgs.reserve(ownedArgs.size() + 1);
+		for (auto& s : ownedArgs) {
+			execArgs.push_back(s.data());
+		}
+		execArgs.push_back(nullptr);
+		execvp(execArgs[0], execArgs.data());
 	}
 #endif
 
-	// ===========   open log file ==========
-	if (logFile == 0) { //  try to open
-
+	// =========== open log file ==========
+	if (logFile == 0) {
 		char p[512];
 		if (getFolderLocation(p, 512)) {
-			using namespace boost::filesystem;
-			boost::system::error_code ec;
-			path dir = path(p) / "log";
-			path f = dir / "log.txt";
+			std::error_code ec;
+			std::filesystem::path dir = std::filesystem::path(p) / "log";
+			std::filesystem::path f = dir / "log.txt";
 
-			if (!exists(dir, ec)) {
-				bool logDirCreated = create_directories(dir, ec);
-				if (!logDirCreated) {
-					xmprintf(0, "cannot create dirs [%s]; error [%s]\n", dir.string().c_str(),  ec.message().c_str());
+			if (!std::filesystem::exists(dir, ec)) {
+				bool logDirCreated = std::filesystem::create_directories(dir, ec);
+				if (!logDirCreated && !std::filesystem::exists(dir, ec)) {
+					xmprintf(0, "cannot create dirs [%s]; error [%s]\n", dir.string().c_str(), ec.message().c_str());
 					return 2;
 				}
 			}
@@ -259,126 +253,102 @@ int main(int argc, char** argv) {
 #ifdef WIN32
 				DWORD pid = GetCurrentProcessId();
 #else
-				pid_t pid = getpid(); //  my PID
+				pid_t pid = getpid();
 #endif
 				xmprintf(0, "\n\n =========== %d =================\nlog started\n", pid);
-			}	else {
+			} else {
 				return 3;
 			}
-
 		} else {
 			printf("ERROR: cannot obtain log file location\n");
 		}
 	}
-	
-	/* Change the working directory to the root directory */
-	/* or another appropriated directory */
-	//chdir("/");
 
-	int lockState = checkProcRunning();
-	if (lockState != 0) {
+	if (QProcInterface::runningAlready()) {
 		xmprintf(0, "already started!\n\n");
-		exit(EXIT_FAILURE);
+		exit(EXIT_SUCCESS);
 	}
-	if (lockHandle() != 0) {
-		xmprintf(0, "cannot setup a lock\n\n");
-		exit(EXIT_FAILURE);
-	}
-
-	/* Open the log file */
-	//openlog ("firstdaemon", LOG_PID, LOG_DAEMON);
 
 #ifdef USEMARBLE
 	std::string mdp;
 	std::string mpp;
-	Marble::MarbleDebug::setEnabled( true );
-	if(vm.count("marble_data"))  {
-		mdp = vm["marble_data"].as< std::string >();
-		xmprintf(0, "\tsetting  marble_data to [%s] \n", mdp.c_str());
+	Marble::MarbleDebug::setEnabled(true);
+	if (opts.marbleData.has_value()) {
+		mdp = *opts.marbleData;
+		xmprintf(0, "\tsetting marble_data to [%s]\n", mdp.c_str());
 		Marble::MarbleDirs::setMarbleDataPath(QString::fromStdString(mdp));
 	} else {
-		xmprintf(0, "\tusing default marble_data \n");
+		xmprintf(0, "\tusing default marble_data\n");
 	}
 
-	if(vm.count("marble_plugins"))  {
-		mpp = vm["marble_plugins"].as< std::string >();
-		xmprintf(0, "\tsetting  marble_plugins to [%s] \n", mpp.c_str());
+	if (opts.marblePlugins.has_value()) {
+		mpp = *opts.marblePlugins;
+		xmprintf(0, "\tsetting marble_plugins to [%s]\n", mpp.c_str());
 		Marble::MarbleDirs::setMarblePluginPath(QString::fromStdString(mpp));
 	} else {
-		xmprintf(0, "\tusing default marble_plugins \n");
+		xmprintf(0, "\tusing default marble_plugins\n");
 	}
-	
+
 	if (debugLevel > 2) {
-		Marble::MarbleDebug::setEnabled( true );
+		Marble::MarbleDebug::setEnabled(true);
 		Marble::MarbleDirs::debug();
 		xmprintf(0, "Marble debug enabled\n");
 	} else {
-		Marble::MarbleDebug::setEnabled( false );
+		Marble::MarbleDebug::setEnabled(false);
 	}
-
 #endif
 
-	//setbuf(stdout, NULL);
-	//setvbuf(stdout, NULL, _IONBF, 0);
-	xmprintf(1, "main: starting \n");
-	QString l1 =  QLibraryInfo::location(QLibraryInfo::PluginsPath);
-	QString l2 =  QLibraryInfo::location(QLibraryInfo::PrefixPath);
-	QString l3 =  QLibraryInfo::location(QLibraryInfo::LibrariesPath);
-	QString l4 =  QLibraryInfo::location(QLibraryInfo::LibraryExecutablesPath);
-	std::string s1  =  l1.toStdString();
-	std::string s2  =  l2.toStdString();
-	std::string s3  =  l3.toStdString();
-	std::string s4  =  l4.toStdString();
-	#ifdef WIN32
+	xmprintf(1, "main: starting\n");
+	std::string s1 = QLibraryInfo::path(QLibraryInfo::PluginsPath).toStdString();
+	std::string s2 = QLibraryInfo::path(QLibraryInfo::PrefixPath).toStdString();
+	std::string s3 = QLibraryInfo::path(QLibraryInfo::LibrariesPath).toStdString();
+	std::string s4 = QLibraryInfo::path(QLibraryInfo::LibraryExecutablesPath).toStdString();
+#ifdef WIN32
 	xmprintf(2, "\nWIN32 mode\n");
-	#else
+#elif defined(__APPLE__)
+	xmprintf(2, "\nMACOS mode\n");
+#else
 	xmprintf(2, "\nLINUX mode\n");
-	#endif
-	xmprintf(2, "QT: \nPluginsPath=%s\nPrefixPath=%s\nLibrariesPath=%s\nLibraryExecutablesPath=%s\n\n",
+#endif
+	xmprintf(2, "QT:\nPluginsPath=%s\nPrefixPath=%s\nLibrariesPath=%s\nLibraryExecutablesPath=%s\n\n",
 		s1.c_str(), s2.c_str(), s3.c_str(), s4.c_str());
 
 	QVersionNumber qt_version = QLibraryInfo::version();
-	QString l6 = qt_version.toString();
-	std::string s6 = l6.toStdString();
-	xmprintf(2, "QLibraryInfo::version(): %s \n", s6.c_str());
-
-	const char* qv = qVersion();
-	xmprintf(2, "qVersion() = %s \n", qv);
-	xmprintf(2, "QT_VERSION_STR = %s \n", QT_VERSION_STR);
+	std::string s6 = qt_version.toString().toStdString();
+	xmprintf(2, "QLibraryInfo::version(): %s\n", s6.c_str());
+	xmprintf(2, "qVersion() = %s\n", qVersion());
+	xmprintf(2, "QT_VERSION_STR = %s\n", QT_VERSION_STR);
 
 	QApplication app(argc, argv);
-	QString l5 = QCoreApplication::applicationDirPath();
-	std::string s5 = l5.toStdString();
+	std::string s5 = QCoreApplication::applicationDirPath().toStdString();
 	xmprintf(2, "QT applicationDirPath = %s\n\n", s5.c_str());
 
-	app.setQuitOnLastWindowClosed(false);   
-	#ifdef USEMARBLE
+	app.setQuitOnLastWindowClosed(false);
+#ifdef USEMARBLE
 	QWorker qWorker(mdp, mpp);
-	#else
+#else
 	QWorker qWorker;
-	#endif
+#endif
 	qWorker.qtstart(false);
 	QProcInterface qpi(qWorker, app);
-	qpi.start();
-	QObject::connect(&app, SIGNAL(aboutToQuit()), &qWorker, SLOT(onQtAppClosing()));
+	if (!qpi.start()) {
+		xmprintf(0, "main: failed to start IPC listener (another instance running?)\n");
+		return 1;
+	}
+	QObject::connect(&app, &QCoreApplication::aboutToQuit, &qWorker, &QWorker::onQtAppClosing);
 
 	QIcon icon;
-    icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
+	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
 	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 	app.setWindowIcon(icon);
-	app.setWindowIcon(QIcon(":/icons/binokl.png"));
-	//QMainWindow::
-	//qWorker.appMutex.lock();
-	xmprintf(2, "main: starting QT thread  \n");
+
+	xmprintf(2, "main: starting QT thread\n");
 	app.exec();
-	xmprintf(2, "main: QT thread finished  \n");
-	//qWorker.appMutex.unlock();
-	//qWorker.appV.notify_all();
-	
-	xmprintf(2, "main: exiting \n");
+	xmprintf(2, "main: QT thread finished\n");
+
+	xmprintf(2, "main: exiting\n");
 	return 0;
 }
-
 
 void assert_failed(const char* file, unsigned int line, const char* str) {
 	xmprintf(0, "ASSERT faild: %s (file %s, line %d)\n", str, file, line);
@@ -386,29 +356,22 @@ void assert_failed(const char* file, unsigned int line, const char* str) {
 
 static const int logBufLen = 2048;
 static char logBuf[logBufLen];
-int xm_printf(const char * _Format, ...) {
+int xm_printf(const char* _Format, ...) {
 	va_list args;
 	va_start(args, _Format);
 
-	if (logFile == 0) {
-
-	}
-
 	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
 	logBuf[logBufLen - 1] = 0;
-	if(ok > 0) { // we got the message
-		if(logFile != 0) {
-			fwrite(logBuf, 1, strlen(logBuf), logFile);
-			fflush(logFile);
-		}
-		//std::cout << logBuf;
+	if (ok > 0 && logFile != 0) {
+		fwrite(logBuf, 1, strlen(logBuf), logFile);
+		fflush(logFile);
 	}
 	va_end(args);
 	return 0;
 }
 
 static std::list<std::string> xmb1List;
-int xmprintf(int level, const char * _Format, ...) {
+int xmprintf(int level, const char* _Format, ...) {
 	if (level > xmPrintLevel) {
 		return 1;
 	}
@@ -417,27 +380,20 @@ int xmprintf(int level, const char * _Format, ...) {
 
 	int ok = vsnprintf(logBuf, logBufLen, _Format, args);
 	logBuf[logBufLen - 1] = 0;
-	if(ok > 0) { // we got the message
-		if(logFile != 0) {
-			if (xmb1List.size() > 0) {
+	if (ok > 0) {
+		if (logFile != 0) {
+			if (!xmb1List.empty()) {
 				for (auto const& a : xmb1List) {
 					fprintf(logFile, "%s", a.c_str());
 				}
 				xmb1List.clear();
 			}
-			//fwrite(logBuf, 1, strlen(logBuf), logFile);
 			fprintf(logFile, "%d-%d \t%s", xmPrintLevel, level, logBuf);
 			fflush(logFile);
-		} else {
-			if (xmb1List.size() < 10) {
-				xmb1List.push_back(std::string(logBuf));
-			}
+		} else if (xmb1List.size() < 10) {
+			xmb1List.emplace_back(logBuf);
 		}
-		//std::cout << logBuf;
 	}
 	va_end(args);
 	return 0;
 }
-
-
-

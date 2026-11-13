@@ -1,14 +1,10 @@
-
-
 #pragma once
 
-#include <boost/interprocess/sync/interprocess_mutex.hpp>
-#include <boost/interprocess/sync/interprocess_condition.hpp>
-#include <boost/interprocess/sync/named_mutex.hpp>
-#include <boost/interprocess/sync/named_condition.hpp>
+#include <atomic>
+#include <cstddef>
+#include <cstdint>
+#include <string>
 #include "qwtypes.h"
-
-#pragma pack(8)
 
 struct CmdHeader {
 	enum QWCmd {
@@ -21,25 +17,25 @@ struct CmdHeader {
 		qSpectrogram,
 		qSpectrogramInfo,
 		qRemoveLine,
-		qMap, 
-		qPlot,			// 10
-		qPlot2, 
-		qChangeLine,   // 
-		qTitle, 
-		qXlabel, 
+		qMap,
+		qPlot,
+		qPlot2,
+		qChangeLine,
+		qTitle,
+		qXlabel,
 		qYlabel,
 		qClear,
 		qImpStatus,
 		qEnableBC,
 		qDisableBC,
-		qSetLogLevel,     // 20
-		qMglPlot, // 
-		qMglLine, // 
-		qMglMesh, // 
-		qSetClipGroup, // 
-		qSetUdpCallback,  //  
-		qSetPickerCallback,  // 
-		qService,			//   27
+		qSetLogLevel,
+		qMglPlot,
+		qMglLine,
+		qMglMesh,
+		qSetClipGroup,
+		qSetUdpCallback,
+		qSetPickerCallback,
+		qService,
 		qSavePng,
 		qSetPos,
 
@@ -48,57 +44,152 @@ struct CmdHeader {
 	enum {
 		nameSize = 356
 	};
-	int cmd; ///< QWCmd
-	int segSize; ///< size of each memory segment in 8th (how many numbers maximum..)
-	int dataSize;
-
-	long long size;
-	int lineWidth;
-	long long symSize;
-	int test;
-	unsigned int flags;
-	char style[32];
-	char name[nameSize];
-
-	int xSize, ySize, type;
-	double xMin, xMax, yMin, yMax;
-
-	int timeIsGood, zIsGood;
-	//void* fTest;
-
-	boost::interprocess::interprocess_mutex      mutex;
-	boost::interprocess::interprocess_condition  cmdWait;
-	boost::interprocess::interprocess_condition  workDone;
-
-
-	CBPickerInfo   cbInfo;
-	//boost::interprocess::interprocess_mutex      cbInfoMutex;
-	//boost::interprocess::interprocess_condition  cbWait;  ///   callback wait
-	CmdHeader() {}
 };
 
-///    this is for callback function sync
-struct CmdSync {
-	boost::interprocess::named_mutex		cbInfoMutex;
-	boost::interprocess::named_condition	cbWait;
-	CmdSync();
-	~CmdSync();
+namespace qwipc {
+
+constexpr uint32_t kHelloMagic = 0x51575457u; // 'QWTW'
+constexpr uint32_t kCmdMagic   = 0x5157434Du; // 'QWCM'
+constexpr uint32_t kReplyMagic = 0x51575250u; // 'QWRP'
+constexpr uint32_t kEventMagic = 0x51574556u; // 'QWEV'
+constexpr uint32_t kPingAck    = 0x51574F4Bu; // 'QWOK'
+constexpr uint16_t kProtoVer   = 1;
+
+enum IpcRole : uint16_t {
+	RoleCommand  = 1,
+	RoleCallback = 2,
+	RolePing     = 3
 };
 
-
-struct ProcData {
-	static constexpr const char* shmNames[] = {
-		"QWTWCommand", "QWTW_x", "QWTW_y", "QWTW_z", "QWTW_t", "QWTW_data"
-	};
-	CmdHeader* hdr;
-	double*	x;
-	double* y;
-	double* z;
-	double* t;
-	double* data;
+enum ArrayFlag : uint32_t {
+	ArrNone = 0,
+	ArrX    = 1u << 0,
+	ArrY    = 1u << 1,
+	ArrZ    = 1u << 2,
+	ArrT    = 1u << 3,
+	ArrData = 1u << 4,
+	ArrP3   = 1u << 5
 };
 
-#pragma pack()
+enum EventType : uint32_t {
+	EvPicker = 1,
+	EvClip   = 2
+};
+
+#pragma pack(push, 8)
+
+struct IpcHello {
+	uint32_t magic   = kHelloMagic;
+	uint16_t version = kProtoVer;
+	uint16_t role    = RoleCommand;
+};
+
+struct CmdRequest {
+	uint32_t magic        = kCmdMagic;
+	int32_t  cmd          = CmdHeader::nothing;
+	int64_t  size         = 0;
+	int32_t  lineWidth    = 0;
+	int64_t  symSize      = 0;
+	int32_t  test         = 0;
+	uint32_t flags        = 0;
+	int32_t  xSize        = 0;
+	int32_t  ySize        = 0;
+	int32_t  type         = 0;
+	uint32_t arrayMask    = ArrNone;
+	double   xMin         = 0.0;
+	double   xMax         = 0.0;
+	double   yMin         = 0.0;
+	double   yMax         = 0.0;
+	char     style[32]    = {0};
+	char     name[CmdHeader::nameSize] = {0};
+	uint64_t payloadBytes = 0;
+};
+
+struct CmdReply {
+	uint32_t magic  = kReplyMagic;
+	int32_t  status = 0;
+	int32_t  test   = 0;
+	uint32_t flags  = 0;
+	int32_t  xSize  = 0;
+	int32_t  ySize  = 0;
+	double   xMin   = 0.0;
+	double   yMin   = 0.0;
+};
+
+struct ServerEvent {
+	uint32_t     magic     = kEventMagic;
+	uint32_t     eventType = 0;
+	CBPickerInfo picker;
+	double       clipT1    = 0.0;
+	double       clipT2    = 0.0;
+	int32_t      clipGroup = 0;
+	int32_t      reserved  = 0;
+};
+
+#pragma pack(pop)
+
+/// Per-user local socket path (/tmp/qwtw-<uid>.sock on Unix, \\.\pipe\qwtw-<user> on Windows).
+std::string endpointPath();
+
+/// Bidirectional local IPC byte stream (AF_UNIX socket on POSIX, Named Pipe on Windows).
+class Stream {
+public:
+	Stream() noexcept;
+	~Stream();
+
+	Stream(Stream&& other) noexcept;
+	Stream& operator=(Stream&& other) noexcept;
+
+	Stream(const Stream&) = delete;
+	Stream& operator=(const Stream&) = delete;
+
+	static Stream connect(const std::string& endpoint);
+
+	bool valid() const noexcept;
+	bool writeAll(const void* data, size_t bytes);
+	bool readAll(void* data, size_t bytes);
+	void close() noexcept;
+
+#ifdef WIN32
+	explicit Stream(void* handle, bool isServerPipe = false) noexcept;
+#else
+	explicit Stream(int fd) noexcept;
+#endif
+
+private:
+#ifdef WIN32
+	std::atomic<void*> handle_;
+	bool isServerPipe_ = false;
+#else
+	std::atomic<int> fd_;
+#endif
+};
+
+/// Single-instance local IPC server listener.
+class Listener {
+public:
+	Listener() noexcept;
+	~Listener();
+
+	Listener(const Listener&) = delete;
+	Listener& operator=(const Listener&) = delete;
+
+	bool listen(const std::string& endpoint);
+	Stream accept();
+	void close() noexcept;
+	bool isListening() const noexcept;
+
+private:
+	std::string endpoint_;
+	std::atomic<bool> closing_{false};
+#ifdef WIN32
+	std::atomic<void*> pendingPipe_;
+#else
+	std::atomic<int> listenFd_;
+#endif
+};
+
+} // namespace qwipc
 
 /** get location for all the 'system' files
 \param p[in] put location here
@@ -107,10 +198,9 @@ struct ProcData {
 */
 bool getFolderLocation(char* p, int pSize);
 
-/** 
+/**
 \return 0 if proc is not running; 1 if running; smth else if error
 */
 int checkProcRunning();
 extern int xmPrintLevel;
-int xmprintf(int level, const char * _Format, ...);
-
+int xmprintf(int level, const char* _Format, ...);

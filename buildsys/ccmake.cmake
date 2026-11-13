@@ -591,10 +591,9 @@ macro(commonEnd libType)
         add_definitions(-DWITH_VERSION_INFO)
     endif()
 
-    # C++ standard - C++17 by default for broad compatibility (Qwt 6.1 has C++20 issues);
-    # override with -DCMAKE_CXX_STANDARD=20 if your platform supports it.
+    # C++23 by default across the project (override via -DCMAKE_CXX_STANDARD=20 if needed).
     if(NOT DEFINED CMAKE_CXX_STANDARD)
-        set(CMAKE_CXX_STANDARD 17)
+        set(CMAKE_CXX_STANDARD 23)
     endif()
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)

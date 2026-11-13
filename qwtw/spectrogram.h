@@ -45,7 +45,7 @@ public:
 	double lastXselected, lastYselected;
     QSpectrogram(QWidget* = NULL, unsigned int flags_ = 0);
 	virtual ~QSpectrogram();
-	virtual void resizeEvent(QResizeEvent* e);
+	void resizeEvent(QResizeEvent* e) override;
 	bool haveTimeInfo() const;
 	bool havePointsInfo() const;
 	void spClip(double x1, double x2, double y1, double y2);

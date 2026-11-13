@@ -29,8 +29,7 @@
 	#include <unistd.h>
 #endif
 
-#include <boost/program_options.hpp>
-
+#include <QCommandLineParser>
 #include <string>
 #include <iostream>
 #include <sstream>
@@ -134,39 +133,14 @@ void MGLTest::test() {
 
 
 int main(int argc, char** argv) {
-
-	boost::program_options::variables_map vm;
-	boost::program_options::options_description desc(" Valid arguments");
-	desc.add_options()
-		("help", "This help message")		
-	;
-	try
-	{
-		boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc, 
-			boost::program_options::command_line_style::unix_style ^
-			boost::program_options::command_line_style::allow_short
-			), vm);
-		//boost::program_options::store(boost::program_options::parse_command_line(argc, argv, desc), vm);
-		boost::program_options::notify(vm);
-	}
-	catch(...) 	{
-		std::cerr << "   : error: bad arguments" <<  std::endl << desc << std::endl << std::endl;
-		std::cerr << "argc = " << argc << "; argv: ";
-		for (int i = 0; i < argc; i++) {
-			std::cerr << " " << argv[i] << ";";
-		}
-		std::cerr << std::endl;
-		return 1;
-	}
-
 	setbuf(stdout, NULL);
 	setvbuf(stdout, NULL, _IONBF, 0);
 
 	printf("main: starting \n");
-	QString l1 =  QLibraryInfo::location(QLibraryInfo::PluginsPath);
-	QString l2 =  QLibraryInfo::location(QLibraryInfo::PrefixPath);
-	QString l3 =  QLibraryInfo::location(QLibraryInfo::LibrariesPath);
-	QString l4 =  QLibraryInfo::location(QLibraryInfo::LibraryExecutablesPath);
+	QString l1 =  QLibraryInfo::path(QLibraryInfo::PluginsPath);
+	QString l2 =  QLibraryInfo::path(QLibraryInfo::PrefixPath);
+	QString l3 =  QLibraryInfo::path(QLibraryInfo::LibrariesPath);
+	QString l4 =  QLibraryInfo::path(QLibraryInfo::LibraryExecutablesPath);
 	std::string s1  =  l1.toStdString();
 	std::string s2  =  l2.toStdString();
 	std::string s3  =  l3.toStdString();
@@ -179,8 +153,6 @@ int main(int argc, char** argv) {
 	printf("QT: \nPluginsPath=%s\nPrefixPath=%s\nLibrariesPath=%s\nLibraryExecutablesPath=%s\n\n",
 		s1.c_str(), s2.c_str(), s3.c_str(), s4.c_str());
 
-
-
 	QVersionNumber qt_version = QLibraryInfo::version();
 	QString l6 = qt_version.toString();
 	std::string s6 = l6.toStdString();
@@ -190,8 +162,10 @@ int main(int argc, char** argv) {
 	printf("qVersion() = %s \n", qv);
 	printf("QT_VERSION_STR = %s \n", QT_VERSION_STR);
 
-
 	QApplication app(argc, argv);
+	QCommandLineParser parser;
+	parser.addHelpOption();
+	parser.process(app);
 
 	QString l5 = QCoreApplication::applicationDirPath();
 	std::string s5 = l5.toStdString();

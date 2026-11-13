@@ -1,82 +1,475 @@
-
-
-
 #include "xstdef.h"
 #include "qwproc.h"
 
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#ifdef WIN32	
-	#include "windows.h"
-	#include <shlobj.h>
-	#include <psapi.h>
-#else
-	#include <syslog.h>
-	#include <unistd.h>
-	#include <pwd.h>
-	#ifdef __APPLE__
-		#include <libproc.h>
-	#endif
-#endif
-
-#include <string>
-#include <iostream>
-#include <sstream>
-#include <fstream>
-
-#include "boost/filesystem.hpp"
+#include <algorithm>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
 
 #ifdef WIN32
-//Returns the last Win32 error, in string format. Returns an empty string if there is no error.
-std::string GetLastErrorAsString(DWORD errorMessageID) {
-	if (errorMessageID == 0) {
-		return std::string(); //No error message has been recorded
-	}
-
-	LPSTR messageBuffer = nullptr;
-
-	//Ask Win32 to give us the string version of that message ID.
-	//The parameters we pass in, tell Win32 to create the buffer that holds the message for us (because we don't yet know how long the message string will be).
-	size_t size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
-
-	//Copy the error message into a std::string.
-	std::string message(messageBuffer, size);
-
-	//Free the Win32's string's buffer.
-	LocalFree(messageBuffer);
-
-	return message;
-}
+	#include <windows.h>
+	#include <shlobj.h>
+#else
+	#include <fcntl.h>
+	#include <poll.h>
+	#include <pwd.h>
+	#include <sys/socket.h>
+	#include <sys/stat.h>
+	#include <sys/types.h>
+	#include <sys/un.h>
+	#include <unistd.h>
 #endif
 
+namespace qwipc {
 
-bool getFolderLocation(char* p, int pSize) {
-	using namespace boost::filesystem;
-	boost::system::error_code ec;
-	if (pSize < 2) {
+std::string endpointPath() {
+#ifdef WIN32
+	char user[128] = {0};
+	DWORD len = sizeof(user) - 1;
+	if (!GetUserNameA(user, &len) || user[0] == '\0') {
+		std::snprintf(user, sizeof(user), "default");
+	}
+	for (char* c = user; *c != '\0'; ++c) {
+		if (*c == '\\' || *c == '/' || *c == ' ') {
+			*c = '_';
+		}
+	}
+	return std::string("\\\\.\\pipe\\qwtw-") + user;
+#else
+	unsigned long uid = static_cast<unsigned long>(::getuid());
+	return "/tmp/qwtw-" + std::to_string(uid) + ".sock";
+#endif
+}
+
+#ifdef WIN32
+
+Stream::Stream() noexcept : handle_(INVALID_HANDLE_VALUE), isServerPipe_(false) {}
+
+Stream::Stream(void* handle, bool isServerPipe) noexcept
+	: handle_(handle), isServerPipe_(isServerPipe) {}
+
+Stream::~Stream() {
+	close();
+}
+
+Stream::Stream(Stream&& other) noexcept
+	: handle_(other.handle_.exchange(INVALID_HANDLE_VALUE)),
+	  isServerPipe_(other.isServerPipe_) {
+	other.isServerPipe_ = false;
+}
+
+Stream& Stream::operator=(Stream&& other) noexcept {
+	if (this != &other) {
+		close();
+		handle_.store(other.handle_.exchange(INVALID_HANDLE_VALUE));
+		isServerPipe_ = other.isServerPipe_;
+		other.isServerPipe_ = false;
+	}
+	return *this;
+}
+
+Stream Stream::connect(const std::string& endpoint) {
+	for (int attempt = 0; attempt < 2; ++attempt) {
+		HANDLE h = CreateFileA(
+			endpoint.c_str(),
+			GENERIC_READ | GENERIC_WRITE,
+			0,
+			NULL,
+			OPEN_EXISTING,
+			0,
+			NULL);
+		if (h != INVALID_HANDLE_VALUE) {
+			return Stream(h, false);
+		}
+		if (GetLastError() == ERROR_PIPE_BUSY) {
+			WaitNamedPipeA(endpoint.c_str(), 150);
+		} else {
+			break;
+		}
+	}
+	return Stream();
+}
+
+bool Stream::valid() const noexcept {
+	return handle_.load() != INVALID_HANDLE_VALUE;
+}
+
+bool Stream::writeAll(const void* data, size_t bytes) {
+	const auto* ptr = static_cast<const unsigned char*>(data);
+	size_t remaining = bytes;
+	while (remaining > 0) {
+		HANDLE h = static_cast<HANDLE>(handle_.load());
+		if (h == INVALID_HANDLE_VALUE) {
+			return false;
+		}
+		DWORD chunk = static_cast<DWORD>(std::min<size_t>(remaining, 64u * 1024u * 1024u));
+		DWORD written = 0;
+		if (!WriteFile(h, ptr, chunk, &written, NULL) || written == 0) {
+			return false;
+		}
+		ptr += written;
+		remaining -= written;
+	}
+	return true;
+}
+
+bool Stream::readAll(void* data, size_t bytes) {
+	auto* ptr = static_cast<unsigned char*>(data);
+	size_t remaining = bytes;
+	while (remaining > 0) {
+		HANDLE h = static_cast<HANDLE>(handle_.load());
+		if (h == INVALID_HANDLE_VALUE) {
+			return false;
+		}
+		DWORD chunk = static_cast<DWORD>(std::min<size_t>(remaining, 64u * 1024u * 1024u));
+		DWORD got = 0;
+		if (!ReadFile(h, ptr, chunk, &got, NULL) || got == 0) {
+			return false;
+		}
+		ptr += got;
+		remaining -= got;
+	}
+	return true;
+}
+
+void Stream::close() noexcept {
+	HANDLE h = static_cast<HANDLE>(handle_.exchange(INVALID_HANDLE_VALUE));
+	if (h != INVALID_HANDLE_VALUE) {
+		CancelIoEx(h, NULL);
+		if (isServerPipe_) {
+			DisconnectNamedPipe(h);
+		}
+		CloseHandle(h);
+	}
+	isServerPipe_ = false;
+}
+
+Listener::Listener() noexcept : pendingPipe_(INVALID_HANDLE_VALUE) {}
+
+Listener::~Listener() {
+	close();
+}
+
+static HANDLE createPipeInstance(const std::string& endpoint, bool first) {
+	DWORD openMode = PIPE_ACCESS_DUPLEX;
+	if (first) {
+		openMode |= FILE_FLAG_FIRST_PIPE_INSTANCE;
+	}
+	return CreateNamedPipeA(
+		endpoint.c_str(),
+		openMode,
+		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,
+		PIPE_UNLIMITED_INSTANCES,
+		256 * 1024,
+		256 * 1024,
+		0,
+		NULL);
+}
+
+bool Listener::listen(const std::string& endpoint) {
+	close();
+	closing_.store(false);
+	endpoint_ = endpoint;
+	HANDLE h = createPipeInstance(endpoint_, true);
+	if (h == INVALID_HANDLE_VALUE) {
 		return false;
 	}
-	p[0] = 0;
+	pendingPipe_.store(h);
+	return true;
+}
 
-	char hPath[512];
-	char* ePath = getenv("HOME");
-	if (ePath == nullptr) {  // "HOME" may be empty 
-		ePath = getenv("USERPROFILE");    // " this can work on Windows
-		if (ePath == nullptr) {
+Stream Listener::accept() {
+	while (!closing_.load()) {
+		HANDLE h = static_cast<HANDLE>(pendingPipe_.load());
+		if (h == INVALID_HANDLE_VALUE) {
+			h = createPipeInstance(endpoint_, false);
+			if (h == INVALID_HANDLE_VALUE) {
+				return Stream();
+			}
+			pendingPipe_.store(h);
+		}
+		BOOL ok = ConnectNamedPipe(h, NULL);
+		DWORD err = ok ? ERROR_SUCCESS : GetLastError();
+		if (closing_.load()) {
+			return Stream();
+		}
+		if (ok || err == ERROR_PIPE_CONNECTED) {
+			pendingPipe_.store(createPipeInstance(endpoint_, false));
+			return Stream(h, true);
+		}
+		pendingPipe_.exchange(INVALID_HANDLE_VALUE);
+		CloseHandle(h);
+	}
+	return Stream();
+}
+
+void Listener::close() noexcept {
+	closing_.store(true);
+	HANDLE h = static_cast<HANDLE>(pendingPipe_.exchange(INVALID_HANDLE_VALUE));
+	if (h != INVALID_HANDLE_VALUE) {
+		CancelIoEx(h, NULL);
+		CloseHandle(h);
+	}
+}
+
+bool Listener::isListening() const noexcept {
+	return !closing_.load() && pendingPipe_.load() != INVALID_HANDLE_VALUE;
+}
+
+#else // POSIX (macOS / Linux)
+
+static void disableSigPipe(int fd) noexcept {
+#ifdef SO_NOSIGPIPE
+	int one = 1;
+	::setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+#else
+	(void)fd;
+#endif
+}
+
+Stream::Stream() noexcept : fd_(-1) {}
+
+Stream::Stream(int fd) noexcept : fd_(fd) {
+	if (fd >= 0) {
+		disableSigPipe(fd);
+		::fcntl(fd, F_SETFD, FD_CLOEXEC);
+	}
+}
+
+Stream::~Stream() {
+	close();
+}
+
+Stream::Stream(Stream&& other) noexcept : fd_(other.fd_.exchange(-1)) {}
+
+Stream& Stream::operator=(Stream&& other) noexcept {
+	if (this != &other) {
+		close();
+		fd_.store(other.fd_.exchange(-1));
+	}
+	return *this;
+}
+
+Stream Stream::connect(const std::string& endpoint) {
+	sockaddr_un addr{};
+	addr.sun_family = AF_UNIX;
+	if (endpoint.size() >= sizeof(addr.sun_path)) {
+		return Stream();
+	}
+	std::strncpy(addr.sun_path, endpoint.c_str(), sizeof(addr.sun_path) - 1);
+
+	int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+	if (fd < 0) {
+		return Stream();
+	}
+	disableSigPipe(fd);
+	::fcntl(fd, F_SETFD, FD_CLOEXEC);
+
+	if (::connect(fd, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) != 0) {
+		::close(fd);
+		return Stream();
+	}
+	return Stream(fd);
+}
+
+bool Stream::valid() const noexcept {
+	return fd_.load() >= 0;
+}
+
+bool Stream::writeAll(const void* data, size_t bytes) {
+	const auto* ptr = static_cast<const unsigned char*>(data);
+	size_t remaining = bytes;
+	int flags = 0;
+#ifdef MSG_NOSIGNAL
+	flags |= MSG_NOSIGNAL;
+#endif
+	while (remaining > 0) {
+		int fd = fd_.load();
+		if (fd < 0) {
+			return false;
+		}
+		ssize_t n = ::send(fd, ptr, remaining, flags);
+		if (n < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			return false;
+		}
+		if (n == 0) {
+			return false;
+		}
+		ptr += static_cast<size_t>(n);
+		remaining -= static_cast<size_t>(n);
+	}
+	return true;
+}
+
+bool Stream::readAll(void* data, size_t bytes) {
+	auto* ptr = static_cast<unsigned char*>(data);
+	size_t remaining = bytes;
+	while (remaining > 0) {
+		int fd = fd_.load();
+		if (fd < 0) {
+			return false;
+		}
+		ssize_t n = ::recv(fd, ptr, remaining, 0);
+		if (n < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			return false;
+		}
+		if (n == 0) {
+			return false;
+		}
+		ptr += static_cast<size_t>(n);
+		remaining -= static_cast<size_t>(n);
+	}
+	return true;
+}
+
+void Stream::close() noexcept {
+	int fd = fd_.exchange(-1);
+	if (fd >= 0) {
+		::shutdown(fd, SHUT_RDWR);
+		::close(fd);
+	}
+}
+
+Listener::Listener() noexcept : listenFd_(-1) {}
+
+Listener::~Listener() {
+	close();
+}
+
+bool Listener::listen(const std::string& endpoint) {
+	close();
+	closing_.store(false);
+
+	// If an existing server responds on this socket, refuse to steal it.
+	if (checkProcRunning() == 1) {
+		return false;
+	}
+
+	sockaddr_un addr{};
+	addr.sun_family = AF_UNIX;
+	if (endpoint.size() >= sizeof(addr.sun_path)) {
+		return false;
+	}
+	std::strncpy(addr.sun_path, endpoint.c_str(), sizeof(addr.sun_path) - 1);
+
+	::unlink(endpoint.c_str());
+
+	int fd = ::socket(AF_UNIX, SOCK_STREAM, 0);
+	if (fd < 0) {
+		return false;
+	}
+	::fcntl(fd, F_SETFD, FD_CLOEXEC);
+
+	mode_t oldMask = ::umask(0077);
+	int bound = ::bind(fd, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
+	::umask(oldMask);
+	if (bound != 0) {
+		::close(fd);
+		return false;
+	}
+
+	if (::listen(fd, 16) != 0) {
+		::close(fd);
+		::unlink(endpoint.c_str());
+		return false;
+	}
+
+	endpoint_ = endpoint;
+	listenFd_.store(fd);
+	return true;
+}
+
+Stream Listener::accept() {
+	while (!closing_.load()) {
+		int lfd = listenFd_.load();
+		if (lfd < 0) {
+			return Stream();
+		}
+		pollfd pfd{};
+		pfd.fd = lfd;
+		pfd.events = POLLIN;
+		int pr = ::poll(&pfd, 1, 150);
+		if (closing_.load()) {
+			return Stream();
+		}
+		if (pr < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			return Stream();
+		}
+		if (pr == 0 || !(pfd.revents & POLLIN)) {
+			continue;
+		}
+		int clientFd = ::accept(lfd, nullptr, nullptr);
+		if (clientFd < 0) {
+			if (errno == EINTR) {
+				continue;
+			}
+			if (closing_.load()) {
+				return Stream();
+			}
+			continue;
+		}
+		return Stream(clientFd);
+	}
+	return Stream();
+}
+
+void Listener::close() noexcept {
+	closing_.store(true);
+	int fd = listenFd_.exchange(-1);
+	if (fd >= 0) {
+		// Self-connect wakes poll/accept immediately on macOS & Linux.
+		if (!endpoint_.empty()) {
+			Stream wake = Stream::connect(endpoint_);
+			wake.close();
+			::unlink(endpoint_.c_str());
+		}
+		::shutdown(fd, SHUT_RDWR);
+		::close(fd);
+	}
+	endpoint_.clear();
+}
+
+bool Listener::isListening() const noexcept {
+	return !closing_.load() && listenFd_.load() >= 0;
+}
+
+#endif
+
+} // namespace qwipc
+
+bool getFolderLocation(char* p, int pSize) {
+	if (p == nullptr || pSize < 2) {
+		return false;
+	}
+	p[0] = '\0';
+
+	char hPath[512] = {0};
+	const char* ePath = std::getenv("HOME");
+	if (ePath == nullptr || ePath[0] == '\0') {
+		ePath = std::getenv("USERPROFILE");
+		if (ePath == nullptr || ePath[0] == '\0') {
 #ifdef WIN32
-			HRESULT result = SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, hPath); // one more test for Windows
+			HRESULT result = SHGetFolderPathA(NULL, CSIDL_APPDATA, NULL, 0, hPath);
 			if (SUCCEEDED(result)) {
 				ePath = hPath;
 			} else {
 				xmprintf(0, "ERROR: cannot find a path to the config file\n");
 				return false;
 			}
-#else	// other options for Linux? 
-			struct passwd* pw = getpwuid(getuid());
-			if (pw == NULL) {
+#else
+			struct passwd* pw = ::getpwuid(::getuid());
+			if (pw == nullptr || pw->pw_dir == nullptr) {
 				xmprintf(0, "ERROR: cannot find a path to the config file\n");
 				return false;
 			}
@@ -84,178 +477,32 @@ bool getFolderLocation(char* p, int pSize) {
 #endif
 		}
 	}
-#ifdef DEBUG123
-	//strncpy(p, dir.string().c_str(), pSize);
-	#ifdef WIN32
-		snprintf(p, pSize, "%s\\.qwtw", ePath);
-	#else
-		snprintf(p, pSize, "%s/.qwtw", ePath);
-	#endif
-#else
-	path home(ePath);
-	path dir = home / ".qwtw";
-	strncpy(p, dir.string().c_str(), pSize);
-#endif
+
+	std::filesystem::path dir = std::filesystem::path(ePath) / ".qwtw";
+	std::string s = dir.string();
+	std::snprintf(p, static_cast<size_t>(pSize), "%s", s.c_str());
 	return true;
 }
 
 int checkProcRunning() {
-	using namespace boost::filesystem;
-	boost::system::error_code ec;
-	char p[512];
-	xmprintf(2, "\n======checkProcRunning()============\n");
-	if (getFolderLocation(p, 512)) {
-
-	} else {
-		xmprintf(0, "\tERROR: cannot obtain lock file location\n");
-		return 5;
+	using namespace qwipc;
+	std::string ep = endpointPath();
+	Stream s = Stream::connect(ep);
+	if (!s.valid()) {
+		xmprintf(3, "checkProcRunning(): no listener at %s\n", ep.c_str());
+		return 0;
 	}
-	xmprintf(2, "getFolderLocation: %s\n", p);
-	path dir = path(p) / "lock";
-	path f = dir / "qwproc";
-	xmprintf(2, "\tcheckProcRunning() starting\n");
-	try {
-		xmprintf(3, "\tfile f: %s, %s, %s \n", f.string().c_str(), absolute(f).string().c_str(), canonical(f).string().c_str());
-	} catch  (std::exception& ex) {
-		xmprintf(3, "exception %s\n", ex.what());
+	IpcHello hello{};
+	hello.magic = kHelloMagic;
+	hello.version = kProtoVer;
+	hello.role = RolePing;
+	if (!s.writeAll(&hello, sizeof(hello))) {
+		return 0;
 	}
-	if (exists(f, ec)) {  //   check the lock
-		xmprintf(2, "\tfile %s exists; ec = %s\n", f.string().c_str(), ec.message().c_str());
-		int fs = file_size(f);
-		std::string sp;
-		std::ifstream lockFile(f.string());
-		std::getline(lockFile, sp);
-		lockFile.close();
-		xmprintf(2, "\tcheckProcRunning: pid from file %s: %s\n",f.string().c_str(),  sp.c_str());
-
-		//  do we still have this process?
-#ifdef WIN32
-		DWORD pid = strtoul(sp.c_str(), 0, 10);
-		xmprintf(2, "\tpid = %u\n", pid);
-		HANDLE ph = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-		if (ph != NULL) {   //  ok, we have something
-			DWORD status = STILL_ACTIVE;
-			BOOL test = GetExitCodeProcess(ph, &status);
-#ifndef qwtwcEXPORTS
-			xmprintf(2, "\tgot the handle.. GetExitCodeProcess() returned %d, status = %u \n", test, status);
-#endif
-			if (test) { // ....
-				if (status == STILL_ACTIVE) {
-					xmprintf(3, "\tsomething is running. GetExitCodeProcess for %d returned 'STILL_ACTIVE'\n", pid);
-
-					//  lets check what we have here:
-					char fName[512];
-					DWORD test14 = GetModuleFileNameExA(ph, NULL, fName, 512);
-					if (test14 == 0) { //  this not working
-						DWORD error14 = GetLastError();
-						std::string s14 = GetLastErrorAsString(error14);
-						xmprintf(2, "GetModuleFileNameExA failed; error = %d; (%s)  \n", error14, s14.c_str());
-
-						return 0; // lets return 'not running'
-					} else {
-						fName[511] = 0;
-						xmprintf(3, "we got following with this PID: %s\n", fName);
-						if (strstr(fName, "qwproc") == NULL) {
-							xmprintf(3, "\tthis was not our plot server \n");
-							return 0;
-						} else {
-							xmprintf(3, "\tthis looks like our plot server \n");
-							return 1;
-						}
-
-					}
-
-
-					return 1; //  running!
-				} else {
-					xmprintf(2, "\tnot running!\n");
-				}
-			}	else {
-				LPVOID lpMsgBuf;
-				//LPVOID lpDisplayBuf;
-				DWORD dw = GetLastError();
-				if (dw == 5) {  //  looks like running
-					return 1; 
-				}
-
-				FormatMessage(
-					FORMAT_MESSAGE_ALLOCATE_BUFFER |
-					FORMAT_MESSAGE_FROM_SYSTEM |
-					FORMAT_MESSAGE_IGNORE_INSERTS,
-					NULL,
-					dw,
-					MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-					(LPTSTR)&lpMsgBuf,
-					0, NULL);
-
-				xmprintf(1, "\tGetExitCodeProcess returned error # %d (%s)\n", dw, (LPTSTR)lpMsgBuf);
-
-			}
-		}	else { //    looks like not running
-			xmprintf(3, "\tOpenProcess returned NULL\n");
-		}
-#elif defined(__APPLE__)
-		pid_t pid = (pid_t)strtol(sp.c_str(), 0, 10);
-		xmprintf(2, "\tpid = %d\n", pid);
-		if (kill(pid, 0) == 0) {
-			char pathbuf[PROC_PIDPATHINFO_MAXSIZE] = {0};
-			int ret = proc_pidpath(pid, pathbuf, sizeof(pathbuf));
-			if (ret > 0) {
-				xmprintf(3, "\tprocess path for pid %d: %s\n", pid, pathbuf);
-				if (strstr(pathbuf, "qwproc") == NULL) {
-					xmprintf(2, "\tbut looks like this is different program with same pid\n");
-				} else {
-					xmprintf(2, "\tthis looks like our plot server\n");
-					return 1;
-				}
-			} else {
-				xmprintf(2, "\tproc_pidpath failed for pid %d, assuming not our process\n", pid);
-			}
-		} else {
-			xmprintf(2, "\tprocess %d not found (kill(pid,0) failed, errno=%d)\n", pid, errno);
-		}
-#else
-		path proc = path("/proc") / sp / "status";
-		if (exists(proc)) {
-			std::string pName;
-			std::ifstream pFile(proc.string());
-			std::getline(pFile, pName);
-			xmprintf(2, "lockHandle: %s is running\n", pName.c_str());
-			if (pName.find("qwproc") == std::string::npos) {
-				xmprintf(2, "\tbut looks like this is different program with same pid\n");
-			} else {
-				std::string line;
-				for (line; std::getline(pFile, line); ) {
-					if (line.find("State:") != std::string::npos) {
-						if (line.find('Z')  != std::string::npos) {
-							xmprintf(3, "\tprocess (%s) zombie? (%s)\n", sp.c_str(), line.c_str());
-						} else {
-							xmprintf(2, "\tit's me; [%s]\n", line.c_str());
-							pFile.close();
-							return 1;
-						}
-						break;
-					}
-				}
-
-			}
-			pFile.close();
-		} else {
-			xmprintf(2, "checkProcRunning: no %s file detected \n", proc.string().c_str());
-		}
-#endif
-	} else {
-		xmprintf(2, "\tcheckProcRunning(): no lock file detected\n");
+	uint32_t ack = 0;
+	if (!s.readAll(&ack, sizeof(ack)) || ack != kPingAck) {
+		return 0;
 	}
-	return 0; //  not running
+	xmprintf(3, "checkProcRunning(): qwproc is alive at %s\n", ep.c_str());
+	return 1;
 }
-
-CmdSync::CmdSync() :	cbInfoMutex(boost::interprocess::open_or_create,  "qwtw_cbInfoMutex"),
-						cbWait(boost::interprocess::open_or_create, "qwtw_cbWait")  {
-
-}
-CmdSync::~CmdSync() {
-	cbInfoMutex.remove("qwtw_cbInfoMutex");
-	cbWait.remove("qwtw_cbWait");
-}
-

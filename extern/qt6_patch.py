@@ -144,6 +144,12 @@ def fix_qpainterpath_include():
     """Add #include <QPainterPath> to qwt_global.h for Qt6."""
     print("\n[5] Adding QPainterPath include to qwt_global.h...")
     path = os.path.join(QWT_SRC, "qwt_global.h")
+    if not os.path.exists(path):
+        return
+    with open(path, "r") as f:
+        content = f.read()
+    if "#include <QPainterPath>" in content:
+        return
     patch_file(path, [
         ('#include <qglobal.h>\n',
          '#include <qglobal.h>\n#include <QPainterPath>\n'),
@@ -221,7 +227,8 @@ def fix_qgl_widget():
     hpath = os.path.join(QWT_SRC, "qwt_plot_glcanvas.h")
     if os.path.exists(hpath):
         with open(hpath, "r") as f:
-            content = f.read()
+            orig = f.read()
+        content = orig
         replacements = [
             ('#include <qgl.h>', '#include <QOpenGLWidget>'),
             ('class QWT_EXPORT QwtPlotGLCanvas: public QGLWidget, public QwtPlotAbstractGLCanvas',
@@ -230,15 +237,17 @@ def fix_qgl_widget():
         ]
         for old, new in replacements:
             content = content.replace(old, new)
-        with open(hpath, "w") as f:
-            f.write(content)
-        print(f"  patched qwt_plot_glcanvas.h")
+        if content != orig:
+            with open(hpath, "w") as f:
+                f.write(content)
+            print(f"  patched qwt_plot_glcanvas.h")
 
     # Source
     cpath = os.path.join(QWT_SRC, "qwt_plot_glcanvas.cpp")
     if os.path.exists(cpath):
         with open(cpath, "r") as f:
-            content = f.read()
+            orig = f.read()
+        content = orig
         content = content.replace('#include <qgl.h>', '#include <QOpenGLWidget>')
         content = content.replace('#include <qglformat.h>', '')
         content = re.sub(r'QGLWidget', 'QOpenGLWidget', content)
@@ -249,9 +258,10 @@ def fix_qgl_widget():
             content,
             flags=re.DOTALL
         )
-        with open(cpath, "w") as f:
-            f.write(content)
-        print(f"  patched qwt_plot_glcanvas.cpp")
+        if content != orig:
+            with open(cpath, "w") as f:
+                f.write(content)
+            print(f"  patched qwt_plot_glcanvas.cpp")
 
 
 def fix_getcontentsmargins():

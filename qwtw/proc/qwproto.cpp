@@ -1,503 +1,481 @@
-
 #include "xstdef.h"
 #include "qwproto.h"
 #include "qwproc.h"
 #include "qworker.h"
-#include <functional>
+
 #include <QApplication>
+#include <QMetaObject>
+#include <algorithm>
+#include <cstring>
+#include <functional>
 
-#include <boost/interprocess/shared_memory_object.hpp>
-#include <boost/interprocess/mapped_region.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
-
-QProcInterface::QProcInterface(QWorker& worker_, QApplication& app_): 
-		worker(worker_), app(app_) {
-	shmCommand = 0;
-	shmDataX = 0;
-	shmDataY = 0;
-	shmDataZ = 0;
-	shmDataT = 0;
-	shmDataData = 0;
-	started = false;
-}
+QProcInterface::QProcInterface(QWorker& worker_, QApplication& app_)
+	: worker(worker_), app(app_) {}
 
 QProcInterface::~QProcInterface() {
 	stop();
-	removeSHM();
 }
 
-void QProcInterface::removeSHM() {
-	using namespace boost::interprocess;
-	shared_memory_object::remove(ProcData::shmNames[0]);
-	shared_memory_object::remove(ProcData::shmNames[1]);
-	shared_memory_object::remove(ProcData::shmNames[2]);
-	shared_memory_object::remove(ProcData::shmNames[3]);
-	shared_memory_object::remove(ProcData::shmNames[4]);
-	shared_memory_object::remove(ProcData::shmNames[5]);
-}
-
-/*
-void QProcInterface::setupSHM1(long long size, 
-		boost::interprocess::shared_memory_object* shm, 
-		boost::interprocess::mapped_region* reg) {
-	
-}
-*/
 bool QProcInterface::runningAlready() {
-	using namespace boost::interprocess;
-	bool ret = false;
-	try {
-		shared_memory_object shmCommandTest(open_only, ProcData::shmNames[0], read_write);
-		ret = true;
-	} catch(interprocess_exception &ex) { 
-		xmprintf(2, "QProcInterface::runningAlready(): cannot create shared_memory_object (%s)\n", ex.what());
-	}
-	return ret;
+	return checkProcRunning() == 1;
 }
 
-
-void QProcInterface::start() {
+bool QProcInterface::start() {
 	xmprintf(3, "QProcInterface::start() starting\n");
-	if (started) {
-		xmprintf(3, "\t - already\n");
-		return;
+	if (started_.load()) {
+		xmprintf(3, "\t - already started\n");
+		return true;
 	}
-	const long long startSegSize = 1024;
-	using namespace boost::interprocess;
-	//Create a shared memory object.
-	removeSHM();
-	xmprintf(3, "\tQProcInterface::start() setting up SHM\n");
-	try{
-		shmCommand =  new shared_memory_object(create_only, ProcData::shmNames[0], read_write);
-		shmDataX =  new shared_memory_object(create_only, ProcData::shmNames[1], read_write);
-		shmDataY =  new shared_memory_object(create_only, ProcData::shmNames[2], read_write);
-		shmDataZ =  new shared_memory_object(create_only, ProcData::shmNames[3], read_write);
-		shmDataT =  new shared_memory_object(create_only, ProcData::shmNames[4], read_write);
-		shmDataData =  new shared_memory_object(create_only, ProcData::shmNames[5], read_write);
-	} catch (interprocess_exception &ex){
-		xmprintf(0, "QProcInterface::start()  cannot create shared memory: %s \n", ex.what());
-		return;
+
+	std::string ep = qwipc::endpointPath();
+	if (!listener_.listen(ep)) {
+		xmprintf(0, "QProcInterface::start(): cannot listen on %s\n", ep.c_str());
+		return false;
 	}
-	shmCommand->truncate(sizeof(CmdHeader));
-	shmDataX->truncate(sizeof(double) * startSegSize);
-	shmDataY->truncate(sizeof(double) * startSegSize);
-	shmDataZ->truncate(sizeof(double) * startSegSize);
-	shmDataT->truncate(sizeof(double) * startSegSize);
-	shmDataData->truncate(sizeof(double) * startSegSize);
 
-	commandReg = new mapped_region(*shmCommand, read_write);
-	xDataReg   = new mapped_region(*shmDataX, read_write);
-	yDataReg   = new mapped_region(*shmDataY, read_write);
-	zDataReg   = new mapped_region(*shmDataZ, read_write);
-	tDataReg   = new mapped_region(*shmDataT, read_write);
-	dataDataReg   = new mapped_region(*shmDataData, read_write);
+	worker.qwtSetPickerCallback([this](const CBPickerInfo& cbi) { onCB(cbi); });
+	worker.qwtSetClipCallback([this](double t1, double t2, int cg) { onClip(t1, t2, cg); });
 
-	//pd.hdr = (CmdHeader*)commandReg->get_address();
-	pd.hdr = new (commandReg->get_address()) CmdHeader;
-	xmprintf(3, "\tQProcInterface::start() locking..\n");
-	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-	xmprintf(3, "\tQProcInterface::start() locked.\n");
-	pd.hdr->cmd = 100; //    just started
-	pd.hdr->segSize = startSegSize;
-	pd.hdr->dataSize = startSegSize;
-
-	pd.x = static_cast<double*>(xDataReg->get_address());
-	pd.y = static_cast<double*>(yDataReg->get_address());
-	pd.z = static_cast<double*>(zDataReg->get_address());
-	pd.t = static_cast<double*>(tDataReg->get_address());
-	pd.data = static_cast<double*>(dataDataReg->get_address());
-
-	cmdSync = std::make_shared<CmdSync>();
-
-	needStopThread = false;
-	//std::thread ttmp(&QProcInterface::run, this);
-	//ttmp.swap(wThread);
-	xmprintf(3, "\tQProcInterface::start() starting interface thread.. \n");
-	wThread = std::make_shared<boost::thread>(&QProcInterface::run, this);
-
-	std::thread ttmp(&QProcInterface::cbFilterThreadF, this);
-	cbFilterThread.swap(ttmp);
-	
-	started = true;
-	xmprintf(3, "\tQProcInterface::start()  finished\n");
+	stopping_.store(false);
+	started_.store(true);
+	acceptThread_ = std::thread(&QProcInterface::acceptLoop, this);
+	xmprintf(2, "QProcInterface::start() listening on %s\n", ep.c_str());
+	return true;
 }
 
 void QProcInterface::stop() {
-	using namespace boost::interprocess;
-	xmprintf(3, "QProcInterface::stop()  \n");
-	needStopThread = true;
-	if (wThread->joinable()) {//   stop the 'run()'
-		/*   looks like we do not need this code below
-		     since notify_all   supposed to make everything we need
-		xmprintf(3, "\t QProcInterface::stop()  locking..\n");
-		pd.hdr->mutex.lock();
-		xmprintf(3, "\t QProcInterface::stop()  locked\n");
-		pd.hdr->cmd = CmdHeader::exit;
-		pd.hdr->mutex.unlock();
-		xmprintf(3, "\t QProcInterface::stop()  unlocked\n");
-		*/
-		pd.hdr->cmdWait.notify_all();
-	
-		wThread->join();
-		xmprintf(3, "\t QProcInterface::stop()  join finished\n");
-	} else {
-		xmprintf(3, "\tQProcInterface::stop()  thread not joinable \n");
+	if (!started_.exchange(false)) {
+		return;
+	}
+	xmprintf(3, "QProcInterface::stop()\n");
+	stopping_.store(true);
+	listener_.close();
+
+	{
+		std::lock_guard<std::mutex> lock(subscribersMutex_);
+		for (auto& sub : subscribers_) {
+			if (sub) {
+				sub->close();
+			}
+		}
+		subscribers_.clear();
 	}
 
-	if (cbFilterThread.joinable()) {
-		cbFilterThread.join();
+	std::vector<ClientSlot> slotsToJoin;
+	{
+		std::lock_guard<std::mutex> lock(clientThreadsMutex_);
+		for (auto& s : clientSlots_) {
+			if (s.stream) {
+				s.stream->close();
+			}
+		}
+		slotsToJoin.swap(clientSlots_);
 	}
-	xmprintf(3, "\tQProcInterface::stop() finished \n");
+
+	if (acceptThread_.joinable()) {
+		acceptThread_.join();
+	}
+
+	std::thread::id selfId = std::this_thread::get_id();
+	for (auto& s : slotsToJoin) {
+		if (s.worker.joinable()) {
+			if (s.worker.get_id() == selfId) {
+				s.worker.detach();
+			} else {
+				s.worker.join();
+			}
+		}
+	}
+	xmprintf(3, "QProcInterface::stop() finished\n");
 }
 
-void QProcInterface::run() {
-	using namespace boost::interprocess;
-	xmprintf(2, "QProcInterface::run() starting\n");
+void QProcInterface::acceptLoop() {
+	using namespace qwipc;
+	while (!stopping_.load()) {
+		Stream client = listener_.accept();
+		if (!client.valid()) {
+			if (stopping_.load()) {
+				break;
+			}
+			continue;
+		}
 
-	OnPickerCallback cbf = std::bind(&QProcInterface::onCB, this, std::placeholders::_1);
-	worker.qwtSetPickerCallback(cbf);
+		IpcHello hello{};
+		if (!client.readAll(&hello, sizeof(hello)) ||
+		    hello.magic != kHelloMagic ||
+		    hello.version != kProtoVer) {
+			client.close();
+			continue;
+		}
 
-	xmprintf(5, "\tQProcInterface::run() locking..\n");
-	scoped_lock<interprocess_mutex> lock(pd.hdr->mutex);
-	xmprintf(6, "\tQProcInterface::run() locked\n");
-	while (!needStopThread) {
-		//   wait for another command
-		xmprintf(5, "\tQProcInterface::run() waiting.. \n");
-		pd.hdr->cmdWait.wait(lock);
-		xmprintf(3, "\tQProcInterface::run()   after pd.hdr->cmdWait.wait(lock);  \n ");
-		if (needStopThread) {
-			xmprintf(5, "QProcInterface::run(): needStopThread! \n");
+		if (hello.role == RolePing) {
+			uint32_t ack = kPingAck;
+			client.writeAll(&ack, sizeof(ack));
+			client.close();
+			continue;
+		}
+
+		if (hello.role == RoleCallback) {
+			auto sub = std::make_shared<Stream>(std::move(client));
+			std::lock_guard<std::mutex> lock(subscribersMutex_);
+			subscribers_.push_back(std::move(sub));
+			continue;
+		}
+
+		if (hello.role == RoleCommand) {
+			auto streamPtr = std::make_shared<Stream>(std::move(client));
+			std::lock_guard<std::mutex> lock(clientThreadsMutex_);
+			// Reap finished slots periodically
+			clientSlots_.erase(
+				std::remove_if(clientSlots_.begin(), clientSlots_.end(),
+					[](ClientSlot& cs) {
+						if (cs.stream && !cs.stream->valid() && cs.worker.joinable()) {
+							cs.worker.join();
+							return true;
+						}
+						return false;
+					}),
+				clientSlots_.end());
+
+			ClientSlot slot;
+			slot.stream = streamPtr;
+			slot.worker = std::thread(&QProcInterface::handleCommandClient, this, streamPtr);
+			clientSlots_.push_back(std::move(slot));
+			continue;
+		}
+
+		client.close();
+	}
+}
+
+void QProcInterface::handleCommandClient(std::shared_ptr<qwipc::Stream> stream) {
+	using namespace qwipc;
+	std::vector<double> payloadBuf;
+
+	while (!stopping_.load() && stream->valid()) {
+		CmdRequest req{};
+		if (!stream->readAll(&req, sizeof(req))) {
 			break;
 		}
-		int cmd = pd.hdr->cmd;
-		processCommand(cmd);
-		xmprintf(6, "\tQProcInterface::run() before notify_all\n");
-		pd.hdr->workDone.notify_all();
-		xmprintf(6, "\tQProcInterface::run() after notify_all\n");
+		if (req.magic != kCmdMagic) {
+			xmprintf(0, "QProcInterface: bad command magic 0x%x\n", req.magic);
+			break;
+		}
+
+		// Ensure null-termination on fixed buffers
+		req.style[sizeof(req.style) - 1] = '\0';
+		req.name[sizeof(req.name) - 1] = '\0';
+
+		constexpr uint64_t kMaxPayloadBytes = 2ULL * 1024ULL * 1024ULL * 1024ULL; // 2 GB sanity cap
+		if (req.payloadBytes > kMaxPayloadBytes || (req.payloadBytes % sizeof(double)) != 0) {
+			xmprintf(0, "QProcInterface: invalid payloadBytes=%llu\n",
+				static_cast<unsigned long long>(req.payloadBytes));
+			break;
+		}
+
+		size_t numDoubles = static_cast<size_t>(req.payloadBytes / sizeof(double));
+		payloadBuf.resize(numDoubles);
+		if (req.payloadBytes > 0) {
+			if (!stream->readAll(payloadBuf.data(), static_cast<size_t>(req.payloadBytes))) {
+				break;
+			}
+		}
+
+		CmdReply rep{};
+		rep.magic = kReplyMagic;
+		bool requestQuit = false;
+		{
+			std::lock_guard<std::mutex> execLock(cmdExecMutex_);
+			executeCommand(req, payloadBuf, rep, requestQuit);
+		}
+
+		if (!stream->writeAll(&rep, sizeof(rep))) {
+			break;
+		}
+
+		if (requestQuit) {
+			stopping_.store(true);
+			QMetaObject::invokeMethod(&app, "quit", Qt::QueuedConnection);
+			break;
+		}
 	}
-	xmprintf(2, "QProcInterface::run() exiting \n");
+
+	stream->close();
 }
 
 void QProcInterface::onCB(const CBPickerInfo& cbi_) {
-	//xmprintf(6, "\tQProcInterface::onCB() time = %f\n", cbi.time);
-	std::lock_guard<std::mutex> lock(cbFilterMutex);
-	//cbiTime = std::chrono::system_clock::now();
-	memcpy(&cbi, &cbi_, sizeof(cbi));
-	//cbiReady.notify_all();
-	haveNewCallbackInfo = true;
+	qwipc::ServerEvent ev{};
+	ev.magic = qwipc::kEventMagic;
+	ev.eventType = qwipc::EvPicker;
+	ev.picker = cbi_;
+	broadcastEvent(ev);
 }
 
-void QProcInterface::cbFilterThreadF() {
-	using namespace std::chrono_literals;
-	using namespace std::chrono;
+void QProcInterface::onClip(double t1, double t2, int clipGroup) {
+	qwipc::ServerEvent ev{};
+	ev.magic = qwipc::kEventMagic;
+	ev.eventType = qwipc::EvClip;
+	ev.clipT1 = t1;
+	ev.clipT2 = t2;
+	ev.clipGroup = clipGroup;
+	broadcastEvent(ev);
+}
 
-	while (!needStopThread) {
-		cbFilterMutex.lock();
-		if (haveNewCallbackInfo) {
-			cbFilterMutex.unlock(); // !!!!
-
-			using namespace boost::interprocess;
-//			scoped_lock<interprocess_mutex> lock(pd.hdr->cbInfoMutex); //   we can wait here a very long time..
-			auto now = system_clock::now();
-			boost::posix_time::ptime bNow = boost::get_system_time();
-			bool test = cmdSync->cbInfoMutex.timed_lock(bNow+boost::posix_time::milliseconds(800));
-			if (test)  { // good!
-			
-			} else { //  something is wrong
-				auto now2 = system_clock::now();
-				bNow = boost::get_system_time();
-				int ms = duration_cast<milliseconds>(now2 - now).count();
-				xmprintf(5, "cmdSync->cbInfoMutex.timed_lock failed in %d ms \n", ms);
-
-				cmdSync.reset();
-				cmdSync = std::make_shared<CmdSync>();
-				test = cmdSync->cbInfoMutex.timed_lock(bNow+boost::posix_time::milliseconds(800));
-				if (test) {
-
-				}	else { //  failed again?
-					auto now3 = system_clock::now();
-					int ms = duration_cast<milliseconds>(now3 - now2).count();
-					xmprintf(5, "cmdSync->cbInfoMutex.timed_lock failed again in %d ms \n", ms);
-					// give up
-					return;
-				}
+void QProcInterface::broadcastEvent(const qwipc::ServerEvent& ev) {
+	std::lock_guard<std::mutex> lock(subscribersMutex_);
+	for (auto it = subscribers_.begin(); it != subscribers_.end();) {
+		if (!(*it) || !(*it)->valid() || !(*it)->writeAll(&ev, sizeof(ev))) {
+			if (*it) {
+				(*it)->close();
 			}
-			// cmdSync->cbInfoMutex is locked now
-
-			cbFilterMutex.lock(); //   lock this again  only after cbInfoMutex!
-			memcpy(&pd.hdr->cbInfo, &cbi, sizeof(cbi));
-			haveNewCallbackInfo = false;
-			cbFilterMutex.unlock();
-
-			cmdSync->cbInfoMutex.unlock();
-			cmdSync->cbWait.notify_all();
-			
-		} 	else {
-			cbFilterMutex.unlock();
+			it = subscribers_.erase(it);
+		} else {
+			++it;
 		}
-		std::this_thread::sleep_for(50ms);
 	}
 }
 
-void QProcInterface::changeDataSize(long long newSize) {
-	using namespace boost::interprocess;
-	if (newSize <= pd.hdr->dataSize) {
-		return;
-	}
-	newSize <<= 1;
-	long long s1 = newSize * sizeof(double);
-	shmDataData->truncate(s1);
-	delete dataDataReg;
-	dataDataReg = new mapped_region(*shmDataData, read_write); 
-	pd.data =  static_cast<double*>(dataDataReg->get_address());
-	pd.hdr->dataSize = newSize;
-}
+void QProcInterface::executeCommand(
+	const qwipc::CmdRequest& req,
+	const std::vector<double>& payload,
+	qwipc::CmdReply& rep,
+	bool& requestQuit) {
+	using namespace qwipc;
+	xmprintf(3, "QProcInterface::executeCommand cmd=%d\n", req.cmd);
 
-void QProcInterface::changeSize(long long newSize) {
-	using namespace boost::interprocess;
-	if (newSize <= pd.hdr->segSize) {
-		return;
-	}
-	newSize <<= 1;
-	long long s1 = newSize * sizeof(double);
-	shmDataX->truncate(s1);
-	shmDataY->truncate(s1);
-	shmDataZ->truncate(s1);
-	shmDataT->truncate(s1);
-	delete xDataReg;
-	delete yDataReg;
-	delete zDataReg;
-	delete tDataReg;
-	xDataReg   = new mapped_region(*shmDataX, read_write);
-	yDataReg   = new mapped_region(*shmDataY, read_write);
-	zDataReg   = new mapped_region(*shmDataZ, read_write);
-	tDataReg   = new mapped_region(*shmDataT, read_write);
+	auto sliceArray = [&](size_t& cursor, size_t count) -> double* {
+		if (cursor + count > payload.size()) {
+			return nullptr;
+		}
+		// QWorker methods take non-const double* (legacy signature) and copy synchronously
+		double* ptr = const_cast<double*>(payload.data() + cursor);
+		cursor += count;
+		return ptr;
+	};
 
-	pd.x = static_cast<double*>(xDataReg->get_address());
-	pd.y = static_cast<double*>(yDataReg->get_address());
-	pd.z = static_cast<double*>(zDataReg->get_address());
-	pd.t = static_cast<double*>(tDataReg->get_address());
-
-	pd.hdr->segSize = newSize;
-}
-
-void QProcInterface::plot() {
-	worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
-}
-
-void QProcInterface::processCommand(int cmd) {
-	xmprintf(2, "QProcInterface::processCommand got cmd = %d \n", cmd);
-
-	switch(cmd) {
+	switch (req.cmd) {
 		case CmdHeader::exit:
-			xmprintf(2, "QProcInterface::processCommand : sending QUIT to QT..  \n");
-			QMetaObject::invokeMethod(&app, "quit", Qt::BlockingQueuedConnection); // QueuedConnection
-			xmprintf(2, "QProcInterface::processCommand : QUIT was sent \n");
-			needStopThread = true;
-			//now  lets wait for the app to exit
-			{
-				//xm_printf("QProcInterface::processCommand :  lets wait for the app to exit..  \n");
-				//std::unique_lock<std::mutex> lck(worker.appMutex);
-				//worker.appV.wait(lck);
-				//xm_printf("QProcInterface::processCommand : QT app looks like exited! \n");
-			}
-			
-			break;
-		case CmdHeader::changeSize:
-			changeSize(pd.hdr->size);
-			break;
-
-		case CmdHeader::changeDataSize:
-			changeDataSize(pd.hdr->size);
+			xmprintf(2, "QProcInterface: received exit command\n");
+			requestQuit = true;
+			rep.test = 0;
 			break;
 
 		case CmdHeader::qMW:
 			worker.qwtshowmw();
 			break;
 
-		case CmdHeader::qFigure: {
-				int k = worker.qwtfigure(pd.hdr->test, pd.hdr->flags);
-				pd.hdr->test = k; //    return the result
-			}
+		case CmdHeader::qFigure:
+			rep.test = worker.qwtfigure(req.test, req.flags);
 			break;
 
-		case CmdHeader::qSpectrogram : {
-			int k = worker.qwtSpectrogram(pd.hdr->test, pd.hdr->flags);
-			pd.hdr->test = k; //    return the result
-			}
+		case CmdHeader::qSpectrogram:
+			rep.test = worker.qwtSpectrogram(req.test, req.flags);
 			break;
 
-		case CmdHeader::qService: {
-			int ret = worker.qwtservice(pd.hdr->test);
-			pd.hdr->test = ret;
-			}
+		case CmdHeader::qService:
+			rep.test = worker.qwtservice(req.test);
 			break;
 
 		case CmdHeader::qSetClipGroup:
-			worker.qwtSetClipGroup(pd.hdr->test);
+			worker.qwtSetClipGroup(req.test);
 			break;
 
 		case CmdHeader::qRemoveLine:
-			worker.qwtRemoveLine(pd.hdr->test);
+			worker.qwtRemoveLine(req.test);
 			break;
 
-		case  CmdHeader::qSetPos: {
-			QWndPos pos;
-			pos.x = pd.hdr->xMin;
-			pos.y = pd.hdr->yMin;
-			pos.w = pd.hdr->xSize;
-			pos.h = pd.hdr->ySize;
-			pos.set = pd.hdr->flags;
+		case CmdHeader::qSetPos: {
+			QWndPos pos{};
+			pos.x = static_cast<int>(req.xMin);
+			pos.y = static_cast<int>(req.yMin);
+			pos.w = req.xSize;
+			pos.h = req.ySize;
+			pos.set = static_cast<int>(req.flags);
 
-			int result = worker.qwtSetPos(pd.hdr->test, pos);
-
-			pd.hdr->test = result;
-			pd.hdr->flags = pos.set;
-			pd.hdr->xMin = pos.x;
-			pd.hdr->yMin = pos.y;
-			pd.hdr->xSize = pos.w;
-			pd.hdr->ySize = pos.h;
-			}
+			rep.test = worker.qwtSetPos(req.test, pos);
+			rep.flags = static_cast<uint32_t>(pos.set);
+			rep.xMin = pos.x;
+			rep.yMin = pos.y;
+			rep.xSize = pos.w;
+			rep.ySize = pos.h;
 			break;
+		}
 
 		case CmdHeader::qSavePng: {
-			int result = worker.qwtSavePng(pd.hdr->test, pd.hdr->name);
-			pd.hdr->test = result;
-			}
+			char filenameBuf[CmdHeader::nameSize];
+			std::memcpy(filenameBuf, req.name, sizeof(filenameBuf));
+			filenameBuf[sizeof(filenameBuf) - 1] = '\0';
+			rep.test = worker.qwtSavePng(req.test, filenameBuf);
 			break;
+		}
 
 #ifdef USEMARBLE
-		case CmdHeader::qMap: {
-				int k = worker.mapview(pd.hdr->test);
-				pd.hdr->test = k; //    return the result
-			}
+		case CmdHeader::qMap:
+			rep.test = worker.mapview(req.test);
 			break;
 #endif
 
 #ifdef USEMATHGL
-		case CmdHeader::qMglPlot: {
-				int k = worker.mglPlot(pd.hdr->test);
-				pd.hdr->test = k; //    return the result
+		case CmdHeader::qMglPlot:
+			rep.test = worker.mglPlot(req.test);
+			break;
+
+		case CmdHeader::qMglLine: {
+			if (req.size > 0) {
+				size_t n = static_cast<size_t>(req.size);
+				size_t cursor = 0;
+				double* x = sliceArray(cursor, n);
+				double* y = sliceArray(cursor, n);
+				double* z = sliceArray(cursor, n);
+				if (x && y && z) {
+					worker.mgl_line(static_cast<int>(req.size), x, y, z, req.name, req.style);
+				} else {
+					rep.status = -1;
+				}
 			}
 			break;
-		case CmdHeader::qMglLine:
-			xmprintf(5, "\tcase CmdHeader::qMglLine\n");
-			if (pd.hdr->size <= pd.hdr->segSize) {
-				xmprintf(6, "\tpd.hdr->size=%d;   pd.hdr->segSize=%d   \n", pd.hdr->size, pd.hdr->segSize);
-				worker.mgl_line(pd.hdr->size,  pd.x, pd.y, pd.z, pd.hdr->name, pd.hdr->style);
-			} else {
-				xmprintf(0, "\tERROR CmdHeader::qMglLine pd.hdr->size=%d;   pd.hdr->segSize=%d   \n", pd.hdr->size, pd.hdr->segSize);
-			}
-			break;
-		case CmdHeader::qMglMesh:
-			if ((pd.hdr->xSize * pd.hdr->ySize) <= pd.hdr->dataSize) {
-				worker.mgl_mesh(pd.hdr->xSize, pd.hdr->ySize, 
-					pd.hdr->xMin, pd.hdr->xMax, pd.hdr->yMin, pd.hdr->yMax,
-					pd.data, pd.hdr->name, pd.hdr->style, pd.hdr->type);
-			} else {
-				xmprintf(0, "CmdHeader::qMglMesh: data size error; xSize = %d; ySize = %d; dataSize = %d\n",
-					pd.hdr->xSize, pd.hdr->ySize, pd.hdr->dataSize);
-			}
-			break;
-#endif
-		case CmdHeader::qSpectrogramInfo: {
-			long long size = pd.hdr->xSize * pd.hdr->ySize;
-			if (size > pd.hdr->dataSize) {
-				xmprintf(0, "CmdHeader::qSpectrogramInfo: data size error (1); xSize = %d; ySize = %d; dataSize = %d\n",
-					pd.hdr->xSize, pd.hdr->ySize, pd.hdr->dataSize);
-				break;
-			}
-			if ((pd.hdr->flags != 0) && (pd.hdr->segSize < size*3)) {
-				xmprintf(0, "CmdHeader::qSpectrogramInfo: data size error (2); xSize = %d; ySize = %d; segSize = %dl flags = %d\n",
-					pd.hdr->xSize, pd.hdr->ySize, pd.hdr->segSize, pd.hdr->flags);
-				break;
-			}
-			SpectrogramInfo si = SpectrogramInfo{
-					pd.hdr->xSize,pd.hdr->ySize, pd.hdr->xMin, pd.hdr->xMax,
-					pd.hdr->yMin, pd.hdr->yMax, pd.data, 0, 0};
-			if (pd.hdr->flags & 1) {
-				si.t = pd.t;
-			}
-			if (pd.hdr->flags & 2) {
-				si.p = pd.x;
-			}
-			
-			worker.spectrogram_info(si);
 		}
-		break;
+
+		case CmdHeader::qMglMesh: {
+			size_t n = static_cast<size_t>(req.xSize) * static_cast<size_t>(req.ySize);
+			size_t cursor = 0;
+			double* data = sliceArray(cursor, n);
+			if (data && n > 0) {
+				worker.mgl_mesh(req.xSize, req.ySize, req.xMin, req.xMax, req.yMin, req.yMax,
+					data, req.name, req.style, req.type);
+			} else {
+				rep.status = -1;
+			}
+			break;
+		}
+#endif
+
+		case CmdHeader::qSpectrogramInfo: {
+			if (req.xSize <= 0 || req.ySize <= 0) {
+				rep.status = -1;
+				break;
+			}
+			size_t n = static_cast<size_t>(req.xSize) * static_cast<size_t>(req.ySize);
+			size_t cursor = 0;
+			double* z = sliceArray(cursor, n);
+			double* t = (req.arrayMask & ArrT) ? sliceArray(cursor, n) : nullptr;
+			double* p = (req.arrayMask & ArrP3) ? sliceArray(cursor, n * 3) : nullptr;
+			if (!z || ((req.arrayMask & ArrT) && !t) || ((req.arrayMask & ArrP3) && !p)) {
+				rep.status = -1;
+				break;
+			}
+			SpectrogramInfo si{
+				req.xSize, req.ySize,
+				req.xMin, req.xMax,
+				req.yMin, req.yMax,
+				z, p, t
+			};
+			worker.spectrogram_info(si);
+			break;
+		}
 
 		case CmdHeader::qTitle:
-			worker.qwttitle(pd.hdr->name);
+			worker.qwttitle(req.name);
 			break;
-			
+
 		case CmdHeader::qXlabel:
-			worker.qwtxlabel(pd.hdr->name);
+			worker.qwtxlabel(req.name);
 			break;
-			
+
 		case CmdHeader::qYlabel:
-			worker.qwtylabel(pd.hdr->name);
+			worker.qwtylabel(req.name);
 			break;
-			
+
 		case CmdHeader::qClear:
 			worker.qwtclear();
 			break;
-			
+
 		case CmdHeader::qImpStatus:
-			worker.qwtsetimpstatus(pd.hdr->test);
+			worker.qwtsetimpstatus(req.test);
 			break;
 
-		case CmdHeader::qPlot:
-			if (pd.hdr->size <= pd.hdr->segSize) {
-				xmprintf(5, "processCommand qPlot; style = [%s]\n", pd.hdr->style);
-				int test = worker.qwtplot(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style, pd.hdr->lineWidth, pd.hdr->symSize);
-				pd.hdr->test = test; //   put answer here
-				xmprintf(5, "processCommand qPlot; worker complete;\n");
+		case CmdHeader::qPlot: {
+			if (req.size > 0) {
+				size_t n = static_cast<size_t>(req.size);
+				size_t cursor = 0;
+				double* x = sliceArray(cursor, n);
+				double* y = sliceArray(cursor, n);
+				if (x && y) {
+					rep.test = worker.qwtplot(
+						x, y, static_cast<int>(req.size),
+						req.name, req.style,
+						req.lineWidth, static_cast<int>(req.symSize));
+				} else {
+					rep.status = -1;
+					rep.test = -8;
+				}
 			}
 			break;
+		}
 
-		case CmdHeader::qPlot2:
-			if (pd.hdr->size <= pd.hdr->segSize) {
-				xmprintf(5, "processCommand qPlot2; style = [%s]\n", pd.hdr->style);
-				int test = worker.qwtplot2(pd.x, pd.y, pd.hdr->size, pd.hdr->name, pd.hdr->style,
-					pd.hdr->lineWidth, pd.hdr->symSize, pd.t);
-				pd.hdr->test = test; //   put answer here
-				xmprintf(5, "processCommand qPlot2; worker complete;\n");
+		case CmdHeader::qPlot2: {
+			if (req.size > 0) {
+				size_t n = static_cast<size_t>(req.size);
+				size_t cursor = 0;
+				double* x = sliceArray(cursor, n);
+				double* y = sliceArray(cursor, n);
+				double* t = sliceArray(cursor, n);
+				if (x && y && t) {
+					rep.test = worker.qwtplot2(
+						x, y, static_cast<int>(req.size),
+						req.name, req.style,
+						req.lineWidth, static_cast<int>(req.symSize), t);
+				} else {
+					rep.status = -1;
+					rep.test = -8;
+				}
 			}
 			break;
+		}
 
-		case CmdHeader::qChangeLine:
-			if (pd.hdr->size <= pd.hdr->segSize) {
-				xmprintf(5, "processCommand qChangeLine; size = [%d]\n", pd.hdr->size);
-				double* t = (pd.hdr->timeIsGood == 0) ? 0 : pd.t;
-				double* z = (pd.hdr->zIsGood == 0) ? 0 : pd.z;
-				int test = worker.qwtChangeLine(pd.hdr->test,  pd.x, pd.y, z, t, pd.hdr->size);
-				pd.hdr->test = test; //   put answer here
-				xmprintf(5, "processCommand qChangeLine; worker complete;\n");
+		case CmdHeader::qChangeLine: {
+			if (req.size > 0) {
+				size_t n = static_cast<size_t>(req.size);
+				size_t cursor = 0;
+				double* x = sliceArray(cursor, n);
+				double* y = sliceArray(cursor, n);
+				double* z = (req.arrayMask & ArrZ) ? sliceArray(cursor, n) : nullptr;
+				double* t = (req.arrayMask & ArrT) ? sliceArray(cursor, n) : nullptr;
+				if (x && y && (!(req.arrayMask & ArrZ) || z) && (!(req.arrayMask & ArrT) || t)) {
+					rep.test = worker.qwtChangeLine(req.test, x, y, z, t, static_cast<int>(req.size));
+				} else {
+					rep.status = -1;
+					rep.test = -8;
+				}
 			}
 			break;
+		}
 
-		case CmdHeader::qEnableBC:
-			worker.qwtEnableCoordBroadcast(pd.x, pd.y, pd.z, pd.t, pd.hdr->size);
+		case CmdHeader::qEnableBC: {
+			if (req.size > 0) {
+				size_t n = static_cast<size_t>(req.size);
+				size_t cursor = 0;
+				double* x = sliceArray(cursor, n);
+				double* y = sliceArray(cursor, n);
+				double* z = sliceArray(cursor, n);
+				double* t = sliceArray(cursor, n);
+				if (x && y && z && t) {
+					worker.qwtEnableCoordBroadcast(x, y, z, t, static_cast<int>(req.size));
+				}
+			}
 			break;
+		}
 
 		case CmdHeader::qDisableBC:
 			worker.qwtDisableCoordBroadcast();
 			break;
 
-		case CmdHeader::qSetUdpCallback:
-//			worker.qwtSetUdpCallback(pd.hdr->fTest);
-			break;
-		case CmdHeader::qSetPickerCallback:
-			//		
-			break;
-
 		case CmdHeader::qSetLogLevel:
-			//xmPrintLevel = pd.hdr->test;
-			xmprintf(1, "got qSetLogLevel with [%d]\n", pd.hdr->test);
+			xmPrintLevel = req.test;
+			xmprintf(1, "got qSetLogLevel with [%d]\n", req.test);
 			break;
-	};
-	xmprintf(2, "QProcInterface::processCommand  cmd = %d finished\n", cmd);
 
+		default:
+			break;
+	}
 }
-
-

@@ -163,6 +163,7 @@ public:
 	void spClipAll(double x1, double x2, double y1, double y2, int clipGroup);
 	void setUdpCallback(OnUdpCallback  cb);
 	void setPickerCallback(OnPickerCallback cb);
+	void setClipCallback(OnClipCallbackFn cb);
 
 
 	//void figure3(int n);
@@ -223,6 +224,7 @@ private:
 	std::map<int, LineHandler> lines;
 	OnUdpCallback onUdpCallback = 0;
 	OnPickerCallback onPickerCallback = 0;
+	OnClipCallbackFn onClipCallback = 0;
 
 	/// special picker filtering things
 	std::thread pFilterThread; ///< filtering thread handler
