@@ -14,6 +14,7 @@ namespace bp_impl = boost::process::v1;
 #include <boost/process/search_path.hpp>
 namespace bp_impl = boost::process;
 #endif
+#include <boost/filesystem.hpp>
 #include <boost/chrono.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <thread>
@@ -21,11 +22,130 @@ namespace bp_impl = boost::process;
 #include <cstdlib>
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
+#include <dlfcn.h>
+#endif
+#if defined(__linux__) || defined(__linux)
+#include <dlfcn.h>
+#include <limits.h>
 #endif
 #ifdef WIN32
 //	#include <windows.h>  //  cannot use it here
 const char* getQwtwDllPath();
 #endif
+
+#if defined(__APPLE__) || defined(__linux__) || defined(__linux)
+static void qwtw_lib_anchor() {}
+// Return directory containing this shared library so qwproc can be found next to it.
+static std::string getQwtwLibDir() {
+	Dl_info info;
+	if (dladdr((void*)&qwtw_lib_anchor, &info) != 0 && info.dli_fname && info.dli_fname[0]) {
+		boost::filesystem::path p(info.dli_fname);
+		return p.parent_path().string();
+	}
+	return std::string();
+}
+#endif
+
+// Resolve full path to qwproc executable (current dir, DLL/lib dir, exe dir, then PATH).
+static std::string findQwProcPath() {
+	using namespace boost::filesystem;
+	namespace bp = bp_impl;
+#ifdef WIN32
+	const char* procName = "qwproc.exe";
+#else
+	const char* procName = "qwproc";
+#endif
+	path pa;
+	std::string qwProcPath;
+
+	// 1. Current working directory
+	try {
+		pa = current_path() / procName;
+		xmprintf(2, "\tfirst, check current path; looking at %s .. \n", pa.string().c_str());
+		if (exists(pa)) {
+			qwProcPath = pa.string();
+			xmprintf(2, "\tlocated!\n");
+			return qwProcPath;
+		}
+	} catch (std::exception& ex) {
+		xmprintf(2, "exception: %s\n", ex.what());
+	}
+#ifdef WIN32
+	// 2. Directory of the loading DLL
+	try {
+		const char* dllPath = getQwtwDllPath();
+		pa = path(dllPath).parent_path() / procName;
+		xmprintf(2, "\tnext, check near the DLL; looking at %s .. \n", pa.string().c_str());
+		if (exists(pa)) {
+			qwProcPath = pa.string();
+			xmprintf(2, "\tlocated!\n");
+			return qwProcPath;
+		}
+	} catch (std::exception& ex) {
+		xmprintf(2, "exception: %s\n", ex.what());
+	}
+#elif defined(__APPLE__) || defined(__linux__) || defined(__linux)
+	// 2. Directory of this shared library
+	{
+		std::string libDir = getQwtwLibDir();
+		if (!libDir.empty()) {
+			pa = path(libDir) / procName;
+			xmprintf(2, "\tcheck library dir; looking at %s \n", pa.string().c_str());
+			if (exists(pa)) {
+				qwProcPath = pa.string();
+				xmprintf(2, "\tlocated next to library\n");
+				return qwProcPath;
+			}
+		}
+	}
+#endif
+#if defined(__APPLE__)
+	// 3. Directory of the main executable (macOS)
+	{
+		char result[PATH_MAX] = {0};
+		uint32_t bufsize = sizeof(result);
+		if (_NSGetExecutablePath(result, &bufsize) == 0) {
+			pa = path(result).parent_path() / procName;
+			xmprintf(2, "\tlooking at %s \n", pa.string().c_str());
+			if (exists(pa)) {
+				qwProcPath = pa.string();
+				xmprintf(2, "\tgot exe in %s\n", qwProcPath.c_str());
+				return qwProcPath;
+			}
+			xmprintf(2, "\t\t ..  nothing found\n");
+		}
+	}
+#elif defined(__linux__) || defined(__linux)
+	// 3. Directory of the main executable (Linux)
+	{
+		char result[PATH_MAX] = {0};
+		ssize_t count = readlink("/proc/self/exe", result, sizeof(result) - 1);
+		if (count > 0) {
+			result[count] = '\0';
+			pa = path(result).parent_path() / procName;
+			xmprintf(2, "\tlooking at %s \n", pa.string().c_str());
+			if (exists(pa)) {
+				qwProcPath = pa.string();
+				xmprintf(2, "\tgot exe in %s\n", qwProcPath.c_str());
+				return qwProcPath;
+			}
+			xmprintf(2, "\t\t ..  nothing found\n");
+		}
+	}
+#endif
+	// 4. Search PATH
+	xmprintf(2, "\tnow looking in all the PATH; \n");
+	try {
+		pa = bp::search_path(procName);
+		qwProcPath = pa.string();
+		xmprintf(2, "got qwproc in [%s] \n", qwProcPath.c_str());
+		return qwProcPath;
+	} catch (std::exception& ex) {
+		(void)ex;
+		xmprintf(0, "cannot find %s in PATH\n", procName);
+		return std::string();
+	}
+}
 
 SHMTest::SHMTest(): status(5) {
 	
@@ -144,93 +264,21 @@ int SHMTest::startProc(int level) {
 #endif
 	xmprintf(2, "\nstarting proc.. \n");
 	using namespace std::chrono_literals;
-	using namespace boost::filesystem;
 	namespace bp = bp_impl;
-	std::error_code ec;
-#ifdef WIN32
-	const char* procName = "qwproc.exe";
-#else
-	const char* procName = "qwproc";
-#endif
-	//int ret = std::system(procName);
-	path pa;
-	std::string qwProcPath;
-	qwProcPath.clear();
 
-	// current path?
-	try {
-		pa = current_path() / procName;
-		xmprintf(2, "\tfirst, check current path; looking at %s .. \n", pa.string().c_str());
-		if (exists(pa)) {
-			qwProcPath = pa.string();
-			xmprintf(2, "\tlocated!\n");
-		}
-	} catch (std::exception& ex) {
-		xmprintf(2, "exception: %s\n", ex.what());
-		qwProcPath.clear();
-	}
-#ifdef WIN32      //   check the location near the DLL
-	try {
-		const char* dllPath = getQwtwDllPath();
-		pa = path(dllPath).parent_path() / procName;
-		xmprintf(2, "\tnext, check near the DLL; looking at %s .. \n", pa.string().c_str());
-		if (exists(pa)) {
-			qwProcPath = pa.string();
-			xmprintf(2, "\tlocated!\n");
-		}
-	} catch (std::exception& ex) {
-		xmprintf(2, "exception: %s\n", ex.what());
-		qwProcPath.clear();
-	}
-	
-#elif defined(__APPLE__)
+	std::string qwProcPath = findQwProcPath();
 	if (qwProcPath.empty()) {
-		char result[ PATH_MAX ] = {0};
-		uint32_t bufsize = sizeof(result);
-		if (_NSGetExecutablePath(result, &bufsize) == 0) {
-			pa = path(result).parent_path() / procName;
-			xmprintf(2, "\tlooking at %s \n", pa.string().c_str());
-			if (exists(pa)) {
-				qwProcPath = pa.string();
-				xmprintf(2, "\tgot exe in %s\n", qwProcPath.c_str());
-			} else {
-				xmprintf(2, "\t\t ..  nothing found\n");
-			}
-		}
-	}
-#else
-	if (qwProcPath.empty()) {
-		char result[ PATH_MAX ];
-		ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-		pa = path(result).parent_path() / procName;
-		xmprintf(2, "\tlooking at %s \n", pa.string().c_str());
-		if (exists(pa)) {
-			qwProcPath = pa.string();
-			xmprintf(2, "\tgot exe in %s\n", qwProcPath.c_str());
-		} else {
-			xmprintf(2, "\t\t ..  nothing found\n");
-		}
-	}
-#endif
-
-	if (qwProcPath.empty()) {
-		xmprintf(2, "\tnow lookign in all the PATH; \n");
-		try {
-			pa = bp::search_path(procName);
-			qwProcPath = pa.string();
-			xmprintf(2, "got qwproc in [%s] \n", qwProcPath.c_str());
-		} catch  (std::exception& ex) {
-			xmprintf(0, "cannot find %s in PATH (1) \n", procName);
-			return 2;
-		}
-	}
-
-	if (qwProcPath.empty()) {
-		xmprintf(0, "cannot find %s in PATH (2) \n", procName);
 		return 2;
 	}
 
-	//std::this_thread::sleep_for(10ms);
+	const char* procName =
+#ifdef WIN32
+		"qwproc.exe"
+#else
+		"qwproc"
+#endif
+		;
+
 	try {
 		std::string sLevel = std::to_string(level);
 #ifdef USEMARBLE
@@ -238,32 +286,23 @@ int SHMTest::startProc(int level) {
 		if (mdp.empty()) {
 			if (mpp.empty()) {
 				bp::spawn(qwProcPath, "--debug", sLevel.c_str());
-				xmprintf(2, "@starting %s --debug %s\n", qwProcPath.c_str(), sLevel.c_str());
 			} else {
 				bp::spawn(qwProcPath, "--marble_plugins", mpp.c_str(), "--debug", sLevel.c_str());
-				xmprintf(2, "@starting %s --marble_plugins %s --debug %s\n", 
-					qwProcPath.c_str(), mpp.c_str(), sLevel.c_str());
 			}
 		} else {
 			if (mpp.empty()) {
 				bp::spawn(qwProcPath, "--marble_data", mdp.c_str(), "--debug", sLevel.c_str());
-				xmprintf(2, "@starting %s --marble_data %s  --debug %s\n", 
-					qwProcPath.c_str(), mdp.c_str(), sLevel.c_str());
-
-			}else {
+			} else {
 				bp::spawn(qwProcPath, "--marble_data", mdp.c_str(), "--marble_plugins", mpp.c_str(), "--debug", sLevel.c_str());
-				xmprintf(2, "@starting %s --marble_data %s --marble_plugins %s --debug %s\n", 
-					qwProcPath.c_str(), mdp.c_str(), mpp.c_str(), sLevel.c_str());
 			}
 		}
 #else
 		bp::spawn(qwProcPath, "--debug", sLevel.c_str());
-		xmprintf(2, "@starting %s --debug %s\n", qwProcPath.c_str(), sLevel.c_str());
-
 #endif
+		xmprintf(2, "@starting %s --debug %s\n", qwProcPath.c_str(), sLevel.c_str());
 		std::this_thread::sleep_for(550ms);
 		xmprintf(3, "qwproc supposed to start from  (%s) \n", qwProcPath.c_str());
-	}	catch (std::exception& ex) {
+	} catch (std::exception& ex) {
 		xmprintf(0, "cannot start process %s from (%s) (%s) \n", procName, qwProcPath.c_str(), ex.what());
 		return 1;
 	}
