@@ -6,7 +6,7 @@ set(PROJECT_NAME qwproc)
 commonStart()
 addQT()
 
-set(INC_DIR_LIST "../" "../c_lib" "../../../common" "../../../xmatrix2")
+set(INC_DIR_LIST "../" "../proclib" "../../../common" "../../../xmatrix2")
 
 addSourceFiles("source" "." qwproc qwproto main)
 addSourceFiles("qwtw" "../" qworker sfigure figure2 justaplot qwtypes line settings spectrogram qmarkers)

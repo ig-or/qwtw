@@ -12,7 +12,7 @@ if(USE_MGL)
     add_definitions(-DUSEMATHGL)
 endif()
 
-set(INC_DIR_LIST "../" "../c_lib" "../../../common" "../../../xmatrix2")
+set(INC_DIR_LIST "../" "../proclib" "../../../common" "../../../xmatrix2")
 
 addSourceFiles("source" "../" qwtest2)
 

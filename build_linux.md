@@ -8,11 +8,10 @@
 sudo apt-get update && sudo apt-get install -y \
   build-essential cmake ninja-build pkg-config \
   qt6-base-dev qt6-tools-dev libqt6opengl6-dev libqt6openglwidgets6 \
-  libboost-all-dev libssl-dev \
   libgl-dev
 ```
 
-Qwt is built from the vendored submodule at `extern/qwt` — no separate install needed.
+Qwt is built statically from the vendored submodule at `extern/qwt` — no separate Qwt or Boost install is needed.
 
 ### Clone (with submodules)
 
@@ -88,7 +87,7 @@ brew install --cask xquartz
 
 ### Build the Docker image
 
-The Dockerfile is at `space/dc/base/Dockerfile`. It includes Qt6, Boost,
+The Dockerfile is at `space/dc/base/Dockerfile`. It includes Qt6
 and all build dependencies.
 
 ```bash

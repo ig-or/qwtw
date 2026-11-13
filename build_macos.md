@@ -5,10 +5,10 @@
 Install the following via Homebrew:
 
 ```bash
-brew install cmake ninja boost qt
+brew install cmake ninja qt
 ```
 
-Qwt is built from the vendored submodule at `extern/qwt` — no separate install needed.
+Qwt is built statically from the vendored submodule at `extern/qwt` — no separate Qwt or Boost install is needed.
 
 ### Verify Qt6 is visible
 
