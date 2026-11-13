@@ -18,17 +18,7 @@ list(FILTER QWT_HEADERS EXCLUDE REGEX "qwt_plot_svgitem\\.h$")
 
 find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets OpenGL OpenGLWidgets Concurrent PrintSupport)
 
-# Apply Qt6.10 compatibility patches to the vendored Qwt source.
-find_package(Python3 REQUIRED COMPONENTS Interpreter)
-execute_process(
-    COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/qt6_patch.py"
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-    RESULT_VARIABLE _patch_result
-)
-if(NOT _patch_result EQUAL 0)
-    message(WARNING "qt6_patch.py returned ${_patch_result}")
-endif()
-
+# Qt6 compatibility fixes live in the ig-or/qwt fork (branch qt6-compat).
 add_library(qwt STATIC ${QWT_SOURCES} ${QWT_HEADERS})
 
 set_target_properties(qwt PROPERTIES
@@ -46,8 +36,7 @@ target_include_directories(qwt
 # which ensures MOC-generated code sees all necessary includes.
 target_compile_definitions(qwt
     PUBLIC  QWT_NO_SVG
-    PRIVATE QWT_NO_OPENGL=$<NOT:$<BOOL:${QT_OPENGL_FOUND}>>
-            QWT_MOC_INCLUDE=1
+    PRIVATE QWT_MOC_INCLUDE=1
 )
 
 target_link_libraries(qwt

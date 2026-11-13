@@ -1,4 +1,4 @@
 [submodule "extern/qwt"]
 	path = extern/qwt
 	url = git@github.com:ig-or/qwt.git
-	branch = trunk
+	branch = qt6-compat

@@ -19,7 +19,7 @@ addSourceFiles("common" "../../common"
 addSourceFiles("klifft" "../../common/klifft" complex fft psd)
 addSourceFiles("matrix" "../../xmatrix2" xmatrix2 xmatrixplatform xmatrix_imp xmcoords)
 
-add_definitions(-DQT_DLL -DQWT_DLL)
+add_definitions(-DQT_DLL)
 
 if(WITH_UDP_SYNC)
     add_definitions(-DENABLE_UDP_SYNC)

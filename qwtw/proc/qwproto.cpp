@@ -185,17 +185,20 @@ void QProcInterface::handleCommandClient(std::shared_ptr<qwipc::Stream> stream) 
 		rep.magic = kReplyMagic;
 		bool requestQuit = false;
 		{
+			// Once quit is posted, no other client may queue a blocking call to the GUI thread:
+			// the event loop would stop before running it and that thread could never be joined.
 			std::lock_guard<std::mutex> execLock(cmdExecMutex_);
+			if (stopping_.load()) {
+				break;
+			}
 			executeCommand(req, payloadBuf, rep, requestQuit);
+			if (requestQuit) {
+				stopping_.store(true);
+				QMetaObject::invokeMethod(&app, "quit", Qt::QueuedConnection);
+			}
 		}
 
-		if (!stream->writeAll(&rep, sizeof(rep))) {
-			break;
-		}
-
-		if (requestQuit) {
-			stopping_.store(true);
-			QMetaObject::invokeMethod(&app, "quit", Qt::QueuedConnection);
+		if (!stream->writeAll(&rep, sizeof(rep)) || requestQuit) {
 			break;
 		}
 	}

@@ -778,7 +778,6 @@ void Figure2::setupUi()     {
 		this->setObjectName(QString::fromUtf8("Figure2"));
 	this->resize(400, 300);
 	QFont font;
-	font.setFamily(QString::fromUtf8("MS Sans Serif"));
 	font.setPointSize(12);
 	this->setFont(font);
 	this->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));

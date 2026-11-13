@@ -1441,7 +1441,6 @@ void QSpectrogramPlot::setupUi() {
         this->setObjectName(QString::fromUtf8("QSpectrogramPlot"));
     this->resize(640, 300);
     QFont font;
-    font.setFamily(QString::fromUtf8("MS Sans Serif"));
     font.setPointSize(12);
     this->setFont(font);
     this->setLocale(QLocale(QLocale::English, QLocale::UnitedStates));

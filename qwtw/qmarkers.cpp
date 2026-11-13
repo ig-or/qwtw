@@ -2,6 +2,7 @@
 #include "qmarkers.h"
 
 #include <qfont.h>
+#include <QFontDatabase>
 #include <QButtonGroup>
 #include <QDialog>
 #include <QComboBox>
@@ -25,9 +26,16 @@ int xmprintf(int level, const char* _Format, ...);
 
 int markerID = 1;
 
+static QFont markerLabelFont() {
+	QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+	f.setPointSize(12);
+	f.setBold(true);
+	return f;
+}
+
 VLineMarker::VLineMarker(const char* text, double time, int id_) : t(time), QWMarker(id_) {
 	QwtText label(text);
-	label.setFont(QFont("Consolas", 12, QFont::Bold));
+	label.setFont(markerLabelFont());
 	label.setBackgroundBrush(QBrush(QColor(250, 250, 250)));
 	QPen pen(Qt::black, 1);
 	label.setBorderPen(pen);
@@ -53,7 +61,7 @@ void AMarker::amInit(const char* text, double x_, double y_, const QColor& color
 	pos = pos_;
 
 	QwtText label(text);
-	label.setFont(QFont("Consolas", 12, QFont::Bold));
+	label.setFont(markerLabelFont());
 
 	//QColor co = qwSettings.markerColor();
 
