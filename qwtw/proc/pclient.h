@@ -69,6 +69,7 @@ private:
 		qwipc::CmdRequest& req,
 		const std::vector<PayloadChunk>& chunks,
 		qwipc::CmdReply& rep);
+	bool ensureConnected();
 
 	bool connectChannels();
 	void cbThreadF();

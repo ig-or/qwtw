@@ -383,7 +383,7 @@ public:
 		// Standard OpenStreetMap attribution badge in bottom-right corner
 		const QString attr = QStringLiteral("\u00A9 OpenStreetMap contributors");
 		QFont attrFont = painter->font();
-		attrFont.setPointSize(8);
+		attrFont.setPointSize(10);
 		painter->setFont(attrFont);
 		const QFontMetrics fm(attrFont);
 		const int tw = fm.horizontalAdvance(attr) + 10;

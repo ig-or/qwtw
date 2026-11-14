@@ -30,5 +30,6 @@ python3 python/qtest.py
 
 Runtime settings are stored in `~/.qwtw/settings.json`:
 - `pickerDigitsNumber` — number of significant digits shown next to the cursor when inspecting plot coordinates.
+- `title_font_size` / `axis_label_font_size` / `axis_tick_font_size` / `legend_font_size` — plot title, X/Y axis label, tick number, and line legend font sizes in logical pixels (defaults: `15`, `18`, `15`, `17`).
 - `map_tile_url` — slippy-map tile URL template (default: `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; downloaded tiles are cached locally in `~/.qwtw/tiles/`).
 - `smip` / `udp_client_port` / `udp_server_port` — multicast UDP group and ports for marker/clip synchronization.

@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <algorithm>
 #include <filesystem>
 #include <string>
 
@@ -16,6 +17,10 @@ QWSettings::QWSettings() {
 	aMarkerColor_B = 0;
 	direction = 0;
 	pickerDigitsNumber = 6;
+	title_font_size = 15;
+	axis_label_font_size = 18;
+	axis_tick_font_size = 15;
+	legend_font_size = 17;
 	udp_server_port = 49562;
 	udp_client_port = 49561;
 	smip.assign("239.255.0.1");
@@ -42,6 +47,10 @@ int QWSettings::qwSave() {
 	root.insert("aMarkerColor_B", aMarkerColor_B);
 	root.insert("direction", direction);
 	root.insert("pickerDigitsNumber", pickerDigitsNumber);
+	root.insert("title_font_size", title_font_size);
+	root.insert("axis_label_font_size", axis_label_font_size);
+	root.insert("axis_tick_font_size", axis_tick_font_size);
+	root.insert("legend_font_size", legend_font_size);
 	root.insert("udp_server_port", udp_server_port);
 	root.insert("udp_client_port", udp_client_port);
 	root.insert("smip", QString::fromStdString(smip));
@@ -110,6 +119,10 @@ int QWSettings::qwLoad() {
 	aMarkerColor_B = readJsonInt(root, "aMarkerColor_B", 0);
 	direction = readJsonInt(root, "direction", 0);
 	pickerDigitsNumber = readJsonInt(root, "pickerDigitsNumber", 6);
+	title_font_size = std::clamp(readJsonInt(root, "title_font_size", 15), 8, 64);
+	axis_label_font_size = std::clamp(readJsonInt(root, "axis_label_font_size", 18), 8, 64);
+	axis_tick_font_size = std::clamp(readJsonInt(root, "axis_tick_font_size", 15), 8, 64);
+	legend_font_size = std::clamp(readJsonInt(root, "legend_font_size", 17), 8, 64);
 	udp_server_port = readJsonInt(root, "udp_server_port", 49562);
 	udp_client_port = readJsonInt(root, "udp_client_port", 49561);
 

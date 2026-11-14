@@ -198,7 +198,7 @@ protected:
 	
 	std::list<FigureItem*>	lines;
 
-	QFont titleFont, axisFont;
+	QFont titleFont, axisLabelFont, axisTickFont, legendFont;
 
 	void closeEvent ( QCloseEvent * event );
 	void removeLines();

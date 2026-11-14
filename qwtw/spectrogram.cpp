@@ -780,7 +780,9 @@ QwtText FSPicker2::trackerTextF(const QPointF& pos) const {
     stmp[255] = 0;
     QwtText text = QString::fromUtf8(stmp);
     text.setBackgroundBrush(QBrush(bg));
-    QFont font("Helvetica [Cronyx]", 12);
+    QFont font;
+    font.setPixelSize(qwSettings.axis_tick_font_size);
+    font.setBold(true);
     text.setFont(font);
     return text;
 }
@@ -878,7 +880,9 @@ public:
         stmp[255] = 0;
         QwtText text = QString::fromUtf8(stmp);
         text.setBackgroundBrush(QBrush(bg));
-        QFont font("Helvetica [Cronyx]", 12);
+        QFont font;
+        font.setPixelSize(qwSettings.axis_tick_font_size);
+        font.setBold(true);
         text.setFont(font);
         return text;
     }
@@ -1409,15 +1413,38 @@ QSpectrogramPlot::QSpectrogramPlot(const std::string& key_, XQPlots* pf_, QWidge
 
  //	setCentralWidget(spectrogram);
 
-    title(key.c_str());
-
     setFocusPolicy(Qt::StrongFocus);
-    titleFont.setBold(false); titleFont.setPointSize(10);
-    axisFont.setBold(false); axisFont.setPointSize(8);
 
-    spectrogram->setAxisFont(0, axisFont);
-    spectrogram->setAxisFont(1, axisFont);
-    spectrogram->setAxisFont(2, axisFont);
+    titleFont = QFont();
+    titleFont.setPixelSize(qwSettings.title_font_size);
+    titleFont.setBold(true);
+
+    axisLabelFont = QFont();
+    axisLabelFont.setPixelSize(qwSettings.axis_label_font_size);
+    axisLabelFont.setBold(true);
+
+    axisTickFont = QFont();
+    axisTickFont.setPixelSize(qwSettings.axis_tick_font_size);
+    axisTickFont.setWeight(QFont::Medium);
+
+    spectrogram->setAxisFont(QwtPlot::yLeft, axisTickFont);
+    spectrogram->setAxisFont(QwtPlot::yRight, axisTickFont);
+    spectrogram->setAxisFont(QwtPlot::xBottom, axisTickFont);
+    spectrogram->setAxisFont(QwtPlot::xTop, axisTickFont);
+
+    if (QwtScaleWidget* rightAxis = spectrogram->axisWidget(QwtPlot::yRight)) {
+        QwtText zTitle(QStringLiteral("Intensity"));
+        zTitle.setFont(axisLabelFont);
+        rightAxis->setTitle(zTitle);
+    }
+    if (QwtScaleWidget* leftAxis = spectrogram->axisWidget(QwtPlot::yLeft)) {
+        const QFontMetrics fm(leftAxis->font());
+        if (QwtScaleDraw* sd = spectrogram->axisScaleDraw(QwtPlot::yLeft)) {
+            sd->setMinimumExtent(fm.horizontalAdvance(QStringLiteral("100.00")));
+        }
+    }
+
+    title(key.c_str());
 
     makeMarkersVisible(true);
    // lastXselected = 0.0; lastYselected = 0.0;  
@@ -1545,6 +1572,13 @@ void QSpectrogramPlot::setupUi() {
     horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
    // toolBar->addItem(horizontalSpacer);
+    toolBar->setIconSize(toolBar->iconSize() * 1.5);
+    for (QToolButton* tb : toolBar->findChildren<QToolButton*>()) {
+        tb->setIconSize(toolBar->iconSize());
+        QFont tf = tb->font();
+        tf.setPointSizeF(tf.pointSizeF() * 1.5);
+        tb->setFont(tf);
+    }
     verticalLayout->addWidget(toolBar);
     btnSpectrogram->setChecked(true);
     btnContour->setChecked(false);
@@ -1573,7 +1607,7 @@ void QSpectrogramPlot::retranslateUi() {
 
 void QSpectrogramPlot::title(const std::string& s) {
     sTitle = s;
-    QwtText title(s.c_str());
+    QwtText title(QString::fromUtf8(s.c_str()));
     title.setFont(titleFont);
     spectrogram->setTitle(title);
     JustAplot::title(s);
@@ -1597,20 +1631,20 @@ bool QSpectrogramPlot::havePointsInfo() const {
 }
 
 void QSpectrogramPlot::footer(const std::string& s) {
-    QwtText foo(s.c_str());
-    foo.setFont(axisFont);
+    QwtText foo(QString::fromUtf8(s.c_str()));
+    foo.setFont(axisTickFont);
     spectrogram->setFooter(foo);
 }
 
 void QSpectrogramPlot::xlabel(const std::string& s) {
-    QwtText title(s.c_str());
-    title.setFont(axisFont);
+    QwtText title(QString::fromUtf8(s.c_str()));
+    title.setFont(axisLabelFont);
     spectrogram->setAxisTitle(spectrogram->xBottom, title);
 }
 
 void QSpectrogramPlot::ylabel(const std::string& s) {
-    QwtText title(s.c_str());
-    title.setFont(axisFont);
+    QwtText title(QString::fromUtf8(s.c_str()));
+    title.setFont(axisLabelFont);
     spectrogram->setAxisTitle(spectrogram->yLeft, title);
 }
 

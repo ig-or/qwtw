@@ -23,6 +23,7 @@
 #include <qwt_plot_curve.h>
 #include <qwt_plot_marker.h>
 #include <qwt_legend.h>
+#include <qwt_graphic.h>
 #include <qwt_text.h>
 #include <qwt_picker_machine.h>
 #include <qwt_scale_engine.h>
@@ -35,6 +36,7 @@
 #include <QPushButton>
 #include <QToolButton>
 #include <QColorDialog>
+#include <QPainter>
 
 #include "xmatrix2.h"
 #include "sfigure.h"
@@ -42,7 +44,63 @@
 #include "xmutils.h"
 #include "sqwlinetree.h"
 #include "line.h"
+#include <algorithm>
 #include <sstream>
+
+namespace {
+
+/**
+ * QwtPlotCurve subclass that renders a high-contrast, canvas-matched legend swatch
+ * so even 1px or dark-colored ('k', 'b') lines and symbols remain clearly visible
+ * in both dark-mode and light-mode window themes.
+ */
+class FSPlotCurve : public QwtPlotCurve {
+public:
+	explicit FSPlotCurve(const QwtText& title) : QwtPlotCurve(title) {}
+
+	QwtGraphic legendIcon(int index, const QSizeF& size) const override {
+		Q_UNUSED(index);
+		if (size.isEmpty()) {
+			return QwtGraphic();
+		}
+
+		QwtGraphic graphic;
+		graphic.setDefaultSize(size);
+		graphic.setRenderHint(QwtGraphic::RenderPensUnscaled, true);
+
+		QPainter painter(&graphic);
+		painter.setRenderHint(QPainter::Antialiasing, true);
+
+		const QRectF chipRect(0.5, 0.5, size.width() - 1.0, size.height() - 1.0);
+		painter.setPen(QPen(QColor(175, 180, 188), 1.0));
+		painter.setBrush(QColor(250, 250, 252));
+		painter.drawRoundedRect(chipRect, 3.0, 3.0);
+
+		if (testLegendAttribute(QwtPlotCurve::LegendShowLine) && style() != QwtPlotCurve::NoCurve) {
+			QPen pn = pen();
+			pn.setWidthF(std::clamp(pn.widthF(), 2.5, 5.0));
+			pn.setCapStyle(Qt::FlatCap);
+			painter.setPen(pn);
+			const double midY = 0.5 * size.height();
+			painter.drawLine(QPointF(4.0, midY), QPointF(size.width() - 4.0, midY));
+		}
+
+		if (testLegendAttribute(QwtPlotCurve::LegendShowSymbol) && symbol() &&
+		    symbol()->style() != QwtSymbol::NoSymbol) {
+			const double symSide = std::min(size.height() - 4.0, size.width() - 8.0);
+			const QRectF symRect(
+				0.5 * (size.width() - symSide),
+				0.5 * (size.height() - symSide),
+				symSide,
+				symSide);
+			symbol()->drawSymbol(&painter, symRect);
+		}
+
+		return graphic;
+	}
+};
+
+} // namespace
 
 int xmprintf(int level, const char* _Format, ...);
 
@@ -92,12 +150,18 @@ QPointF FSPicker::transform1(	const QPoint & 	pos	 ) 	 const {
 	return ret;
 }
 
-QwtText 	FSPicker::trackerTextF(const QPointF& pos) const {
-	QString text;
+QwtText FSPicker::trackerTextF(const QPointF& pos) const {
 	int dn = qwSettings.pickerDigitsNumber;
-	text = QString::number(pos.x(), 'f', dn)	+ ", " + QString::number(pos.y(), 'f', dn);
+	QString s = QString::number(pos.x(), 'f', dn) + ", " + QString::number(pos.y(), 'f', dn);
 
-	return QwtText(text);
+	QwtText text(s);
+	QFont tf;
+	tf.setPixelSize(qwSettings.axis_tick_font_size);
+	tf.setBold(true);
+	text.setFont(tf);
+	text.setColor(QColor(20, 25, 45));
+	text.setBackgroundBrush(QBrush(QColor(255, 255, 255, 215)));
+	return text;
 }
 
 
@@ -135,7 +199,11 @@ FSPlot::FSPlot(QWidget *parent, unsigned int flags_) : QwtPlot(parent), squareAx
 		setAxisScaleEngine(QwtPlot::yLeft, new QwtLinearScaleEngine);
 	}
 
-	legend.setFrameStyle(QFrame::Box|QFrame::Sunken);
+	legend.setFrameStyle(QFrame::Box | QFrame::Sunken);
+	if (legend.contentsWidget() && legend.contentsWidget()->layout()) {
+		legend.contentsWidget()->layout()->setSpacing(12);
+		legend.contentsWidget()->layout()->setContentsMargins(8, 4, 8, 4);
+	}
 	insertLegend(&legend, QwtPlot::TopLegend);
 
 	//m_rescaler = new QwtPlotRescaler( canvas(), QwtPlot::xBottom, QwtPlotRescaler::Fixed );
@@ -288,17 +356,35 @@ Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent, unsign
 
 //	setCentralWidget(plot1);
 	
-	title(key.c_str());
-
 	setFocusPolicy(Qt::StrongFocus);
-	titleFont.setBold(false); titleFont.setPointSize(10);
-	axisFont.setBold(false); axisFont.setPointSize(8);
 
-	plot1->setAxisFont(0, axisFont);
-	plot1->setAxisFont(1, axisFont);
-	plot1->setAxisFont(2, axisFont);
+	titleFont = QFont();
+	titleFont.setPixelSize(qwSettings.title_font_size);
+	titleFont.setBold(true);
 
-	plot1->legend.setFont(axisFont);
+	axisLabelFont = QFont();
+	axisLabelFont.setPixelSize(qwSettings.axis_label_font_size);
+	axisLabelFont.setBold(true);
+
+	axisTickFont = QFont();
+	axisTickFont.setPixelSize(qwSettings.axis_tick_font_size);
+	axisTickFont.setWeight(QFont::Medium);
+
+	legendFont = QFont();
+	legendFont.setPixelSize(qwSettings.legend_font_size);
+	legendFont.setWeight(QFont::DemiBold);
+
+	plot1->setAxisFont(QwtPlot::yLeft, axisTickFont);
+	plot1->setAxisFont(QwtPlot::yRight, axisTickFont);
+	plot1->setAxisFont(QwtPlot::xBottom, axisTickFont);
+	plot1->setAxisFont(QwtPlot::xTop, axisTickFont);
+
+	plot1->legend.setFont(legendFont);
+	if (plot1->legend.contentsWidget()) {
+		plot1->legend.contentsWidget()->setFont(legendFont);
+	}
+
+	title(key.c_str());
 
 	vLineMarker.setLabelAlignment(Qt::AlignLeft | Qt::AlignBottom);
 	vLineMarker.setLabelOrientation(Qt::Vertical);
@@ -510,31 +596,30 @@ void Figure2::setTBState() {
 void Figure2::title(const std::string& s) {
 	sTitle = s;
 
-	QwtText title(s.c_str());
+	QwtText title(QString::fromUtf8(s.c_str()));
 	title.setFont(titleFont);
 	plot1->setTitle(title);
 
 	JustAplot::title(s);
 
 	zoomer->zoom(0);
-	//plot1->setFooter(s.c_str());
 }
 void Figure2::footer(const std::string& s) {
-	QwtText foo(s.c_str());
-	foo.setFont(axisFont);
+	QwtText foo(QString::fromUtf8(s.c_str()));
+	foo.setFont(axisTickFont);
 
 	plot1->setFooter(foo);
 }
 
 void Figure2::xlabel(const std::string& s) {
-	QwtText title(s.c_str());
-	title.setFont(axisFont);
+	QwtText title(QString::fromUtf8(s.c_str()));
+	title.setFont(axisLabelFont);
 	plot1->setAxisTitle(plot1->xBottom, title);
 }
 
 void Figure2::ylabel(const std::string& s) {
-	QwtText title(s.c_str());
-	title.setFont(axisFont);
+	QwtText title(QString::fromUtf8(s.c_str()));
+	title.setFont(axisLabelFont);
 	plot1->setAxisTitle(plot1->yLeft, title);
 }
  
@@ -542,7 +627,10 @@ void Figure2::addLine(LineItemInfo* line) {
 	const bool doReplot = plot1->autoReplot();
 	plot1->setAutoReplot(false);
 	JustAplot::addLine(line);
-	QwtPlotCurve* cl = new QwtPlotCurve(line->legend.c_str());
+
+	QwtText curveTitle(QString::fromUtf8(line->legend.c_str()));
+	curveTitle.setFont(legendFont);
+	QwtPlotCurve* cl = new FSPlotCurve(curveTitle);
 	FigureItem* xd = new FigureItem(line, cl);
 
 	if (xd->info->mode != 0) {
@@ -560,7 +648,7 @@ void Figure2::addLine(LineItemInfo* line) {
 	
 	QPen pen;
 	cl->setStyle(QwtPlotCurve::Lines);
-	cl->setTitle(line->legend.c_str());
+	cl->setTitle(curveTitle);
 	pen.setColor(QColor(Qt::darkBlue));
 	pen.setWidth(line->lineWidth);
 	
@@ -630,16 +718,18 @@ void Figure2::addLine(LineItemInfo* line) {
 	}
 
 	cl->setCurveFitter(NULL);
+	const bool hasCurveLine = (cl->style() != QwtPlotCurve::NoCurve);
 	if (sym->style() == QwtSymbol::NoSymbol) {
-		//cl->setSymbol(0);
 		delete sym; //   we do not need it anymore
-		cl->setLegendAttribute(QwtPlotCurve::LegendShowLine);
-		
+		cl->setLegendAttribute(QwtPlotCurve::LegendShowLine, true);
 	} else {
 		cl->setSymbol(sym); //    "cl" will delete it itself later
-		cl->setLegendAttribute(QwtPlotCurve::LegendShowSymbol);
-		//QwtSymbol* sym1 = new QwtSymbol(sym);
-		//cl->setSymbol(sym1);
+		cl->setLegendAttribute(QwtPlotCurve::LegendShowLine, hasCurveLine);
+		cl->setLegendAttribute(QwtPlotCurve::LegendShowSymbol, true);
+	}
+	cl->setLegendIconSize(QSize(36, 20));
+	if (line->size <= 50000) {
+		cl->setRenderHint(QwtPlotItem::RenderAntialiased, true);
 	}
 
 /*
@@ -881,6 +971,13 @@ void Figure2::setupUi()     {
 	horizontalSpacer = new QSpacerItem(244, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
 
 	horizontalLayout->addItem(horizontalSpacer);
+	for (QToolButton* tb : top_frame->findChildren<QToolButton*>()) {
+		tb->setIconSize(tb->iconSize() * 1.5);
+		QFont tf = tb->font();
+		tf.setPointSizeF(tf.pointSizeF() * 1.5);
+		tb->setFont(tf);
+	}
+	top_frame->setMinimumSize(QSize(0, 48));
 	verticalLayout->addWidget(top_frame);
 
 	plot1 = new FSPlot(this, flags);

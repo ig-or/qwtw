@@ -267,16 +267,22 @@ bool SHMTest::connectChannels() {
 	return true;
 }
 
+bool SHMTest::ensureConnected() {
+	if (status == 0 && cmdStream_.valid()) {
+		return true;
+	}
+	//status == 2 means the IPC socket dropped because qwproc exited externally
+	if (status == 2) {
+		xmprintf(2, "SHMTest::ensureConnected(): qwproc socket closed; respawning/reconnecting...\n");
+		return testInit(xmPrintLevel) == 0;
+	}
+	return false;
+}
+
 bool SHMTest::sendTransaction(
 	qwipc::CmdRequest& req,
 	const std::vector<PayloadChunk>& chunks,
 	qwipc::CmdReply& rep) {
-	std::lock_guard<std::mutex> lock(ioMutex_);
-	if (!cmdStream_.valid()) {
-		status = 2;
-		return false;
-	}
-
 	uint64_t totalBytes = 0;
 	for (const auto& chunk : chunks) {
 		if (chunk.first != nullptr && chunk.second > 0) {
@@ -286,28 +292,47 @@ bool SHMTest::sendTransaction(
 	req.magic = qwipc::kCmdMagic;
 	req.payloadBytes = totalBytes;
 
-	if (!cmdStream_.writeAll(&req, sizeof(req))) {
-		cmdStream_.close();
-		status = 2;
-		return false;
-	}
-
-	for (const auto& chunk : chunks) {
-		if (chunk.first != nullptr && chunk.second > 0) {
-			if (!cmdStream_.writeAll(chunk.first, chunk.second * sizeof(double))) {
-				cmdStream_.close();
-				status = 2;
-				return false;
+	auto tryOnce = [&]() -> bool {
+		std::lock_guard<std::mutex> lock(ioMutex_);
+		if (!cmdStream_.valid()) {
+			status = 2;
+			return false;
+		}
+		if (!cmdStream_.writeAll(&req, sizeof(req))) {
+			cmdStream_.close();
+			status = 2;
+			return false;
+		}
+		for (const auto& chunk : chunks) {
+			if (chunk.first != nullptr && chunk.second > 0) {
+				if (!cmdStream_.writeAll(chunk.first, chunk.second * sizeof(double))) {
+					cmdStream_.close();
+					status = 2;
+					return false;
+				}
 			}
 		}
+		if (!cmdStream_.readAll(&rep, sizeof(rep)) || rep.magic != qwipc::kReplyMagic) {
+			cmdStream_.close();
+			status = 2;
+			return false;
+		}
+		return true;
+	};
+
+	if (tryOnce()) {
+		return true;
 	}
 
-	if (!cmdStream_.readAll(&rep, sizeof(rep)) || rep.magic != qwipc::kReplyMagic) {
-		cmdStream_.close();
-		status = 2;
-		return false;
+	// If qwproc exited or was restarted externally while this client was loaded
+	// (and this isn't an exit command itself), transparently respawn/reconnect once.
+	if (req.cmd != CmdHeader::exit && status != 4) {
+		xmprintf(2, "SHMTest::sendTransaction: IPC disconnected; attempting auto-reconnect...\n");
+		if (testInit(xmPrintLevel) == 0 && tryOnce()) {
+			return true;
+		}
 	}
-	return true;
+	return false;
 }
 
 int SHMTest::startProc(int level) {
@@ -483,7 +508,7 @@ void SHMTest::setCBTest2(CBTest_2 cb) {
 }
 
 int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text, int test) {
-	if (status != 0) {
+	if (!ensureConnected()) {
 		return 0;
 	}
 	qwipc::CmdRequest req{};
@@ -500,7 +525,7 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, const char* text, int test) {
 }
 
 int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
-	if (status != 0) {
+	if (!ensureConnected()) {
 		return 0;
 	}
 	qwipc::CmdRequest req{};
@@ -515,27 +540,27 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 }
 
 int SHMTest::qwtmap(int n) {
-	if (status != 0) return 0;
+	if (!ensureConnected()) return 0;
 	return sendCommand(CmdHeader::qMap, n);
 }
 
 int SHMTest::qwtservice(int x) {
-	if (status != 0) return 0;
+	if (!ensureConnected()) return 0;
 	return sendCommand(CmdHeader::qService, x);
 }
 
 int SHMTest::qwtfigure(int n, unsigned int flags) {
-	if (status != 0) return 0;
+	if (!ensureConnected()) return 0;
 	return sendCommand(CmdHeader::qFigure, n, flags);
 }
 
 int SHMTest::qwtspectrogram(int n, unsigned int flags) {
-	if (status != 0) return 0;
+	if (!ensureConnected()) return 0;
 	return sendCommand(CmdHeader::qSpectrogram, n, flags);
 }
 
 int SHMTest::spectrogram_info(const SpectrogramInfo& info) {
-	if (status != 0) return 0;
+	if (!ensureConnected()) return 0;
 	if (info.nx <= 0 || info.ny <= 0 || info.z == nullptr) {
 		return -1;
 	}
@@ -574,37 +599,37 @@ int SHMTest::spectrogram_info(const SpectrogramInfo& info) {
 }
 
 void SHMTest::qwtClipGroup(int gr) {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qSetClipGroup, gr);
 }
 
 void SHMTest::qwtsetimpstatus(int impStatus) {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qImpStatus, impStatus);
 }
 
 void SHMTest::qwtshowmw() {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qMW);
 }
 
 void SHMTest::qwttitle(const char* s) {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qTitle, s);
 }
 
 void SHMTest::qwtxlabel(const char* s) {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qXlabel, s);
 }
 
 void SHMTest::qwtylabel(const char* s) {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qYlabel, s);
 }
 
 void SHMTest::qwtclear() {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qClear);
 }
 
@@ -615,7 +640,7 @@ void SHMTest::qsetloglevel(int level) {
 
 #ifdef ENABLE_UDP_SYNC
 void SHMTest::qwtEnableCoordBroadcast(double* x, double* y, double* z, double* time, int size) {
-	if (status != 0 || size <= 0 || !x || !y || !z || !time) return;
+	if (!ensureConnected() || size <= 0 || !x || !y || !z || !time) return;
 	size_t n = static_cast<size_t>(size);
 	qwipc::CmdRequest req{};
 	req.cmd = CmdHeader::qEnableBC;
@@ -627,7 +652,7 @@ void SHMTest::qwtEnableCoordBroadcast(double* x, double* y, double* z, double* t
 }
 
 void SHMTest::qwtDisableCoordBroadcast() {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qDisableBC);
 }
 #endif
@@ -639,7 +664,7 @@ int SHMTest::qwtplot(double* x, double* y, int size, const char* name, const cha
 
 int SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const char* style,
 	int lineWidth, int symSize, double* time) {
-	if (status != 0) return -7;
+	if (!ensureConnected()) return -7;
 	if (size <= 0 || x == nullptr || y == nullptr) return -8;
 
 	size_t n = static_cast<size_t>(size);
@@ -675,17 +700,17 @@ int SHMTest::qwtplot2(double* x, double* y, int size, const char* name, const ch
 }
 
 void SHMTest::qwtremove(int id) {
-	if (status != 0) return;
+	if (!ensureConnected()) return;
 	sendCommand(CmdHeader::qRemoveLine, id);
 }
 
 int SHMTest::qwtsave_png(int id, char* filename) {
-	if (status != 0) return -7;
+	if (!ensureConnected()) return -7;
 	return sendCommand(CmdHeader::qSavePng, filename, id);
 }
 
 int SHMTest::qwtsetpos(int key, QWndPos& pos) {
-	if (status != 0) return -7;
+	if (!ensureConnected()) return -7;
 
 	qwipc::CmdRequest req{};
 	req.cmd = CmdHeader::qSetPos;
@@ -710,7 +735,7 @@ int SHMTest::qwtsetpos(int key, QWndPos& pos) {
 }
 
 int SHMTest::qwtchange(int id, double* x, double* y, double* z, double* time, int size) {
-	if (status != 0) return -7;
+	if (!ensureConnected()) return -7;
 	if (size <= 0 || x == nullptr || y == nullptr) return -8;
 
 	size_t n = static_cast<size_t>(size);
@@ -742,12 +767,12 @@ int SHMTest::qwtchange(int id, double* x, double* y, double* z, double* time, in
 
 #ifdef USEMATHGL
 int SHMTest::qwtmgl(int n) {
-	if (status != 0) return 0;
+	if (!ensureConnected()) return 0;
 	return sendCommand(CmdHeader::qMglPlot, n);
 }
 
 void SHMTest::qwtmgl_line(int size, double* x, double* y, double* z, const char* name, const char* style) {
-	if (status != 0 || size <= 0 || !x || !y || !z) return;
+	if (!ensureConnected() || size <= 0 || !x || !y || !z) return;
 	size_t n = static_cast<size_t>(size);
 
 	qwipc::CmdRequest req{};
@@ -766,7 +791,7 @@ void SHMTest::qwtmgl_line(int size, double* x, double* y, double* z, const char*
 }
 
 void SHMTest::qwtmgl_mesh(const MeshInfo& info) {
-	if (status != 0 || info.xSize <= 0 || info.ySize <= 0 || !info.data) return;
+	if (!ensureConnected() || info.xSize <= 0 || info.ySize <= 0 || !info.data) return;
 	size_t n = static_cast<size_t>(info.xSize) * static_cast<size_t>(info.ySize);
 
 	qwipc::CmdRequest req{};

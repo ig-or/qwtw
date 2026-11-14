@@ -557,8 +557,10 @@ JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 		gn->setBackground(br);
 		gn->setForeground(jColors[cf->clipGroup % 5]);
 
-		QFont serifFont("Times", 12, QFont::Bold);
-		gn->setFont(serifFont);
+		QFont groupFont;
+		groupFont.setPointSize(12);
+		groupFont.setBold(true);
+		gn->setFont(groupFont);
 		i0->appendRow(raw);
 	}
 	xmprintf(5, "XQPlots::figure finish \n");

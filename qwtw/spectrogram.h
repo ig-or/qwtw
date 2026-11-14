@@ -151,7 +151,7 @@ protected:
 
 	std::string sTitle;
 
-	QFont titleFont, axisFont;
+	QFont titleFont, axisLabelFont, axisTickFont;
 	std::list<AMarker*> amList;
 
 	void closeEvent(QCloseEvent* event);
