@@ -160,6 +160,14 @@ void FSPlot::setAxisSquare(bool square) {
 	}
 }
 
+static inline double smTransformCoord(const QwtScaleMap& sm, double v) {
+	return sm.transformation() ? sm.transformation()->transform(v) : v;
+}
+
+static inline double smInvTransformCoord(const QwtScaleMap& sm, double tv) {
+	return sm.transformation() ? sm.transformation()->invTransform(tv) : tv;
+}
+
 void FSPlot::doSquareAxis() {
 	const bool doReplot = autoReplot();
 	setAutoReplot( false );
@@ -167,21 +175,30 @@ void FSPlot::doSquareAxis() {
 	QwtScaleMap smY = canvasMap(QwtPlot::yLeft);
 	QwtScaleMap smX = canvasMap(QwtPlot::xBottom);
 
-	double dxS = smX.sDist();
-	double dyS = smY.sDist();
+	const double tx1 = smTransformCoord(smX, smX.s1());
+	const double tx2 = smTransformCoord(smX, smX.s2());
+	const double ty1 = smTransformCoord(smY, smY.s1());
+	const double ty2 = smTransformCoord(smY, smY.s2());
+	const double tdx = fabs(tx2 - tx1);
+	const double tdy = fabs(ty2 - ty1);
 
-	double xScale = smX.pDist() / smX.sDist();
-	double yScale = smY.pDist() / smY.sDist();
+	if (tdx > 0.0 && tdy > 0.0 && smX.pDist() > 0.0 && smY.pDist() > 0.0) {
+		const double xScale = smX.pDist() / tdx;
+		const double yScale = smY.pDist() / tdy;
 
-
-	if (xScale < yScale) { //  change Y scale
-		double ysMiddle = (smY.s1() + smY.s2()) * 0.5;
-		double dy = (smY.pDist() / xScale) * 0.5;
-		setAxisScale(QwtPlot::yLeft,  ysMiddle - dy, ysMiddle + dy);
-	} else { //  change X scale
-		double xsMiddle = (smX.s1() + smX.s2()) * 0.5;
-		double dx = (smX.pDist() / yScale) * 0.5;
-		setAxisScale(QwtPlot::xBottom,  xsMiddle - dx, xsMiddle + dx);
+		if (xScale < yScale) { //  change Y scale
+			const double ysMiddle = (ty1 + ty2) * 0.5;
+			const double dy = (smY.pDist() / xScale) * 0.5;
+			setAxisScale(QwtPlot::yLeft,
+				smInvTransformCoord(smY, ysMiddle - dy),
+				smInvTransformCoord(smY, ysMiddle + dy));
+		} else { //  change X scale
+			const double xsMiddle = (tx1 + tx2) * 0.5;
+			const double dx = (smX.pDist() / yScale) * 0.5;
+			setAxisScale(QwtPlot::xBottom,
+				smInvTransformCoord(smX, xsMiddle - dx),
+				smInvTransformCoord(smX, xsMiddle + dx));
+		}
 	}
 
 	setAutoReplot( doReplot );
@@ -201,7 +218,7 @@ void  TestScaleEngine::autoScale( int maxNumSteps, double &x1, double &x2, doubl
 	QwtLinearScaleEngine::autoScale( maxNumSteps, x1, x2, stepSize );
 }
 
-Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent, unsigned int flags_) : JustAplot(key_, pf_, parent, jQWT) {
+Figure2::Figure2(const std::string& key_, XQPlots* pf_, QWidget * parent, unsigned int flags_, JPType type_) : JustAplot(key_, pf_, parent, type_) {
 	mouseMode = 0;
 	flags = flags_;
 	//cf = 0;
@@ -1333,16 +1350,17 @@ void Figure2::onPickerSignal(int x, int y) {
 	if(ok) {
 	   //pf->drawAllMarkers(t);		
 		CBPickerInfo cbi1;
-		cbi1.index = index;
-		strncpy(cbi1.label, mfi->info->legend.c_str(), cbi1.lSize);
+		cbi1.index = static_cast<int>(minIndex);
+		strncpy(cbi1.label, mfi->info->legend.c_str(), cbi1.lSize - 1);
+		cbi1.label[cbi1.lSize - 1] = '\0';
 		cbi1.lineID = mfi->info->id;
 		cbi1.plotID = iKey;
 		cbi1.time = t;
 		cbi1.type = 1;
-		cbi1.x = x;
-		cbi1.y = y;
-		cbi1.xx = xx;
-		cbi1.yy = yy;
+		cbi1.x = lastXselected;
+		cbi1.y = lastYselected;
+		cbi1.xx = x;
+		cbi1.yy = y;
 		cbi1.z = 0.0;
 		cbi1.flag = 1;   // only time info
 
@@ -1610,19 +1628,32 @@ void Zoomer::rescale() {
 			QwtScaleMap smY = plt->canvasMap(QwtPlot::yLeft);
 			QwtScaleMap smX = plt->canvasMap(QwtPlot::xBottom);
 
-			double xScale = smX.pDist() / fabs(x2 - x1);
-			double yScale = smY.pDist() / fabs(y2 - y1);
+			const double tx1 = smTransformCoord(smX, x1);
+			const double tx2 = smTransformCoord(smX, x2);
+			const double ty1 = smTransformCoord(smY, y1);
+			const double ty2 = smTransformCoord(smY, y2);
+			const double tdx = fabs(tx2 - tx1);
+			const double tdy = fabs(ty2 - ty1);
 
-			if (xScale < yScale) { //  change Y scale
-				double ysMiddle = (y1 + y2) * 0.5;
-				double dy = (smY.pDist() / xScale) * 0.5;
-				plt->setAxisScale(QwtPlot::yLeft,  ysMiddle - dy, ysMiddle + dy);
-				plt->setAxisScale(QwtPlot::xBottom,  x1, x2);
-			} else { //  change X scale
-				double xsMiddle = (x1 + x2) * 0.5;
-				double dx = (smX.pDist() / yScale) * 0.5;
-				plt->setAxisScale(QwtPlot::xBottom,  xsMiddle - dx, xsMiddle + dx);
-				plt->setAxisScale(QwtPlot::yLeft, y1, y2 );
+			if (tdx > 0.0 && tdy > 0.0 && smX.pDist() > 0.0 && smY.pDist() > 0.0) {
+				const double xScale = smX.pDist() / tdx;
+				const double yScale = smY.pDist() / tdy;
+
+				if (xScale < yScale) { //  change Y scale
+					const double ysMiddle = (ty1 + ty2) * 0.5;
+					const double dy = (smY.pDist() / xScale) * 0.5;
+					plt->setAxisScale(QwtPlot::yLeft,
+						smInvTransformCoord(smY, ysMiddle - dy),
+						smInvTransformCoord(smY, ysMiddle + dy));
+					plt->setAxisScale(QwtPlot::xBottom, x1, x2);
+				} else { //  change X scale
+					const double xsMiddle = (tx1 + tx2) * 0.5;
+					const double dx = (smX.pDist() / yScale) * 0.5;
+					plt->setAxisScale(QwtPlot::xBottom,
+						smInvTransformCoord(smX, xsMiddle - dx),
+						smInvTransformCoord(smX, xsMiddle + dx));
+					plt->setAxisScale(QwtPlot::yLeft, y1, y2);
+				}
 			}
 		}
 

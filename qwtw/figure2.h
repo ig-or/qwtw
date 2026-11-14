@@ -123,7 +123,7 @@ public:
 class Figure2 : public JustAplot {
 	Q_OBJECT
 public:
-	Figure2(const std::string& key_, XQPlots* pf_, QWidget *parent, unsigned int flags_ = 0);
+	Figure2(const std::string& key_, XQPlots* pf_, QWidget *parent, unsigned int flags_ = 0, JPType type_ = jQWT);
 	~Figure2();
 
 	virtual void title(const std::string& s);
@@ -215,10 +215,12 @@ private:
 	double lastXselected, lastYselected;
 	bool pointWasSelected;
 
+protected slots:
+	virtual void onResetLayout();
+
 private slots:
 	void ontb1(bool checked );
 	void onClip(bool checked);
-	void onResetLayout();
 
 	void ontb2(bool checked );
 	void ontb3(bool checked );

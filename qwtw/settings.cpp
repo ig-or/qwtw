@@ -19,6 +19,7 @@ QWSettings::QWSettings() {
 	udp_server_port = 49562;
 	udp_client_port = 49561;
 	smip.assign("239.255.0.1");
+	map_tile_url.assign("https://tile.openstreetmap.org/{z}/{x}/{y}.png");
 }
 
 int QWSettings::qwSave() {
@@ -44,6 +45,7 @@ int QWSettings::qwSave() {
 	root.insert("udp_server_port", udp_server_port);
 	root.insert("udp_client_port", udp_client_port);
 	root.insert("smip", QString::fromStdString(smip));
+	root.insert("map_tile_url", QString::fromStdString(map_tile_url));
 
 	QFile file(QString::fromStdString(sf.string()));
 	if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -116,6 +118,13 @@ int QWSettings::qwLoad() {
 		smip = smipIt->toString().toStdString();
 	} else {
 		smip = "239.255.0.1";
+	}
+
+	auto tileIt = root.find(QLatin1String("map_tile_url"));
+	if (tileIt != root.end() && tileIt->isString() && !tileIt->toString().trimmed().isEmpty()) {
+		map_tile_url = tileIt->toString().trimmed().toStdString();
+	} else {
+		map_tile_url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 	}
 
 	xmprintf(9, "QWSettings::qwLoad() file loaded\n");

@@ -16,11 +16,7 @@ struct SHMTest {
 	SHMTest();
 	~SHMTest();
 
-#ifdef USEMARBLE
-	int testInit(const std::string& mdp, const std::string& mpp, int level = 0);
-#else
 	int testInit(int level = 0);
-#endif
 	int qwtfigure(int n, unsigned int flags);
 	int qwtspectrogram(int n, unsigned int flags);
 	int spectrogram_info(const SpectrogramInfo& info);
@@ -33,9 +29,7 @@ struct SHMTest {
 	void qwtxlabel(const char* s);
 	void qwtylabel(const char* s);
 	void qwtclear();
-#ifdef USEMARBLE
 	int qwtmap(int n);
-#endif
 	int qwtservice(int x);
 #ifdef USEMATHGL
 	int qwtmgl(int n);
@@ -79,11 +73,7 @@ private:
 	bool connectChannels();
 	void cbThreadF();
 
-#ifdef USEMARBLE
-	int startProc(const std::string& mdp, const std::string& mpp, int level);
-#else
 	int startProc(int level);
-#endif
 
 	std::mutex ioMutex_;
 	qwipc::Stream cmdStream_;

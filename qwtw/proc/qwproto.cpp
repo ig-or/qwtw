@@ -312,11 +312,9 @@ void QProcInterface::executeCommand(
 			break;
 		}
 
-#ifdef USEMARBLE
 		case CmdHeader::qMap:
 			rep.test = worker.mapview(req.test);
 			break;
-#endif
 
 #ifdef USEMATHGL
 		case CmdHeader::qMglPlot:

@@ -299,10 +299,9 @@ def spectrogram_data(
 
 
 def map(n: int | None = 0) -> int:
-    """Create or activate a Marble map figure (requires -DUSE_MARBLE=ON build)."""
+    """Create or activate an OpenStreetMap slippy-map figure."""
     lib = _ensure_started()
     if not hasattr(lib, "qwtmap"):
-        print("Warning: Marble map support (USE_MARBLE) is not enabled in this build; skipping map().")
         return -1
     return int(lib.qwtmap(0 if n is None else int(n)))
 

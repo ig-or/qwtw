@@ -37,11 +37,6 @@
 	#include <unistd.h>
 #endif
 
-#ifdef USEMARBLE
-#include <marble/MarbleDebug.h>
-#include <marble/MarbleDirs.h>
-#endif
-
 static QPointer<QWorker> q2worker(nullptr);
 static FILE* logFile = 0;
 int xmPrintLevel = 1; // will printf messages with level <= than this
@@ -54,19 +49,11 @@ struct CliOptions {
 	std::optional<int> debug;
 	std::optional<int> print;
 	std::optional<int> second;
-#ifdef USEMARBLE
-	std::optional<std::string> marbleData;
-	std::optional<std::string> marblePlugins;
-#endif
 };
 
 void printUsage(std::ostream& os) {
 	os << " Valid arguments:\n"
 	   << "  --help                   This help message\n"
-#ifdef USEMARBLE
-	   << "  --marble_data <path>     path to the Marble data files\n"
-	   << "  --marble_plugins <path>  path to the Marble plugins\n"
-#endif
 	   << "  --debug <0..10>          debug level, 0 - minimum, 10 - maximum\n"
 	   << "  --print <0..10>          print level, 0 - minimum, 10 - maximum\n"
 	   << "  --second <int>           internal daemon flag\n";
@@ -131,22 +118,13 @@ bool parseCli(int argc, char** argv, CliOptions& opts) {
 				return false;
 			}
 			opts.second = parsed;
-		}
-#ifdef USEMARBLE
-		else if (key == "--marble_data") {
-			std::string val;
-			if (!nextVal(val)) {
+		} else if (key == "--marble_data" || key == "--marble_plugins") {
+			// Silently accept & ignore legacy Marble CLI options for backward compatibility
+			std::string ignored;
+			if (!nextVal(ignored)) {
 				return false;
 			}
-			opts.marbleData = val;
-		} else if (key == "--marble_plugins") {
-			std::string val;
-			if (!nextVal(val)) {
-				return false;
-			}
-			opts.marblePlugins = val;
 		}
-#endif
 		// Ignore Qt platform arguments (e.g. -platform offscreen) passed through to QApplication
 		else if (!key.empty() && key[0] == '-' && (key == "-platform" || key == "-style" || key == "-geometry")) {
 			if (eq == std::string::npos && i + 1 < argc) {
@@ -269,35 +247,6 @@ int main(int argc, char** argv) {
 		exit(EXIT_SUCCESS);
 	}
 
-#ifdef USEMARBLE
-	std::string mdp;
-	std::string mpp;
-	Marble::MarbleDebug::setEnabled(true);
-	if (opts.marbleData.has_value()) {
-		mdp = *opts.marbleData;
-		xmprintf(0, "\tsetting marble_data to [%s]\n", mdp.c_str());
-		Marble::MarbleDirs::setMarbleDataPath(QString::fromStdString(mdp));
-	} else {
-		xmprintf(0, "\tusing default marble_data\n");
-	}
-
-	if (opts.marblePlugins.has_value()) {
-		mpp = *opts.marblePlugins;
-		xmprintf(0, "\tsetting marble_plugins to [%s]\n", mpp.c_str());
-		Marble::MarbleDirs::setMarblePluginPath(QString::fromStdString(mpp));
-	} else {
-		xmprintf(0, "\tusing default marble_plugins\n");
-	}
-
-	if (debugLevel > 2) {
-		Marble::MarbleDebug::setEnabled(true);
-		Marble::MarbleDirs::debug();
-		xmprintf(0, "Marble debug enabled\n");
-	} else {
-		Marble::MarbleDebug::setEnabled(false);
-	}
-#endif
-
 	xmprintf(1, "main: starting\n");
 	std::string s1 = QLibraryInfo::path(QLibraryInfo::PluginsPath).toStdString();
 	std::string s2 = QLibraryInfo::path(QLibraryInfo::PrefixPath).toStdString();
@@ -324,11 +273,7 @@ int main(int argc, char** argv) {
 	xmprintf(2, "QT applicationDirPath = %s\n\n", s5.c_str());
 
 	app.setQuitOnLastWindowClosed(false);
-#ifdef USEMARBLE
-	QWorker qWorker(mdp, mpp);
-#else
 	QWorker qWorker;
-#endif
 	qWorker.qtstart(false);
 	QProcInterface qpi(qWorker, app);
 	if (!qpi.start()) {

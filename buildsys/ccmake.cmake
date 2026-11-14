@@ -7,7 +7,6 @@
 # Windows support preserved but not actively tested in this pass.
 #
 # Variables consumed by these macros:
-#   NEED_BOOST        - list of Boost component names the project needs
 #   NO_VERSION_INFO   - set to skip build-info / version embedding
 #
 # Macros provided (call order):
@@ -78,54 +77,6 @@ function(my_add_subdirectory _dir)
         message(WARNING "my_add_subdirectory: Can't find ${_fullpath}/CMakeLists.txt")
     endif()
 endfunction()
-
-# ---------------------------------------------------------------------------
-# Boost
-# ---------------------------------------------------------------------------
-macro(addBoost)
-    set(Boost_USE_STATIC_LIBS OFF)
-    set(Boost_USE_MULTITHREADED ON)
-    set(Boost_NO_WARN_NEW_VERSIONS ON)
-
-    if(DEFINED ENV{BOOST_ROOT})
-        set(BOOST_ROOT $ENV{BOOST_ROOT})
-    endif()
-    if(DEFINED ENV{BOOST_LIBRARYDIR})
-        set(BOOST_LIBRARYDIR $ENV{BOOST_LIBRARYDIR})
-    endif()
-
-    add_definitions(-DBOOST_ALL_DYN_LINK -DUSING_BOOST_LIBRARY)
-
-    # Filter out 'system' - it's header-only since Boost 1.69
-    set(_boost_components ${ARGN})
-    list(REMOVE_ITEM _boost_components "system")
-    message(STATUS "[${PROJECT_NAME}]: adding Boost components: ${_boost_components}")
-
-    if(NOT OUR_BOOST_COMPONENTS_LIST)
-        set(OUR_BOOST_COMPONENTS_LIST ${_boost_components})
-        find_package(Boost REQUIRED COMPONENTS ${OUR_BOOST_COMPONENTS_LIST})
-        set(OUR_BOOST_LIBRARIES_LIST ${Boost_LIBRARIES})
-        set(OUR_BOOST_INCLUDE_LIST ${Boost_INCLUDE_DIRS})
-    else()
-        set(tmplist1 ${ARGN})
-        sub_list(tmplist1 OUR_BOOST_COMPONENTS_LIST)
-        if(tmplist1)
-            message(STATUS "[${PROJECT_NAME}]: new Boost components: ${tmplist1}")
-            set(OUR_BOOST_COMPONENTS_LIST ${OUR_BOOST_COMPONENTS_LIST} PARENT_SCOPE)
-            find_package(Boost REQUIRED COMPONENTS ${tmplist1})
-            list(APPEND OUR_BOOST_INCLUDE_LIST ${Boost_INCLUDE_DIRS})
-            list(APPEND OUR_BOOST_LIBRARIES_LIST ${Boost_LIBRARIES})
-            list(REMOVE_DUPLICATES OUR_BOOST_INCLUDE_LIST)
-            list(REMOVE_DUPLICATES OUR_BOOST_LIBRARIES_LIST)
-            set(OUR_BOOST_INCLUDE_LIST ${OUR_BOOST_INCLUDE_LIST} PARENT_SCOPE)
-            set(OUR_BOOST_LIBRARIES_LIST ${OUR_BOOST_LIBRARIES_LIST} PARENT_SCOPE)
-        endif()
-    endif()
-
-    list(APPEND INC_DIR_LIST ${OUR_BOOST_INCLUDE_LIST})
-    list(APPEND ${L_LIST} ${OUR_BOOST_LIBRARIES_LIST})
-    message(STATUS "[${PROJECT_NAME}]: Boost done: ${OUR_BOOST_COMPONENTS_LIST}")
-endmacro()
 
 # ---------------------------------------------------------------------------
 # Qt6
@@ -639,10 +590,6 @@ macro(commonEnd libType)
     # --- post-target setup ---
     if(NOT NO_VERSION_INFO)
         addBuildNumber()
-    endif()
-
-    if(NEED_BOOST)
-        addBoost(${NEED_BOOST})
     endif()
 
     include_directories(${INC_DIR_LIST})

@@ -32,29 +32,19 @@ typedef  void (*CBTest_2)(int);
 */
 qwtwc_API 	int get42(int n);
 
-/** starting  QT proc, if not started yet.
+/** starting QT proc (`qwproc`), if not started yet.
  * 	return 0 if all is OK, 
  *  not 0 means nothing is working.
- * 
- * \param mdp path to the marble data files; If "0" than not used
- * \param mpp path to the marble plugin files; If "0" than not used
  **/ 
-#ifdef USEMARBLE
-qwtwc_API	int qtstart(const char* mdp, const char* mpp);
+qwtwc_API	int qtstart();
 
-/** starting  QT proc, if not started yet.
+/** starting QT proc (`qwproc`) with verbose debug logging.
  * 	return 0 if all is OK, 
  *  not 0 means nothing is working.
  * 
- * \param mdp path to the marble data files; If "0" than not used
- * \param mpp path to the marble plugin files; If "0" than not used
  * \param level debug level from 0 to 10; 10 is the biggest.
  **/ 
-qwtwc_API	int qtstart_debug(const char* mdp, const char* mpp, int level);
-#else
-qwtwc_API	int qtstart();
 qwtwc_API	int qtstart_debug(int level);
-#endif
 
 ///  probably this is not working
 qwtwc_API   void setcallback(OnPCallback pCallback);
@@ -122,13 +112,11 @@ useful in case some of the plots have another time range.
 qwtwc_API 	void qwtclipgroup(int gr);
 
 
-#ifdef USEMARBLE
-/**  create (and draw) new map plot with ID 'n'.
+/**  create (and draw) new OpenStreetMap slippy-map plot with ID 'n'.
 @param[in] n this plot ID
 @return ID of the created plot; this is useful when n == 0
 */
 qwtwc_API 	int qwtmap(int n);
-#endif
 #ifdef USE_QT3D
 qwtwc_API 	void qwtfigure3d(int n);
 #endif

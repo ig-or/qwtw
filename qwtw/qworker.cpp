@@ -15,21 +15,6 @@
 #ifdef WIN32
 #include "windows.h"
 #endif
-#ifdef USEMARBLE
-#include <marble/MarbleDirs.h>
-#endif
-
-#ifdef USEMARBLE
-QWorker::QWorker(const std::string& mdp, const std::string& mpp): pf(nullptr) {
-	mdPath = mdp;
-	mpPath = mpp;
-	qRegisterMetaType<SpectrogramInfo>();
-	qRegisterMetaType<CBPickerInfo>();
-	qRegisterMetaType<QWndPos>();
-	qRegisterMetaType<OnPickerCallback>();
-	qRegisterMetaType<OnClipCallbackFn>();
-}
-#else
 
 QWorker::QWorker(): pf(nullptr) {
 	qRegisterMetaType<SpectrogramInfo>();
@@ -38,7 +23,6 @@ QWorker::QWorker(): pf(nullptr) {
 	qRegisterMetaType<OnPickerCallback>();
 	qRegisterMetaType<OnClipCallbackFn>();
 }
-#endif
 void QWorker::onQtAppClosing() {
 	if (pf != nullptr) {
 		xm_printf("QWorker::onQtAppClosing()! \n \tdeleting 'pf'... \n");
@@ -73,7 +57,6 @@ void QWorker::qwtshowmw() {
 		std::cout << " cannot invoke qwtshowmwImpl" << std::endl;
 	}
 }
-#ifdef USEMARBLE
 int QWorker::mapview(int n) {
 	int rv = 0;
 	if (!QMetaObject::invokeMethod(this, "topviewImpl", Qt::BlockingQueuedConnection, Q_RETURN_ARG(int, rv), Q_ARG(int, n))) {
@@ -83,7 +66,6 @@ int QWorker::mapview(int n) {
 	}
 	return rv;
 }
-#endif
 
 #ifdef USEMATHGL
 int QWorker::mglPlot(int n) {
@@ -482,13 +464,11 @@ Q_INVOKABLE void QWorker::qwtshowmwImpl() {
 		pf->showMainWindow();
 	}
 }
-#ifdef USEMARBLE
 Q_INVOKABLE int QWorker::topviewImpl(int n) {
 	JustAplot* test = pf->figure(n, jMarble);
 	xmprintf(7, "QWorker::topviewImpl(): test = %d \n", (test == 0) ? 0 : test->iKey);
 	return (test == 0) ? 0 : test->iKey;
 }
-#endif
 
 int QWorker::qtstart(bool wait) {
 	int rv;

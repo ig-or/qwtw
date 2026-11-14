@@ -15,6 +15,7 @@ struct QWSettings {
 	int udp_server_port; ///< port number for UDP server. If UDP server is not working, try to change it in the config file.
 	int udp_client_port;  ///< port client for UDP server. If UDP client is not working, try to change it in the config file.
 	std::string smip;	///< multicast address
+	std::string map_tile_url; ///< slippy-map tile URL template (default: OpenStreetMap)
 
 
 	QWSettings();

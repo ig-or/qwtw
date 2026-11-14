@@ -201,13 +201,8 @@ void test(int n, const char* argv0) {
 	typedef void(*pQSimple3)(int, unsigned int);
 	typedef void(*pQSimple2)(const char*);
 	typedef int(*pVersion)(char*, int);
-#ifdef USEMARBLE
-	typedef int(*pQ2Start)(const char*, const char*);
-	typedef int(*pQ2StartDebug)(const char*, const char*, int);
-#else
 	typedef int(*pQ2Start)();
 	typedef int(*pQ2StartDebug)(int);
-#endif	
 	typedef void (*pPlot)(double*, double*, int, const char*, const char*, int, int);
 	typedef void (*pPlot2)(double*, double*, int, const char*, const char*, int, int, double*);
 
@@ -223,9 +218,7 @@ void test(int n, const char* argv0) {
 	pQ2Start q2Start = (pQ2Start)GetProcAddress(hQWTW_DLL, "qtstart");
 	pQ2StartDebug q2StartD = (pQ2StartDebug)GetProcAddress(hQWTW_DLL, "qtstart_debug");
 	pQSimple qSMW = (pQSimple)GetProcAddress(hQWTW_DLL, "qwtshowmw");
-	#ifdef USEMARBLE
 	pQSimple1 qTopView = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtmap");
-	#endif
 #ifdef USEMATHGL
 	pQSimple1 qMgl = (pQSimple1)GetProcAddress(hQWTW_DLL, "qwtmgl");
 	pMglLine qmglLine = (pMglLine)GetProcAddress(hQWTW_DLL, "qwtmgl_line");
@@ -245,9 +238,7 @@ void test(int n, const char* argv0) {
 	pQ2Start q2Start = (pQ2Start)dlsym(lib_handle, "qtstart");
 	pQ2StartDebug q2StartD = (pQ2StartDebug)dlsym(lib_handle, "qtstart_debug");
 	pQSimple qSMW = (pQSimple)dlsym(lib_handle, "qwtshowmw");
-	#ifdef USEMARBLE
 	pQSimple1 qTopView = (pQSimple1)dlsym(lib_handle, "qwtmap");
-	#endif
 
 #ifdef USEMATHGL
 	pQSimple1 qMgl = (pQSimple1)dlsym(lib_handle, "qwtmgl");
@@ -276,11 +267,7 @@ void test(int n, const char* argv0) {
 	
 	//std::this_thread::sleep_for(100ms);
 	printf("starting .. \n");
-	#ifdef USEMARBLE
-	int test0 = q2StartD("/usr/share/marble/data", "/usr/local/plugins", 10);
-	#else
 	int test0 = q2StartD(10);
-	#endif
 	std::cout << "test 0 = " << test0 << std::endl;
 
 
@@ -295,22 +282,22 @@ void test(int n, const char* argv0) {
 	//  open """main""" window
 	qSMW();
 
-	// --------   map view test: draw on a map  ---------------------
-#ifdef USEMARBLE
-	t4[0] = sinusTime_1[0]; 
-	t4[1] = sinusTime_1[int(n1 / 4.)];
-	t4[2] = sinusTime_1[int(n1 / 3.)];
-	t4[3] = sinusTime_1[int(n1 / 2.)];
-	qTopView(1);
-	qPlot2(east, north, mwn, "test mw", "-rb", 2, 8, t4);
-	qTitle("marble test");
+	// --------   map view test: draw on OpenStreetMap  ---------------------
+	if (qTopView != nullptr) {
+		t4[0] = sinusTime_1[0];
+		t4[1] = sinusTime_1[int(n1 / 4.)];
+		t4[2] = sinusTime_1[int(n1 / 3.)];
+		t4[3] = sinusTime_1[int(n1 / 2.)];
+		qTopView(1);
+		qPlot2(east, north, mwn, "test map", "-rb", 2, 8, t4);
+		qTitle("map test");
 
-	double north1[] = {65.688713, 65.698713, 65.678713, 65.60}; // coords in degrees
-	double east1[] = {27.901073, 28.111073, 28.005073, 27.9}; // coords in degrees
-	qTopView(278);
-	qPlot2(east1, north1, mwn, "test mw1", "-rb", 2, 8, t4);
-	qTitle("marble test 1");
-#endif
+		double north1[] = {65.688713, 65.698713, 65.678713, 65.60}; // coords in degrees
+		double east1[] = {27.901073, 28.111073, 28.005073, 27.9}; // coords in degrees
+		qTopView(278);
+		qPlot2(east1, north1, mwn, "test map 1", "-rb", 2, 8, t4);
+		qTitle("map test 1");
+	}
 	
 	// ------------- create first plot: ---------------------
 	qFigure(14, 0);	//  set up ID for current plot

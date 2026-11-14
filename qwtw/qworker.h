@@ -19,9 +19,7 @@ class QWorker : public QObject {
 	Q_INVOKABLE void helloImpl() { printf("I'm alive.\n"); }
 	Q_INVOKABLE int qtstartImpl();
 	Q_INVOKABLE void qwtshowmwImpl();
-#ifdef USEMARBLE
 	Q_INVOKABLE int topviewImpl(int n);
-#endif
 	Q_INVOKABLE int qwttitleImpl(const char* s);
 	Q_INVOKABLE int qwtplot2Impl(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize, double* time);
 #ifdef ENABLE_UDP_SYNC
@@ -62,11 +60,7 @@ public:
 	//std::condition_variable appV; ///< for waiting on QT app 
 
 	void hello();
-	#ifdef USEMARBLE
-	QWorker(const std::string& mdp, const std::string& mpp);
-	#else
-	QWorker(); //{  }
-	#endif
+	QWorker();
 	~QWorker();
 	int qVersion(char* vstr, int vstr_size);
 	int qtstart(bool wait);
@@ -93,9 +87,7 @@ public:
 	int qwtplot(double* x, double* y, int size, const char* name, const char* style, int lineWidth, int symSize);
 	//void appMutexLock
 
-#ifdef USEMARBLE
 	int mapview(int n);
-#endif
 #ifdef USEMATHGL
 	int mglPlot(int n);
 	void mgl_line(int size, double* x, double* y, double* z, const char* name, const char* style);
@@ -114,10 +106,5 @@ private:
 	XQPlots* pf = 0;
 	OnPickerCallback pendingPickerCb_;
 	OnClipCallbackFn pendingClipCb_;
-	#ifdef USEMARBLE
-	std::string mdPath; ///< marble data path
-	std::string mpPath; ///< marble plugin path
-	#endif
-    
 };
 

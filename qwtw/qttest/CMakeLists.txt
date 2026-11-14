@@ -16,16 +16,6 @@ addSourceFiles("common" "../../common"
 
 add_definitions(-DQT_DLL)
 
-if(USE_MARBLE)
-    add_definitions(-DUSEMARBLE)
-    find_package(Marble REQUIRED)
-    find_library(MARBLE_LIBRARY_Release NAMES marblewidget-qt5)
-    addOtherLib(${MARBLE_LIBRARIES})
-    list(APPEND INC_DIR_LIST ${MARBLE_INCLUDE_DIR})
-    add_definitions(-DQT_USE_QSTRINGBUILDER -DQT_NO_URL_CAST_FROM_STRING
-        -DQT_NO_CAST_TO_ASCII -DQT_NO_CAST_FROM_BYTEARRAY -DQT_STRICT_ITERATORS)
-endif()
-
 # --- Qwt + platform libs ---
 if(UNIX)
     addQWT()

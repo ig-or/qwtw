@@ -1,5 +1,4 @@
 #include <QApplication>
-#include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QIcon>
 #include <QLibraryInfo>
@@ -28,23 +27,7 @@
 	#include <unistd.h>
 #endif
 
-#ifdef USEMARBLE
-#include <marble/MarbleDebug.h>
-#include <marble/MarbleDirs.h>
-#endif
-
 #include "qttest.h"
-
-#ifdef USEMARBLE
-MWidgetEx::MWidgetEx(QWidget* parent) : Marble::MarbleWidget(parent) {}
-
-void MWidgetEx::customPaint(Marble::GeoPainter* painter) {
-	(void)painter;
-}
-void MWidgetEx::closeEvent(QCloseEvent* event) {
-	(void)event;
-}
-#endif
 
 QTTest::QTTest(QWidget* parent1)
 	: QDialog(parent1,
@@ -63,25 +46,6 @@ QTTest::QTTest(QWidget* parent1)
 	QVBoxLayout* layout = new QVBoxLayout;
 	layout->setSpacing(2);
 	layout->setContentsMargins(2, 2, 2, 2);
-
-#ifdef USEMARBLE
-	Marble::MarbleDirs::debug();
-	mw = new MWidgetEx(this);
-	mw->setMapThemeId("earth/openstreetmap/openstreetmap.dgml");
-	Marble::GeoDataDocument* document = new Marble::GeoDataDocument;
-	mw->model()->treeModel()->addDocument(document);
-	mw->setProjection(Marble::Mercator);
-	mw->setShowBorders(true);
-	mw->setShowGrid(true);
-	mw->showGrid();
-	mw->setShowCities(true);
-	mw->setShowOverviewMap(false);
-	mw->zoomView(DEFAULT_ZOOM_LEVEL);
-	Marble::GeoDataCoordinates home(-122.00505316189623, 37.282928174000936, 10.0, Marble::GeoDataCoordinates::Degree);
-	mw->centerOn(home);
-
-	layout->addWidget(mw);
-#endif
 
 	setLayout(layout);
 	resize(400, 300);
@@ -117,12 +81,6 @@ int main(int argc, char** argv) {
 
 	QCommandLineParser parser;
 	parser.addHelpOption();
-#ifdef USEMARBLE
-	QCommandLineOption marbleDataOpt("marble_data", "path to the Marble data files", "path");
-	QCommandLineOption marblePluginsOpt("marble_plugins", "path to the Marble plugins", "path");
-	parser.addOption(marbleDataOpt);
-	parser.addOption(marblePluginsOpt);
-#endif
 	parser.process(app);
 
 	std::string s5 = QCoreApplication::applicationDirPath().toStdString();
@@ -132,26 +90,6 @@ int main(int argc, char** argv) {
 	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::Off);
 	icon.addPixmap(QPixmap(QString::fromUtf8(":/icons/binokl.png")), QIcon::Normal, QIcon::On);
 	app.setWindowIcon(icon);
-
-#ifdef USEMARBLE
-	Marble::MarbleDebug::setEnabled(true);
-	if (parser.isSet(marbleDataOpt)) {
-		QString mdp = parser.value(marbleDataOpt);
-		printf("\tsetting marble_data to [%s]\n", mdp.toStdString().c_str());
-		Marble::MarbleDirs::setMarbleDataPath(mdp);
-	} else {
-		printf("\tusing default marble_data\n");
-	}
-
-	if (parser.isSet(marblePluginsOpt)) {
-		QString mpp = parser.value(marblePluginsOpt);
-		printf("\tsetting marble_plugins to [%s]\n", mpp.toStdString().c_str());
-		Marble::MarbleDirs::setMarblePluginPath(mpp);
-	} else {
-		printf("\tusing default marble_plugins\n");
-	}
-	Marble::MarbleDirs::debug();
-#endif
 
 	QTTest test;
 	test.show();

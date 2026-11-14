@@ -310,11 +310,7 @@ bool SHMTest::sendTransaction(
 	return true;
 }
 
-#ifdef USEMARBLE
-int SHMTest::startProc(const std::string& mdp, const std::string& mpp, int level) {
-#else
 int SHMTest::startProc(int level) {
-#endif
 	xmprintf(2, "\nstarting proc..\n");
 	std::string qwProcPath = findQwProcPath();
 	if (qwProcPath.empty()) {
@@ -322,16 +318,6 @@ int SHMTest::startProc(int level) {
 	}
 
 	std::vector<std::string> args;
-#ifdef USEMARBLE
-	if (!mdp.empty()) {
-		args.push_back("--marble_data");
-		args.push_back(mdp);
-	}
-	if (!mpp.empty()) {
-		args.push_back("--marble_plugins");
-		args.push_back(mpp);
-	}
-#endif
 	args.push_back("--debug");
 	args.push_back(std::to_string(level));
 
@@ -343,11 +329,7 @@ int SHMTest::startProc(int level) {
 	return 0;
 }
 
-#ifdef USEMARBLE
-int SHMTest::testInit(const std::string& mdp, const std::string& mpp, int level) {
-#else
 int SHMTest::testInit(int level) {
-#endif
 	using namespace std::chrono_literals;
 	xmprintf(2, "starting SHMTest::testInit()\n");
 
@@ -360,11 +342,7 @@ int SHMTest::testInit(int level) {
 
 	bool connected = connectChannels();
 	if (!connected) {
-#ifdef USEMARBLE
-		int sr = startProc(mdp, mpp, level);
-#else
 		int sr = startProc(level);
-#endif
 		if (sr != 0) {
 			status = 1;
 			return sr;
@@ -536,12 +514,10 @@ int SHMTest::sendCommand(CmdHeader::QWCmd cmd, int v, unsigned int flags) {
 	return rep.test;
 }
 
-#ifdef USEMARBLE
 int SHMTest::qwtmap(int n) {
 	if (status != 0) return 0;
 	return sendCommand(CmdHeader::qMap, n);
 }
-#endif
 
 int SHMTest::qwtservice(int x) {
 	if (status != 0) return 0;

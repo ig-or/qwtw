@@ -9,7 +9,7 @@ addQT()
 set(INC_DIR_LIST "../" "../proclib" "../../../common" "../../../xmatrix2")
 
 addSourceFiles("source" "." qwproc qwproto main)
-addSourceFiles("qwtw" "../" qworker sfigure figure2 justaplot qwtypes line settings spectrogram qmarkers)
+addSourceFiles("qwtw" "../" qworker sfigure figure2 mapview justaplot qwtypes line settings spectrogram qmarkers)
 addSourceFiles("qwtw" "../nanoflann" nanoflann)
 addSourceFiles("qrc" "../../img" plib1.qrc)
 addSourceFiles("common" "../../common"
@@ -41,17 +41,6 @@ if(USE_MGL)
             addOtherLib(${OPENGL_LIB})
         endif()
     endif()
-endif()
-
-if(USE_MARBLE)
-    add_definitions(-DUSEMARBLE)
-    addSourceFiles("marble" "../wmarble" marbleview)
-    find_package(Marble REQUIRED)
-    find_library(MARBLE_LIBRARY_Release NAMES marblewidget-qt5)
-    addOtherLib(${MARBLE_LIBRARIES})
-    list(APPEND INC_DIR_LIST ${MARBLE_INCLUDE_DIR})
-    add_definitions(-DQT_USE_QSTRINGBUILDER -DQT_NO_URL_CAST_FROM_STRING
-        -DQT_NO_CAST_TO_ASCII -DQT_NO_CAST_FROM_BYTEARRAY -DQT_STRICT_ITERATORS)
 endif()
 
 # --- Qwt ---

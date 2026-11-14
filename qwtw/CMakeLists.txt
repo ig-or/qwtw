@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../buildsys/")
 include(ccmake)
 
-option(WITH_UDP_SYNC "UDP marker position broadcast"   OFF)
-option(USE_MARBLE    "Marble-qt top-view support"      OFF)
+option(WITH_UDP_SYNC "UDP marker position broadcast"   ON)
 option(USE_MGL       "MathGL2 3-D plotting"            OFF)
 
 add_subdirectory(proc)

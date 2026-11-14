@@ -13,6 +13,7 @@
 
 #ifdef ENABLE_UDP_SYNC
 #include <QHostAddress>
+#include <QNetworkInterface>
 #include <QUdpSocket>
 #endif
 
@@ -36,9 +37,7 @@
 #include "qwtypes.h"
 //#include "topviewplot.h"
 
-#ifdef USEMARBLE
-#include "marbleview.h"
-#endif
+#include "mapview.h"
 #ifdef USE_QT3D
 #include "qt-3d.h"
 #endif
@@ -235,6 +234,42 @@ public:
 				socket_.errorString().toStdString().c_str());
 			return;
 		}
+		socket_.setSocketOption(QAbstractSocket::MulticastLoopbackOption, 1);
+
+		// Prefer a physical multicast-capable IPv4 interface (skipping point-to-point VPN tunnels
+		// like macOS utun* that blackhole multicast), with loopback (lo0) as fallback.
+		QNetworkInterface lanIface;
+		for (const QNetworkInterface& iface : QNetworkInterface::allInterfaces()) {
+			const auto flags = iface.flags();
+			if (!(flags & QNetworkInterface::IsUp) || !(flags & QNetworkInterface::IsRunning) ||
+			    !(flags & QNetworkInterface::CanMulticast)) {
+				continue;
+			}
+			bool hasIpv4 = false;
+			for (const QNetworkAddressEntry& entry : iface.addressEntries()) {
+				if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
+					hasIpv4 = true;
+					break;
+				}
+			}
+			if (!hasIpv4) {
+				continue;
+			}
+			if (flags & QNetworkInterface::IsLoopBack) {
+				if (!loopbackIface_.isValid()) {
+					loopbackIface_ = iface;
+				}
+			} else if (!(flags & QNetworkInterface::IsPointToPoint) && !lanIface.isValid()) {
+				lanIface = iface;
+			}
+		}
+
+		if (lanIface.isValid()) {
+			socket_.setMulticastInterface(lanIface);
+		} else if (loopbackIface_.isValid()) {
+			socket_.setMulticastInterface(loopbackIface_);
+			usingLoopback_ = true;
+		}
 		xmprintf(5, "BCUdpClient() created; UDP port %d\n", settings.udp_client_port);
 	}
 
@@ -243,6 +278,13 @@ public:
 			return;
 		}
 		qint64 bs = socket_.writeDatagram(reinterpret_cast<const char*>(buf), size, multicastAddress_, port_);
+		if (bs != size && !usingLoopback_ && loopbackIface_.isValid()) {
+			// On corporate VPNs or restricted Wi-Fi, LAN multicast may return EHOSTUNREACH;
+			// fall back to loopback multicast so local listeners (e.g. QWTWPlot.jl) still work.
+			socket_.setMulticastInterface(loopbackIface_);
+			usingLoopback_ = true;
+			bs = socket_.writeDatagram(reinterpret_cast<const char*>(buf), size, multicastAddress_, port_);
+		}
 		if (bs != size) {
 			xmprintf(9, "bcSend bs = %lld bytes; size = %d\n", static_cast<long long>(bs), size);
 		}
@@ -252,6 +294,8 @@ private:
 	QHostAddress multicastAddress_;
 	quint16 port_;
 	QUdpSocket socket_;
+	QNetworkInterface loopbackIface_;
+	bool usingLoopback_ = false;
 	bool ok = false;
 };
 
@@ -282,7 +326,20 @@ public:
 				socket_.errorString().toStdString().c_str());
 			return;
 		}
-		socket_.joinMulticastGroup(multicastAddress_);
+		bool anyJoined = false;
+		for (const QNetworkInterface& iface : QNetworkInterface::allInterfaces()) {
+			const auto flags = iface.flags();
+			if (!(flags & QNetworkInterface::IsUp) || !(flags & QNetworkInterface::IsRunning) ||
+			    !(flags & QNetworkInterface::CanMulticast) || (flags & QNetworkInterface::IsPointToPoint)) {
+				continue;
+			}
+			if (socket_.joinMulticastGroup(multicastAddress_, iface)) {
+				anyJoined = true;
+			}
+		}
+		if (!anyJoined) {
+			socket_.joinMulticastGroup(multicastAddress_);
+		}
 
 		QObject::connect(&socket_, &QUdpSocket::readyRead, [this]() {
 			while (socket_.hasPendingDatagrams()) {
@@ -295,10 +352,9 @@ public:
 					std::lock_guard<std::mutex> lock(mu_);
 					cmd_ = 2;
 					somethingWasChanged_ = true;
-				} else if (n == 8 * 3 + 4) {
+				} else if (n == 8 * 3 + 4 || n == static_cast<qint64>(sizeof(BroadcastMessage))) {
 					if (std::memcmp(rb, "EEEE", 4) == 0) {
-						rb[25] = 0;
-						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got %s\n", rb);
+						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got EEEE packet\n");
 					} else if (std::memcmp(rb, "CRDS", 4) == 0) {
 						std::lock_guard<std::mutex> lock(mu_);
 						std::memcpy(pos_, rb + 4, 3 * sizeof(double));
@@ -308,7 +364,7 @@ public:
 							onPointF_(pos_);
 						}
 					} else {
-						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got %s\n", rb);
+						xm_printf("TRACE: RDFramerDebugGuiUpdateCallback: got unknown packet\n");
 					}
 				}
 			}
@@ -440,17 +496,10 @@ JustAplot* XQPlots::figure(std::string name_, JPType type, unsigned int flags){
 		case jQWT:
 			cf	= new Figure2(name_, this, parent, flags);
 			break;
-#ifdef USEMARBLE
-		case jMarble: {
-				xmprintf(7, "\tXQPlots::figure(); will create a MarView(%s)\n", name_.c_str());
-				MarView* tvp = new MarView(name_, this, parent);
-				xmprintf(7, "\tXQPlots::figure(); tvp created  \n");
-				tvp->mvInit();
-				xmprintf(7, "\tXQPlots::figure(); tvp init completed  \n");
-				cf = tvp;
-			}
+		case jMarble:
+			xmprintf(5, "\tXQPlots::figure(); creating native MapView(%s)\n", name_.c_str());
+			cf = new MapView(name_, this, parent, flags);
 			break;
-#endif
 #ifdef USE_QT3D
 		case jQT3D: {
 			Q3DView* q3 = new Q3DView(name_, this, parent);
@@ -888,7 +937,7 @@ void XQPlots::sendClipInfo(double t1, double t2, int clipGroup) {
 	m.havePos = 0;
 	double x1, y1, z1;
 	double x2, y2, z2;
-	if (bcInfo->bcOK()) {  
+	if (bcInfo && bcInfo->bcOK()) {  
 		long long i1 = bcInfo->getClosestTimePoint(t1, x1, y1, z1);
 		long long i2 = bcInfo->getClosestTimePoint(t2, x2, y2, z2);
 
@@ -901,10 +950,10 @@ void XQPlots::sendClipInfo(double t1, double t2, int clipGroup) {
 			m.pos2[1] = y2;
 			m.pos2[2] = z2;
 			m.havePos = 1;
-
-			bc->bcSend((unsigned char*)(&m), sizeof(m));
 		}
 	}
+
+	bc->bcSend((unsigned char*)(&m), sizeof(m));
 }
 #endif
 

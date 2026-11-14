@@ -10,7 +10,7 @@ Fast, out-of-process 2D/spectrogram plotting library built on **Qt6** and **Qwt 
 `qwtw` splits plotting into two components so plots remain interactive without blocking your simulation, script, or REPL:
 
 - **`libqwtw`** (`.dylib` / `.so` / `.dll`) — lightweight C/C++ client library with **zero external dependencies** (links only the system C/C++ runtime), easily callable from C, C++, Python (`ctypes`), Julia (`QWTWPlot`), or MATLAB.
-- **`qwproc`** — standalone Qt6/Qwt plot server process spawned automatically on demand, communicating over a fast local stream (`AF_UNIX` domain socket on macOS/Linux, Named Pipe on Windows) with synchronized time markers, zooming, FFT/PSD analysis, spectrograms, PNG export, and interactive picker/clip callbacks.
+- **`qwproc`** — standalone Qt6/Qwt plot server process spawned automatically on demand, communicating over a fast local stream (`AF_UNIX` domain socket on macOS/Linux, Named Pipe on Windows) with synchronized time markers, zooming, FFT/PSD analysis, native OpenStreetMap slippy-map views (`qwtmap`), spectrograms, PNG export, multicast UDP sync, and interactive picker/clip callbacks.
 
 ## Quick Links
 
@@ -30,3 +30,5 @@ python3 python/qtest.py
 
 Runtime settings are stored in `~/.qwtw/settings.json`:
 - `pickerDigitsNumber` — number of significant digits shown next to the cursor when inspecting plot coordinates.
+- `map_tile_url` — slippy-map tile URL template (default: `https://tile.openstreetmap.org/{z}/{x}/{y}.png`; downloaded tiles are cached locally in `~/.qwtw/tiles/`).
+- `smip` / `udp_client_port` / `udp_server_port` — multicast UDP group and ports for marker/clip synchronization.

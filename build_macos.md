@@ -44,15 +44,16 @@ ninja
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `-DWITH_UDP_SYNC=ON` | OFF | UDP marker position broadcast between instances |
-| `-DUSE_MARBLE=ON` | OFF | Marble-qt map/top-view support |
+| `-DWITH_UDP_SYNC=ON` | ON | UDP marker position broadcast between instances |
 | `-DUSE_MGL=ON` | OFF | MathGL 3-D plotting |
 
-Example with all options:
+*(OpenStreetMap top-view maps via `qwtmap()` are built in natively using Qt6 + Qwt with zero external dependencies.)*
+
+Example with MathGL enabled:
 
 ```bash
 cmake .. -G Ninja -DCMAKE_BUILD_TYPE=Release \
-  -DWITH_UDP_SYNC=ON -DUSE_MARBLE=ON -DUSE_MGL=ON
+  -DWITH_UDP_SYNC=ON -DUSE_MGL=ON
 ```
 
 ## Output
