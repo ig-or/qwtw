@@ -41,7 +41,7 @@ macro(setPlatformName)
 
     elseif(WIN32)
         set(ourPlatform win32_build)
-        set(ourLibSuffix lib_win32_build)
+        set(ourLibSuffix lib)
 
     else()
         message(FATAL_ERROR "Unsupported platform")
@@ -201,17 +201,19 @@ macro(addVersionInfo curSrcList)
         message(FATAL_ERROR "cannot find build_info.py (XQBUILDSYS_PATH=${XQBUILDSYS_PATH})")
     endif()
 
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+
     set(BUILD_INFO_FILE "${CMAKE_CURRENT_BINARY_DIR}/build_info_${PROJECT_NAME}.cpp")
     list(APPEND ${curSrcList} ${BUILD_INFO_FILE})
 
     set(BN_FILE "${CMAKE_CURRENT_BINARY_DIR}/build_number_${PROJECT_NAME}.cpp")
     list(APPEND ${curSrcList} ${BN_FILE})
     if(NOT EXISTS ${BN_FILE})
-        file(WRITE ${BN_FILE} "0")
+        file(WRITE ${BN_FILE} "extern const char BUILD_NUMBER[] = \"0\";\nextern const char COMPILE_TIME[] = \"\";\nextern const char GIT_INFO[] = \"\";\n")
     endif()
 
     add_custom_command(OUTPUT ${BUILD_INFO_FILE}
-        COMMAND python3 ${BUILDINFO_PY_SCRIPT} ${VERSION_INFO_FILE} ${BUILD_INFO_FILE} ${ourPlatform}
+        COMMAND "${Python3_EXECUTABLE}" ${BUILDINFO_PY_SCRIPT} ${VERSION_INFO_FILE} ${BUILD_INFO_FILE} ${ourPlatform}
         DEPENDS ${VERSION_INFO_FILE}
         COMMENT "Generating ${BUILD_INFO_FILE}")
 
@@ -250,7 +252,7 @@ macro(addBuildNumber)
     endif()
 
     add_custom_target(INC_BN_${PROJECT_NAME} ALL
-        python3 ${BN_PY_SCRIPT} ${BN_INFO_FILE} ${BN_FILE}
+        "${Python3_EXECUTABLE}" ${BN_PY_SCRIPT} ${BN_INFO_FILE} ${BN_FILE}
             ${CMAKE_CURRENT_SOURCE_DIR} ${XQBUILDSYS_PATH} ${extLibFolder1}
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         COMMENT "Incrementing build number for ${PROJECT_NAME}" VERBATIM)
@@ -534,6 +536,11 @@ macro(commonEnd libType)
     endif()
 
     add_compile_options("$<$<CONFIG:DEBUG>:-DDEBUG123>")
+
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(NOT Python3_Interpreter_FOUND)
+        set(NO_VERSION_INFO ON)
+    endif()
 
     if(NO_VERSION_INFO)
         message(STATUS "[${PROJECT_NAME}]: no version info (faster build)")

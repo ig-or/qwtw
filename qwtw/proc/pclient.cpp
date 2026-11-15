@@ -75,7 +75,7 @@ static std::string searchExecutableInPath(const char* procName) {
 	return std::string();
 }
 
-// Resolve full path to qwproc executable (current dir, DLL/lib dir, exe dir, then PATH).
+// Resolve full path to qwproc executable (QWTW_PROC_PATH, cwd, DLL/lib dir, ../bin, exe dir, then PATH).
 static std::string findQwProcPath() {
 	namespace fs = std::filesystem;
 #ifdef WIN32
@@ -84,6 +84,18 @@ static std::string findQwProcPath() {
 	const char* procName = "qwproc";
 #endif
 	std::error_code ec;
+
+	// 0. Explicit QWTW_PROC_PATH override (file or directory)
+	if (const char* envProc = std::getenv("QWTW_PROC_PATH"); envProc && envProc[0] != '\0') {
+		fs::path ep(envProc);
+		if (fs::is_directory(ep, ec)) {
+			ep /= procName;
+		}
+		if (fs::exists(ep, ec) && !fs::is_directory(ep, ec)) {
+			xmprintf(2, "\tusing QWTW_PROC_PATH: %s\n", ep.string().c_str());
+			return ep.string();
+		}
+	}
 
 	// 1. Current working directory
 	fs::path cwd = fs::current_path(ec);
@@ -97,26 +109,30 @@ static std::string findQwProcPath() {
 	}
 
 #ifdef WIN32
-	// 2. Directory of the loading DLL
+	// 2. Directory of the loading DLL (and ../bin for installed layouts)
 	const char* dllPath = getQwtwDllPath();
 	if (dllPath && dllPath[0] != '\0') {
-		fs::path pa = fs::path(dllPath).parent_path() / procName;
-		xmprintf(2, "\tnext, check near the DLL; looking at %s ..\n", pa.string().c_str());
-		if (fs::exists(pa, ec) && !fs::is_directory(pa, ec)) {
-			xmprintf(2, "\tlocated!\n");
-			return pa.string();
+		fs::path dllDir = fs::path(dllPath).parent_path();
+		for (const fs::path& cand : {dllDir / procName, dllDir.parent_path() / "bin" / procName}) {
+			xmprintf(2, "\tnext, check near the DLL; looking at %s ..\n", cand.string().c_str());
+			if (fs::exists(cand, ec) && !fs::is_directory(cand, ec)) {
+				xmprintf(2, "\tlocated!\n");
+				return cand.string();
+			}
 		}
 	}
 #elif defined(__APPLE__) || defined(__linux__) || defined(__linux)
-	// 2. Directory of this shared library
+	// 2. Directory of this shared library (and ../bin for installed CMake/JLL layouts)
 	{
 		std::string libDir = getQwtwLibDir();
 		if (!libDir.empty()) {
-			fs::path pa = fs::path(libDir) / procName;
-			xmprintf(2, "\tcheck library dir; looking at %s\n", pa.string().c_str());
-			if (fs::exists(pa, ec) && !fs::is_directory(pa, ec)) {
-				xmprintf(2, "\tlocated next to library\n");
-				return pa.string();
+			fs::path ld(libDir);
+			for (const fs::path& cand : {ld / procName, ld.parent_path() / "bin" / procName}) {
+				xmprintf(2, "\tcheck library dir; looking at %s\n", cand.string().c_str());
+				if (fs::exists(cand, ec) && !fs::is_directory(cand, ec)) {
+					xmprintf(2, "\tlocated near library\n");
+					return cand.string();
+				}
 			}
 		}
 	}

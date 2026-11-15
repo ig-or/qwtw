@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QEventLoop>
 #include <QFile>
+#include <QFileInfo>
 #include <QFontMetrics>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>

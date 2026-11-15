@@ -8,6 +8,7 @@
 
 import buildlib
 from contextlib import closing
+import os
 import sys
 from datetime import datetime
 import string

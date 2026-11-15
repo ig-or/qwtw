@@ -53,7 +53,7 @@ if(UNIX AND NOT APPLE)
 elseif(APPLE)
     addOtherLib("dl")
 elseif(WIN32)
-    addOtherLib("ws2_32")
+    addOtherLib("ws2_32" "advapi32" "shell32")
 endif()
 
 programEnd()

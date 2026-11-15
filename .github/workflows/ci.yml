@@ -1,0 +1,207 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Linux (Ubuntu x86_64, Qt6 offscreen)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout vendored Qwt submodule
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --recursive
+
+      - name: Install Qt6 & build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            cmake ninja-build qt6-base-dev libgl1-mesa-dev fontconfig fonts-dejavu-core
+
+      - name: Configure & build qwtw
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_UDP_SYNC=ON
+          cmake --build build -j
+          LIB_DIR="$PWD/lib/linux-$(uname -m)/release"
+          ls -lh "$LIB_DIR"
+          echo "QWTW_LIB_PATH=$LIB_DIR" >> "$GITHUB_ENV"
+
+      - name: Python wrapper headless smoke test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          mkdir -p "$RUNNER_TEMP/qwtw_artifacts"
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, "python")
+          import qwtwc
+          assert qwtwc.start() == 0
+          fid = qwtwc.test()
+          out = os.path.join(os.environ["RUNNER_TEMP"], "qwtw_artifacts", "python_plot.png")
+          assert qwtwc.save_png(fid, out) == 0
+          assert os.path.getsize(out) > 1000
+          qwtwc.clear()
+          qwtwc.close()
+          print("Python smoke test OK:", out)
+          PY
+
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.12"
+
+      - name: Run QWTWPlot.jl test suite
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QWTW_REQUIRE_LIVE_TEST: "1"
+          QWTW_TEST_ARTIFACT_DIR: ${{ runner.temp }}/qwtw_artifacts
+        run: |
+          git clone --depth 1 https://github.com/ig-or/QWTWPlot.jl.git "$RUNNER_TEMP/QWTWPlot"
+          julia --project="$RUNNER_TEMP/QWTWPlot" -e 'import Pkg; Pkg.test()'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rendered-plots-linux
+          path: ${{ runner.temp }}/qwtw_artifacts/*.png
+
+  macos:
+    name: macOS (Apple Silicon, Qt6 offscreen)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout vendored Qwt submodule
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --recursive
+
+      - name: Install Qt6 & Ninja via Homebrew
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: |
+          brew install ninja qt
+
+      - name: Configure & build qwtw
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_UDP_SYNC=ON
+          cmake --build build -j
+          LIB_DIR="$PWD/lib/macos-$(uname -m)/release"
+          ls -lh "$LIB_DIR"
+          echo "QWTW_LIB_PATH=$LIB_DIR" >> "$GITHUB_ENV"
+
+      - name: Python wrapper headless smoke test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          mkdir -p "$RUNNER_TEMP/qwtw_artifacts"
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, "python")
+          import qwtwc
+          assert qwtwc.start() == 0
+          fid = qwtwc.test()
+          out = os.path.join(os.environ["RUNNER_TEMP"], "qwtw_artifacts", "python_plot.png")
+          assert qwtwc.save_png(fid, out) == 0
+          assert os.path.getsize(out) > 1000
+          qwtwc.clear()
+          qwtwc.close()
+          print("Python smoke test OK:", out)
+          PY
+
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.12"
+
+      - name: Run QWTWPlot.jl test suite
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QWTW_REQUIRE_LIVE_TEST: "1"
+          QWTW_TEST_ARTIFACT_DIR: ${{ runner.temp }}/qwtw_artifacts
+        run: |
+          git clone --depth 1 https://github.com/ig-or/QWTWPlot.jl.git "$RUNNER_TEMP/QWTWPlot"
+          julia --project="$RUNNER_TEMP/QWTWPlot" -e 'import Pkg; Pkg.test()'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rendered-plots-macos
+          path: ${{ runner.temp }}/qwtw_artifacts/*.png
+
+  windows:
+    name: Windows (MinGW64, Qt6 offscreen)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout vendored Qwt submodule
+        shell: bash
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git submodule update --init --recursive
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-qt6-base
+
+      - name: Configure & build qwtw (MinGW64)
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_UDP_SYNC=ON
+          cmake --build build -j
+          ls -lh lib/win32_build/release
+          echo "$(cygpath -w /mingw64/bin)" >> "$GITHUB_PATH"
+          echo "QT_PLUGIN_PATH=$(cygpath -w /mingw64/share/qt6/plugins)" >> "$GITHUB_ENV"
+          echo "QWTW_LIB_PATH=$(cygpath -w "$PWD/lib/win32_build/release")" >> "$GITHUB_ENV"
+
+      - name: Python wrapper headless smoke test
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          mkdir -p "$RUNNER_TEMP/qwtw_artifacts"
+          python - <<'PY'
+          import os, sys
+          sys.path.insert(0, "python")
+          import qwtwc
+          assert qwtwc.start() == 0
+          fid = qwtwc.test()
+          out = os.path.join(os.environ["RUNNER_TEMP"], "qwtw_artifacts", "python_plot.png")
+          assert qwtwc.save_png(fid, out) == 0
+          assert os.path.getsize(out) > 1000
+          qwtwc.clear()
+          qwtwc.close()
+          print("Python smoke test OK:", out)
+          PY
+
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1.12"
+
+      - name: Run QWTWPlot.jl test suite on Windows
+        shell: bash
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QWTW_REQUIRE_LIVE_TEST: "1"
+          QWTW_TEST_ARTIFACT_DIR: ${{ runner.temp }}/qwtw_artifacts
+        run: |
+          git clone --depth 1 https://github.com/ig-or/QWTWPlot.jl.git "$RUNNER_TEMP/QWTWPlot"
+          julia --project="$(cygpath -w "$RUNNER_TEMP/QWTWPlot")" -e 'import Pkg; Pkg.test()'
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rendered-plots-windows
+          path: ${{ runner.temp }}/qwtw_artifacts/*.png

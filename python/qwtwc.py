@@ -50,13 +50,6 @@ _CLIP_CB_TYPE = CFUNCTYPE(None, c_double, c_double, c_int)
 
 
 def _find_library(explicit_path: str | os.PathLike | None = None) -> str:
-    if explicit_path:
-        return str(explicit_path)
-
-    env_path = os.environ.get("QWTW_LIB_PATH")
-    if env_path and Path(env_path).exists():
-        return env_path
-
     sys_name = platform.system()
     machine = platform.machine().lower()
 
@@ -67,8 +60,22 @@ def _find_library(explicit_path: str | os.PathLike | None = None) -> str:
         lib_names = ["libqwtw.so", "libqwtwd.so"]
         plat_dirs = [f"linux-{machine}", "linux-aarch64", "linux-x86_64"]
     else:
-        lib_names = ["qwtw.dll", "qwtwd.dll"]
+        lib_names = ["libqwtw.dll", "qwtw.dll", "libqwtwd.dll", "qwtwd.dll"]
         plat_dirs = ["win32_build"]
+
+    for raw in (explicit_path, os.environ.get("QWTW_LIB_PATH")):
+        if not raw:
+            continue
+        p = Path(raw)
+        if p.is_file():
+            return str(p)
+        if p.is_dir():
+            for name in lib_names:
+                cand = p / name
+                if cand.is_file():
+                    return str(cand)
+        if explicit_path and raw is explicit_path:
+            return str(explicit_path)
 
     repo_root = Path(__file__).resolve().parent.parent
     search_dirs: list[Path] = [Path.cwd()]

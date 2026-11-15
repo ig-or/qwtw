@@ -71,20 +71,23 @@ Stream& Stream::operator=(Stream&& other) noexcept {
 }
 
 Stream Stream::connect(const std::string& endpoint) {
-	for (int attempt = 0; attempt < 2; ++attempt) {
+	for (int attempt = 0; attempt < 20; ++attempt) {
 		HANDLE h = CreateFileA(
 			endpoint.c_str(),
 			GENERIC_READ | GENERIC_WRITE,
 			0,
 			NULL,
 			OPEN_EXISTING,
-			0,
+			FILE_FLAG_OVERLAPPED,
 			NULL);
 		if (h != INVALID_HANDLE_VALUE) {
 			return Stream(h, false);
 		}
-		if (GetLastError() == ERROR_PIPE_BUSY) {
-			WaitNamedPipeA(endpoint.c_str(), 150);
+		DWORD err = GetLastError();
+		if (err == ERROR_PIPE_BUSY) {
+			if (!WaitNamedPipeA(endpoint.c_str(), 50)) {
+				Sleep(15);
+			}
 		} else {
 			break;
 		}
@@ -96,7 +99,31 @@ bool Stream::valid() const noexcept {
 	return handle_.load() != INVALID_HANDLE_VALUE;
 }
 
+namespace {
+
+struct ScopedWinEvent {
+	HANDLE h = NULL;
+	ScopedWinEvent() noexcept : h(CreateEventW(NULL, TRUE, FALSE, NULL)) {}
+	~ScopedWinEvent() {
+		if (h != NULL) {
+			CloseHandle(h);
+		}
+	}
+	ScopedWinEvent(const ScopedWinEvent&) = delete;
+	ScopedWinEvent& operator=(const ScopedWinEvent&) = delete;
+};
+
+} // namespace
+
 bool Stream::writeAll(const void* data, size_t bytes) {
+	if (bytes == 0) {
+		return true;
+	}
+	ScopedWinEvent ev;
+	if (ev.h == NULL) {
+		return false;
+	}
+
 	const auto* ptr = static_cast<const unsigned char*>(data);
 	size_t remaining = bytes;
 	while (remaining > 0) {
@@ -104,9 +131,22 @@ bool Stream::writeAll(const void* data, size_t bytes) {
 		if (h == INVALID_HANDLE_VALUE) {
 			return false;
 		}
+		ResetEvent(ev.h);
+		OVERLAPPED ov{};
+		ov.hEvent = ev.h;
+
 		DWORD chunk = static_cast<DWORD>(std::min<size_t>(remaining, 64u * 1024u * 1024u));
 		DWORD written = 0;
-		if (!WriteFile(h, ptr, chunk, &written, NULL) || written == 0) {
+		BOOL ok = WriteFile(h, ptr, chunk, &written, &ov);
+		if (!ok) {
+			if (GetLastError() != ERROR_IO_PENDING) {
+				return false;
+			}
+			if (!GetOverlappedResult(h, &ov, &written, TRUE)) {
+				return false;
+			}
+		}
+		if (written == 0) {
 			return false;
 		}
 		ptr += written;
@@ -116,6 +156,14 @@ bool Stream::writeAll(const void* data, size_t bytes) {
 }
 
 bool Stream::readAll(void* data, size_t bytes) {
+	if (bytes == 0) {
+		return true;
+	}
+	ScopedWinEvent ev;
+	if (ev.h == NULL) {
+		return false;
+	}
+
 	auto* ptr = static_cast<unsigned char*>(data);
 	size_t remaining = bytes;
 	while (remaining > 0) {
@@ -123,9 +171,22 @@ bool Stream::readAll(void* data, size_t bytes) {
 		if (h == INVALID_HANDLE_VALUE) {
 			return false;
 		}
+		ResetEvent(ev.h);
+		OVERLAPPED ov{};
+		ov.hEvent = ev.h;
+
 		DWORD chunk = static_cast<DWORD>(std::min<size_t>(remaining, 64u * 1024u * 1024u));
 		DWORD got = 0;
-		if (!ReadFile(h, ptr, chunk, &got, NULL) || got == 0) {
+		BOOL ok = ReadFile(h, ptr, chunk, &got, &ov);
+		if (!ok) {
+			if (GetLastError() != ERROR_IO_PENDING) {
+				return false;
+			}
+			if (!GetOverlappedResult(h, &ov, &got, TRUE)) {
+				return false;
+			}
+		}
+		if (got == 0) {
 			return false;
 		}
 		ptr += got;
@@ -150,10 +211,14 @@ Listener::Listener() noexcept : pendingPipe_(INVALID_HANDLE_VALUE) {}
 
 Listener::~Listener() {
 	close();
+	HANDLE h = static_cast<HANDLE>(pendingPipe_.exchange(INVALID_HANDLE_VALUE));
+	if (h != INVALID_HANDLE_VALUE) {
+		CloseHandle(h);
+	}
 }
 
 static HANDLE createPipeInstance(const std::string& endpoint, bool first) {
-	DWORD openMode = PIPE_ACCESS_DUPLEX;
+	DWORD openMode = PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED;
 	if (first) {
 		openMode |= FILE_FLAG_FIRST_PIPE_INSTANCE;
 	}
@@ -170,6 +235,10 @@ static HANDLE createPipeInstance(const std::string& endpoint, bool first) {
 
 bool Listener::listen(const std::string& endpoint) {
 	close();
+	HANDLE stale = static_cast<HANDLE>(pendingPipe_.exchange(INVALID_HANDLE_VALUE));
+	if (stale != INVALID_HANDLE_VALUE) {
+		CloseHandle(stale);
+	}
 	closing_.store(false);
 	endpoint_ = endpoint;
 	HANDLE h = createPipeInstance(endpoint_, true);
@@ -181,6 +250,11 @@ bool Listener::listen(const std::string& endpoint) {
 }
 
 Stream Listener::accept() {
+	ScopedWinEvent ev;
+	if (ev.h == NULL) {
+		return Stream();
+	}
+
 	while (!closing_.load()) {
 		HANDLE h = static_cast<HANDLE>(pendingPipe_.load());
 		if (h == INVALID_HANDLE_VALUE) {
@@ -190,15 +264,52 @@ Stream Listener::accept() {
 			}
 			pendingPipe_.store(h);
 		}
-		BOOL ok = ConnectNamedPipe(h, NULL);
+
+		ResetEvent(ev.h);
+		OVERLAPPED ov{};
+		ov.hEvent = ev.h;
+
+		BOOL ok = ConnectNamedPipe(h, &ov);
 		DWORD err = ok ? ERROR_SUCCESS : GetLastError();
+
+		bool connected = false;
+		if (ok || err == ERROR_PIPE_CONNECTED) {
+			connected = true;
+		} else if (err == ERROR_IO_PENDING) {
+			while (!closing_.load()) {
+				DWORD wr = WaitForSingleObject(ev.h, 150);
+				if (wr == WAIT_OBJECT_0) {
+					DWORD dummy = 0;
+					connected = GetOverlappedResult(h, &ov, &dummy, FALSE) != FALSE;
+					break;
+				}
+				if (wr != WAIT_TIMEOUT) {
+					break;
+				}
+			}
+			if (!connected) {
+				CancelIoEx(h, &ov);
+				DWORD dummy = 0;
+				GetOverlappedResult(h, &ov, &dummy, TRUE);
+			}
+		}
+
 		if (closing_.load()) {
+			HANDLE cur = static_cast<HANDLE>(pendingPipe_.exchange(INVALID_HANDLE_VALUE));
+			if (cur != INVALID_HANDLE_VALUE) {
+				if (connected) {
+					DisconnectNamedPipe(cur);
+				}
+				CloseHandle(cur);
+			}
 			return Stream();
 		}
-		if (ok || err == ERROR_PIPE_CONNECTED) {
+
+		if (connected) {
 			pendingPipe_.store(createPipeInstance(endpoint_, false));
 			return Stream(h, true);
 		}
+
 		pendingPipe_.exchange(INVALID_HANDLE_VALUE);
 		CloseHandle(h);
 	}
@@ -207,10 +318,9 @@ Stream Listener::accept() {
 
 void Listener::close() noexcept {
 	closing_.store(true);
-	HANDLE h = static_cast<HANDLE>(pendingPipe_.exchange(INVALID_HANDLE_VALUE));
+	HANDLE h = static_cast<HANDLE>(pendingPipe_.load());
 	if (h != INVALID_HANDLE_VALUE) {
 		CancelIoEx(h, NULL);
-		CloseHandle(h);
 	}
 }
 

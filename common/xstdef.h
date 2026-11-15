@@ -53,8 +53,10 @@ void assert_failed(const char* file, unsigned int line, const char* str);
 		#define _CRT_SECURE_NO_DEPRECATE
 	#endif
 	//  disable XMType to float conversion warning:
-	#pragma warning(disable:4244)
-	#pragma warning(disable:4305)
+	#ifdef _MSC_VER
+		#pragma warning(disable:4244)
+		#pragma warning(disable:4305)
+	#endif
 
 //	#include <memory.h>
 	#include <string.h>

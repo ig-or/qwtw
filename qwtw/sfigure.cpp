@@ -649,7 +649,8 @@ void XQPlots::onShowAllPlots(bool checked) {
 		h++;
 	}
 	mxat(w*h >= n);
-	QRect rec = QGuiApplication::primaryScreen()->geometry();
+	QScreen* primaryScr = QGuiApplication::primaryScreen();
+	QRect rec = primaryScr ? primaryScr->geometry() : QRect(0, 0, 1280, 800);
 	int height = rec.height();
 	int width = rec.width() - 48;
 	int hh = floor(height / h);

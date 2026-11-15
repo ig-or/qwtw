@@ -134,9 +134,9 @@ void test(int n, const char* argv0) {
 
 	#ifdef WIN32
 #ifdef DEBUG123
-	std::string qwtw_name = "qwtwd.dll";
+	std::string qwtw_name = fs::exists(p / "libqwtwd.dll") ? "libqwtwd.dll" : "qwtwd.dll";
 #else
-	std::string qwtw_name = "qwtw.dll";
+	std::string qwtw_name = fs::exists(p / "libqwtw.dll") ? "libqwtw.dll" : "qwtw.dll";
 #endif
 	fs::path dllPath = p / qwtw_name;
 	std::string rdfDllName = dllPath.string();

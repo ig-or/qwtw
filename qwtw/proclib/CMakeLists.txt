@@ -26,9 +26,18 @@ if(UNIX AND NOT APPLE)
     addOtherLib("dl" Threads::Threads)
 elseif(APPLE)
     addOtherLib("dl")
+elseif(WIN32)
+    addOtherLib("advapi32" "shell32")
 endif()
 
 libraryEnd(SHARED)
+
+if(MINGW)
+    # Link libstdc++ and libgcc statically into libqwtw.dll so loading it inside
+    # host runtimes that ship their own libstdc++-6.dll (e.g. Julia on Windows)
+    # never triggers GLIBCXX symbol-version clashes.
+    target_link_options(${PROJECT_NAME} PRIVATE -static-libgcc -static-libstdc++)
+endif()
 
 set(OUR_LIBNAME_REPORT ${OUR_LIBNAME_REPORT} ${PROJECT_NAME} CACHE INTERNAL "OUR_LIBNAME_REPORT")
 
