@@ -84,12 +84,9 @@ def get_StringFrom(versionFile):
     try:
         with closing(open(versionFile,'rt')) as vf:
             __version__ = vf.read(64)
-        if __version__[-1:] == '\n':
-            __version__ = __version__[:-1]
-        return __version__
+        return __version__.strip()
     except:
-        raise Exception('ERROR reading version information; can not open ' + versionFile + '\n')
-        return None #		
+        raise Exception('ERROR reading version information; can not open ' + versionFile + '\n')		
         
 # read version info:	  
 def getVersionString():
@@ -106,7 +103,8 @@ def getVersionString():
         #raise
 		
 def writeCString(file, macro, value):
-    file.write('extern const char ' + macro + '[] = \"' + value + '\"; \n')
+    safe = str(value).replace('\\', '\\\\').replace('"', '\\"').replace('\r', '').replace('\n', ' ').strip()
+    file.write('extern const char ' + macro + '[] = "' + safe + '"; \n')
 		
 
 def getBranchName():
@@ -160,15 +158,19 @@ def getBranchName():
   
     
 def getGitSHA():
-    sha = ' '
-    ok = 0
     try:
-        p = subprocess.Popen('git rev-parse @', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        sha = p.stdout.readline().decode('utf-8')
-        rv = p.wait()
-    except Exception as einst: # 
-        raise Exception('getGitSHA(): git didnt work' + '[' + einst.args + ']')
-    return sha[0:-1]
+        res = subprocess.run(
+            ['git', 'rev-parse', 'HEAD'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=False,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return 'unknown'
 
 
 def getGitInfo():
