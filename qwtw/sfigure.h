@@ -20,6 +20,7 @@
 #include <QMap>
 #include <QWidget>
 #include <QDialog>
+#include <atomic>
 #include <map>
 #include <thread>
 #include <mutex>
@@ -230,7 +231,7 @@ private:
 	std::thread pFilterThread; ///< filtering thread handler
 	std::mutex  pFilterMutex;  ///< for access cbi and haveNewPickerInfo
 	CBPickerInfo fcbi;	///< filtering info container
-	bool pleaseStopFilterThread = false;
+	std::atomic<bool> pleaseStopFilterThread{false};
 	bool haveNewPickerInfo = false; ///< new picker info to the filtering thread flag
 	void pFilterThreadF(); ///< filtering thread function
 

@@ -194,6 +194,7 @@ void QProcInterface::handleCommandClient(std::shared_ptr<qwipc::Stream> stream) 
 			executeCommand(req, payloadBuf, rep, requestQuit);
 			if (requestQuit) {
 				stopping_.store(true);
+				listener_.close();
 				QMetaObject::invokeMethod(&app, "quit", Qt::QueuedConnection);
 			}
 		}

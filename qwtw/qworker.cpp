@@ -26,14 +26,9 @@ QWorker::QWorker(): pf(nullptr) {
 void QWorker::onQtAppClosing() {
 	if (pf != nullptr) {
 		xm_printf("QWorker::onQtAppClosing()! \n \tdeleting 'pf'... \n");
-		//delete pf;  
-
-
-		//pf->onExit();
-
-		//printf("OK!\n");
-		//pf = nullptr;
-		//std::cout << "QWorker::onQtAppClosing() ends " << std::endl;
+		pf->onExit();
+		delete pf;
+		pf = nullptr;
 	}
 }
 

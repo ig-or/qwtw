@@ -6,10 +6,15 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   linux:
     name: Linux (Ubuntu x86_64, Qt6 offscreen)
     runs-on: ubuntu-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
 
@@ -73,6 +78,7 @@ jobs:
   macos:
     name: macOS (Apple Silicon, Qt6 offscreen)
     runs-on: macos-latest
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
 
@@ -137,6 +143,7 @@ jobs:
   windows:
     name: Windows (MinGW UCRT64, Qt6 offscreen)
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -193,6 +200,7 @@ jobs:
 
       - name: Run QWTWPlot.jl test suite on Windows
         shell: bash
+        timeout-minutes: 3
         env:
           QT_QPA_PLATFORM: offscreen
           QWTW_REQUIRE_LIVE_TEST: "1"
@@ -200,6 +208,16 @@ jobs:
         run: |
           git clone --depth 1 https://github.com/ig-or/QWTWPlot.jl.git "$RUNNER_TEMP/QWTWPlot"
           julia --project="$(cygpath -w "$RUNNER_TEMP/QWTWPlot")" -e 'import Pkg; Pkg.test()'
+
+      - name: Dump Windows diagnostics on failure
+        if: failure() || cancelled()
+        shell: bash
+        run: |
+          echo "=== Running processes ==="
+          tasklist | grep -iE "qwproc|julia|python" || true
+          echo "=== ~/.qwtw/log/log.txt ==="
+          cat "$USERPROFILE/.qwtw/log/log.txt" 2>/dev/null || cat "$HOME/.qwtw/log/log.txt" 2>/dev/null || true
+          taskkill //F //IM qwproc.exe 2>/dev/null || true
 
       - uses: actions/upload-artifact@v4
         if: always()
