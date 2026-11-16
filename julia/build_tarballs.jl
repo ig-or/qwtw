@@ -11,7 +11,7 @@ version = v"3.0.0"
 
 sources = [
     GitSource("https://github.com/ig-or/qwtw.git",
-              "REPLACE_WITH_QWTW_COMMIT_SHA"),
+              "bb317eda2008643f49d0f98e013f95b39c1c4f55"),
     GitSource("https://github.com/ig-or/qwt.git",
               "2dc09fd351ec8c30252913b5eb8af6c46ef4101c"),
 ]
