@@ -225,7 +225,7 @@ public:
 	/// how many times sum was updated.
 	unsigned int	sr;
 public:
-	XSQBuf<T, count>() : XMRoundBuf<T, count>() { 
+	XSQBuf() : XMRoundBuf<T, count>() { 
 		sum = 0.0;   
 		sr = 0;
 	}
