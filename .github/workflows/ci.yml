@@ -170,7 +170,9 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DWITH_UDP_SYNC=ON
           cmake --build build -j
           ls -lh lib/win32_build/release
-          echo "$(cygpath -w /ucrt64/bin)" >> "$GITHUB_PATH"
+          echo "=== libqwtw.dll imports ==="
+          objdump -p lib/win32_build/release/libqwtw.dll | grep "DLL Name:"
+          echo "MSYS2_UCRT_BIN=$(cygpath -w /ucrt64/bin)" >> "$GITHUB_ENV"
           echo "QT_PLUGIN_PATH=$(cygpath -w /ucrt64/share/qt6/plugins)" >> "$GITHUB_ENV"
           echo "QWTW_LIB_PATH=$(cygpath -w "$PWD/lib/win32_build/release")" >> "$GITHUB_ENV"
 
@@ -179,6 +181,7 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
+          export PATH="$(cygpath -u "$MSYS2_UCRT_BIN"):$PATH"
           mkdir -p "$RUNNER_TEMP/qwtw_artifacts"
           python - <<'PY'
           import os, sys
@@ -206,6 +209,9 @@ jobs:
           QWTW_REQUIRE_LIVE_TEST: "1"
           QWTW_TEST_ARTIFACT_DIR: ${{ runner.temp }}/qwtw_artifacts
         run: |
+          # Append MSYS2 /ucrt64/bin AFTER Julia's PATH entries so qwproc.exe finds
+          # Qt6 DLLs while Julia itself always loads its own bundled MinGW DLLs first.
+          export PATH="$PATH:$(cygpath -u "$MSYS2_UCRT_BIN")"
           git clone --depth 1 https://github.com/ig-or/QWTWPlot.jl.git "$RUNNER_TEMP/QWTWPlot"
           julia --project="$(cygpath -w "$RUNNER_TEMP/QWTWPlot")" -e 'import Pkg; Pkg.test()'
 
