@@ -33,14 +33,10 @@ endif()
 libraryEnd(SHARED)
 
 if(MINGW)
-    # Statically link libstdc++, libgcc, and winpthreads into libqwtw.dll so
-    # loading it inside host runtimes that ship their own MinGW runtime DLLs
+    # Statically link libstdc++, libgcc, and winpthreads into libqwtw.dll (`-static`)
+    # so loading it inside host runtimes that ship their own MinGW runtime DLLs
     # (e.g. Julia on Windows) never clashes on libstdc++-6.dll or libwinpthread-1.dll.
-    target_link_options(${PROJECT_NAME} PRIVATE
-        -static-libgcc
-        -static-libstdc++
-        -Wl,-Bstatic -lwinpthread -Wl,-Bdynamic
-    )
+    target_link_options(${PROJECT_NAME} PRIVATE -static)
 endif()
 
 set(OUR_LIBNAME_REPORT ${OUR_LIBNAME_REPORT} ${PROJECT_NAME} CACHE INTERNAL "OUR_LIBNAME_REPORT")

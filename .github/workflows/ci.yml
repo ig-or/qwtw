@@ -221,6 +221,8 @@ jobs:
         run: |
           echo "=== Running processes ==="
           tasklist | grep -iE "qwproc|julia|python" || true
+          echo "=== %TEMP%/qwtw/*_lib.txt ==="
+          tail -n 60 "$TEMP"/qwtw/*_lib.txt 2>/dev/null || true
           echo "=== ~/.qwtw/log/log.txt ==="
           cat "$USERPROFILE/.qwtw/log/log.txt" 2>/dev/null || cat "$HOME/.qwtw/log/log.txt" 2>/dev/null || true
           taskkill //F //IM qwproc.exe 2>/dev/null || true
