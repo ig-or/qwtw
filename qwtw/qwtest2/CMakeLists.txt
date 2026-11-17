@@ -15,9 +15,9 @@ addSourceFiles("source" "../" qwtest2)
 
 if(UNIX AND NOT APPLE)
     find_package(Threads REQUIRED)
-    addOtherLib("dl" Threads::Threads)
+    addOtherLib(${CMAKE_DL_LIBS} Threads::Threads)
 elseif(APPLE)
-    addOtherLib("dl")
+    addOtherLib(${CMAKE_DL_LIBS})
 endif()
 
 programEnd()

@@ -205,8 +205,12 @@ bool rcvIsNan(float f) {
 void getExeFilePath(char* path, int pathSize) {
 	path[0] = 0;
     #ifdef LIN_UX
-         int len = readlink("/proc/self/exe", path, pathSize);
-		 path[len] = 0;
+         int len = readlink("/proc/self/exe", path, pathSize - 1);
+		 if (len > 0) {
+			 path[len] = 0;
+		 } else {
+			 path[0] = 0;
+		 }
 		 /*
 		 char* p = strrchr(path, '/');
 		 if(p)  { 

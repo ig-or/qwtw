@@ -87,8 +87,9 @@ void assert_failed(const char* file, unsigned int line, const char* str);
 #endif
 
 #ifdef LIN_UX
-	#include "memory.h"
-	#include "stddef.h"
+	#include <string.h>
+	#include <strings.h>
+	#include <stddef.h>
 	#define strnicmp strncasecmp
 	#include <stdexcept>
 	#ifndef XMPRINTF_TO_FILE      //   printing not to file:

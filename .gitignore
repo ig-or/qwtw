@@ -43,3 +43,4 @@ lib/
 build_info.cpp
 build_number.cpp
 buildnumber.txt
+.cache/

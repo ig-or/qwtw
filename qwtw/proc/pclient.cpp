@@ -19,19 +19,22 @@
 	#include <sys/wait.h>
 	#include <unistd.h>
 	extern char** environ;
-#elif defined(__linux__) || defined(__linux)
+#elif defined(WIN32)
+	#include <windows.h>
+	const char* getQwtwDllPath();
+#else
 	#include <dlfcn.h>
 	#include <limits.h>
 	#include <spawn.h>
 	#include <sys/wait.h>
 	#include <unistd.h>
+	#ifdef __FreeBSD__
+		#include <sys/sysctl.h>
+	#endif
 	extern char** environ;
-#elif defined(WIN32)
-	#include <windows.h>
-	const char* getQwtwDllPath();
 #endif
 
-#if defined(__APPLE__) || defined(__linux__) || defined(__linux)
+#ifndef WIN32
 static void qwtw_lib_anchor() {}
 
 // Return directory containing this shared library so qwproc can be found next to it.
@@ -121,7 +124,7 @@ static std::string findQwProcPath() {
 			}
 		}
 	}
-#elif defined(__APPLE__) || defined(__linux__) || defined(__linux)
+#else
 	// 2. Directory of this shared library (and ../bin for installed CMake/JLL layouts)
 	{
 		std::string libDir = getQwtwLibDir();
@@ -151,6 +154,19 @@ static std::string findQwProcPath() {
 				return pa.string();
 			}
 			xmprintf(2, "\t\t .. nothing found\n");
+		}
+	}
+#elif defined(__FreeBSD__)
+	// 3. Directory of the main executable (FreeBSD)
+	{
+		char result[PATH_MAX] = {0};
+		size_t len = sizeof(result);
+		int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PATHNAME, -1};
+		if (::sysctl(mib, 4, result, &len, nullptr, 0) == 0 && result[0] != '\0') {
+			fs::path pa = fs::path(result).parent_path() / procName;
+			if (fs::exists(pa, ec) && !fs::is_directory(pa, ec)) {
+				return pa.string();
+			}
 		}
 	}
 #elif defined(__linux__) || defined(__linux)

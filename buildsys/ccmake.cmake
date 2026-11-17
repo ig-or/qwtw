@@ -32,10 +32,11 @@ macro(setPlatformName)
         set(ourLibSuffix lib)
 
     elseif(UNIX)
+        string(TOLOWER "${CMAKE_SYSTEM_NAME}" _sys_lower)
         if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-            set(ourPlatform linux-${CMAKE_SYSTEM_PROCESSOR})
+            set(ourPlatform ${_sys_lower}-${CMAKE_SYSTEM_PROCESSOR})
         else()
-            set(ourPlatform linux-x32)
+            set(ourPlatform ${_sys_lower}-x32)
         endif()
         set(ourLibSuffix lib)
 
@@ -549,9 +550,9 @@ macro(commonEnd libType)
         add_definitions(-DWITH_VERSION_INFO)
     endif()
 
-    # C++23 by default across the project (override via -DCMAKE_CXX_STANDARD=20 if needed).
+    # C++17 by default across the project (Qt6 baseline; override via -DCMAKE_CXX_STANDARD=20 if needed).
     if(NOT DEFINED CMAKE_CXX_STANDARD)
-        set(CMAKE_CXX_STANDARD 23)
+        set(CMAKE_CXX_STANDARD 17)
     endif()
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
